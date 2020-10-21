@@ -1,0 +1,9 @@
+.env
+*.js
+!utils/swaggerDef.js
+
+node_modules
+.vscode
+
+*.js.map
+swagger.json
