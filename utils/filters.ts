@@ -1,3 +1,5 @@
+// Filters function, this will filter data that fetched from database.
+
 import { is_none, filter_empty, hasKey } from "./swissknife";
 import { YouTubeData, BilibiliData, TwitcastingData, TwitchData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
 import moment = require('moment-timezone');
@@ -25,6 +27,14 @@ const GROUPS_MAPPINGS = {
     "hanayori": ["hanayori"],
     "voms": ["voms"],
     "kizunaai": ["kizunaai"],
+    "dotlive": ["dotlive"],
+    "vic": ["vic"],
+    "vgaming": ["vgaming"],
+    "paryiproject": ["paryiproject"],
+    "solo": ["solotuber", "solovtuber"],
+    "solotuber": ["solotuber"],
+    "solovtuber": ["solovtuber"],
+    "entum": ["entum"]
 }
 const GROUPS_KEY = [
     "vtuberesports",
@@ -48,6 +58,7 @@ function get_group(group_name: string) {
 }
 
 function sortLive(results: YouTubeData[] | BilibiliData[] | TwitcastingData[] | TwitchData[], key_base: string) {
+    if (is_none(results)) { return []; }
     if (results.length < 2) {
         return results;
     }
@@ -76,7 +87,7 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArra
     let filtered_upcoming: YouTubeData[] = [];
     let filtered_ended: YouTubeData[] = [];
     const DEFAULT_FIELDS_KEY = [
-        "id", "title", "status", "startTime", "thumbnail", "endTime", "viewers", "channel"
+        "id", "title", "status", "startTime", "thumbnail", "endTime", "viewers", "channel", "group", "platform"
     ];
 
     var groups = args.group;
@@ -309,4 +320,4 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
 }
 
 // Export main function,
-export { bilibili_use_uuids, parse_youtube_live_args, sortLive, channel_filters };
+export { bilibili_use_uuids, parse_youtube_live_args, sortLive, channel_filters, get_group };
