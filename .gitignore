@@ -8,3 +8,4 @@ node_modules
 *.js.map
 swagger.json
 coverage/
+!jest.config.js
