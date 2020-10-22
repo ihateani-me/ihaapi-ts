@@ -262,8 +262,8 @@ module.exports = {
             "tags": ["bilischedule_model", "bilichannel_model", "youtubeschedule_model", "youtubechannel_model"]
         }
     ],
-    "components": {
-        schemas: MAIN_MODELS_SCHEMAS
-    },
+    // "components": {
+    //     schemas: MAIN_MODELS_SCHEMAS
+    // },
     "definitions": MAIN_MODELS_SCHEMAS
 }
