@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ihateani.me API - ReDoc</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" href="/assets/favicon.ico">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #272727;
+        }
+
+        .redoc-wrap {
+            background-color: #272727;
+        }
+
+        .kfkaqq {
+            border-color: rgb(119 210 255 / 30%) !important;
+            color: rgb(255 255 255 / 67%) !important;
+        }
+
+        .hctKJM {
+            color: white !important;
+        }
+
+        .dSJzNl {
+            color: white !important;
+        }
+
+        .fgtxbi {
+            background-color: rgb(90 90 90) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <app id="redoc"></app>
+    <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0-rc.44/bundles/redoc.standalone.js"> </script>
+    <script>
+        const darkenTheme = {
+            colors: {
+                primary: {
+                    main: "#cbcbfd",
+                    dark: "#ffffff",
+                    contrastText: "#ffffff"
+                },
+                text: {
+                    primary: "#ffffff",
+                    secondary: "#ffffff",
+                },
+                success: {
+                    main: "#34d243"
+                }
+            },
+            schema: {
+                nestedBackground: "#2f2f2f",
+            },
+            typography: {
+                code: {
+                    color: "#e46f6c"
+                }
+            },
+            sidebar: {
+                backgroundColor: '#353d42',
+                textColor: '#ffffff',
+            }
+        };
+
+        Redoc.init('{{ SPEC_URL }}', {
+            hideDownloadButton: true,
+            disableSearch: false,
+            theme: darkenTheme
+        }, document.getElementById("redoc"));
+    </script>
+</body>
+
+</html>

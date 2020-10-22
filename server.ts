@@ -3,14 +3,12 @@ import * as express from "express";
 import * as cons from "consolidate";
 import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
-import swaggerUi = require("swagger-ui-express");
 import moment = require('moment-timezone');
+import { AssetsRoute } from "./assets";
 const swaggerDocument = require('./swagger.json');
 
 const app = express();
 const app_version = "0.9.0";
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
@@ -21,6 +19,18 @@ app.get("/", (_, res) => {
         API_VERSION: app_version,
         MONGO_DBTYPE: VTubersDB.dbtype,
         MONGO_DBVERSION: VTubersDB.version
+    })
+});
+
+app.use("/assets", AssetsRoute);
+
+app.get("/swagger.yml", (_, res) => {
+    res.sendFile(__dirname + "/swagger.yml");
+});
+
+app.get("/api-docs", (_, res) => {
+    res.render("redoc", {
+        SPEC_URL: "/swagger.yml"
     })
 });
 
