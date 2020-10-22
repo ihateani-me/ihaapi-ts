@@ -7,6 +7,9 @@
     "start": "echo Creating Swagger docs... && npx swagger-jsdoc -o ./swagger.yml -d ./utils/swaggerDef.js ./routes/*.ts && echo Compiling ts scripts to js && tsc && echo Starting server... && node server.js",
     "test": "jest"
   },
+  "engines": {
+    "node": "12.x"
+  },
   "repository": {
     "url": "https://github.com/noaione/ihaapi-ts"
   },
