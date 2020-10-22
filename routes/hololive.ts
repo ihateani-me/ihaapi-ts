@@ -29,6 +29,13 @@ holoroutes.use((req, res, next) => {
  *        description: Filter upcoming results with User ID (support multiple id separated by comma)
  *        required: false
  *        type: string
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/live").json()
+ *           print(res["live"])
  *      responses:
  *          '200':
  *              description: A list of live/upcoming streams
@@ -131,6 +138,13 @@ holoroutes.get("/live", (req, res) => {
  *        enum:
  *        - ascending
  *        - descending
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/channels").json()
+ *           print(res["channels"])
  *      responses:
  *          '200':
  *              description: A list of channels.
