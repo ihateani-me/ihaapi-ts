@@ -5,10 +5,9 @@ import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
-const swaggerDocument = require('./swagger.json');
 
 const app = express();
-const app_version = "0.9.0";
+const app_version = "0.9.1";
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
