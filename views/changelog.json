@@ -1,0 +1,39 @@
+{
+    "0.2": ["First public API release.", "Include only upcoming streams"],
+    "0.3": [
+        "Added channels support", "Implement Youtube endpoint for other VTubers", "Open sourced the code"
+    ],
+    "0.4": ["Added live data support for bilibili.", "Added Swagger for API Docs."],
+    "0.5": [
+        "Rework backend code to made it faster", "Rearrange frontend stuff", "Removed API rate limiting."
+    ],
+    "0.6": ["Added Twitch and Twitcasting endpoint."],
+    "0.6.2": ["Code cleanup.", "Utilize browser caching a.k.a Cache-Control"],
+    "0.7": [
+        "Add viewers count.", "New and slick homepage (lmao)", "(This version of code are still unreleased)"
+    ],
+    "0.8": [
+        "Full website rework", "Improve backend code to be faster",
+        "(This version of code are not open sourced yet)"
+    ],
+    "0.8.5": [
+        "Add full Nijisanji EN/JP/ID/KR support to the website"
+    ],
+    "0.8.6": [
+        "Add past live stream array for Nijisanji and Others VTubers on Youtube.",
+        "Added this changelog page.",
+        "Improvise how backend works for Youtube streams."
+    ],
+    "0.9.0": [
+        "Add group fields to youtube livestream results",
+        "Allow filtering what will be returned to user (for Youtube streams)."
+    ],
+    "0.9.1": [
+        "First effort to port the Web/Frontend to TypeScript",
+        "Change API docs to use ReDoc"
+    ],
+    "0.9.2": [
+        "Finalized all VTuber API porting.",
+        "An already private deployed version are available."
+    ]
+}
