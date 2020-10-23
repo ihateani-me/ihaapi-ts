@@ -1,9 +1,8 @@
-import cons = require("consolidate");
 import * as express from "express";
 import { VTubersDB } from "../dbconn";
 import { bilibili_use_uuids, sortLive, channel_filters } from "../utils/filters";
-import { LiveMap, BilibiliData, BiliBiliChannel, ChannelMap, ChannelArray } from "../utils/models";
-const holoroutes = express.Router()
+import { LiveMap, BilibiliData, BiliBiliChannel, ChannelMap } from "../utils/models";
+const holoroutes = express.Router();
 
 holoroutes.use((req, res, next) => {
     res.header({
