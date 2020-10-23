@@ -49,6 +49,25 @@ export function hasKey(object_data: any, key_name: string): boolean {
 }
 
 /**
+ * Get a key of an Object.
+ * @param { Object } object_data - an Object that need checking.
+ * @param { string } key_name - key that will be checked.
+ * @param { string } defaults - fallback
+ * @returns { string } value of the inputted key.
+ */
+export function getValueFromKey(object_data: any, key_name: string, defaults: string = null): string {
+    if (is_none(object_data)) {
+        return defaults;
+    }
+    if (!hasKey(object_data, key_name)) {
+        return defaults;
+    }
+    let all_keys = Object.keys(object_data);
+    let index = all_keys.findIndex(key => key === key_name);
+    return object_data[all_keys[index]];
+}
+
+/**
  * Map a string to a boolean, used for Express query.
  * @param { any } input_data - data to map
  * @returns { boolean } mapped boolean
