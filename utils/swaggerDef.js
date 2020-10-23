@@ -1,16 +1,31 @@
-const API_DESCRIPTIONS = `A VTubers **API endpoint** for
-the new [BiliBili scheduling system](https://live.bilibili.com/p/html/live-web-calendar).
+const API_DESCRIPTIONS = `A maybe-pretty-fast API endpoint made mainly for VTuber stuff.<br>
 
-You could contact me at **Discord**: _N4O#8868_
-If you need more Other VTubers to add to the list.
+The current API are written in TypeScript and was ported from Python.<br>
+Using MongoDB as it's Backend Database and Express as the Web Backend.<br>
+Everything is still being ported, v1 will be when it's finalized.
 
-This API are updating automatically via Python appscheduler:
-\- **Every 1 minute** for YouTube/Twitch/Twitcasting Live Streams data.
-\- **Every 2 minutes** for YouTube Upcoming Streams data.
-\- **Every 2 minutes** for BiliBili Live Streams data.
-\- **Every 4 minutes** for BiliBili Upcoming Streams data.
-\- **Every 6 hours** for Channels Info/Stats.
+It's expanded so much that I don't bother hosting it on another domain.<br>
+Most of the API are hidden but you can contact me more via Email or Discord to get more info.
+
+**Discord: N4O#8868**<br>
+Please don't just add me, after you add me start messaging me so I'll know.
 `;
+
+const VTAPI_INFORMATION = `A VTubers **API endpoint** for the new [BiliBili scheduling system](https://live.bilibili.com/p/html/live-web-calendar).<br>
+And also include API endpoint for YouTube streams, Twitcasting and Twitch Streams.<br>
+Including Channel Stats.
+
+This API are updating automatically via Python appscheduler (Running on another server.):<br>
+\\- **Every 1 minute** for YouTube/Twitch/Twitcasting Live Streams data.<br>
+\\- **Every 2 minutes** for YouTube Upcoming Streams data.<br>
+\\- **Every 2 minutes** for BiliBili Live Streams data.<br>
+\\- **Every 4 minutes** for BiliBili Upcoming Streams data.<br>
+\\- **Every 6 hours** for Channels Info/Stats.<br>
+
+You could contact me at **Discord: _N4O#8868_**<br>
+If you need more Other VTubers to add to the list.<br>
+After you add me, please Send Message directly so I'll know.
+`
 
 const MAIN_MODELS_SCHEMAS = {
     "BiliScheduleModel": {
@@ -105,6 +120,78 @@ const MAIN_MODELS_SCHEMAS = {
                 type: "string",
                 description: "The platform the stream running currently.",
                 example: "youtube"
+            }
+        }
+    },
+    "TwitcastingScheduleModel": {
+        description: "The Model Representing the Twitcasting Live Schedule Endpoint.",
+        type: "object",
+        required: ["id", "title", "startTime", "channel", "viewers", "peakViewers", "platform"],
+        properties: {
+            id: {
+                type: "string",
+                description: "A twitcasting stream ID"
+            },
+            title: {
+                type: "string",
+                description: "The stream title."
+            },
+            startTime: {
+                type: "integer",
+                description: "Scheduled/Real stream start time in UTC."
+            },
+            channel: {
+                type: "string",
+                description: "Twitcaster Channel ID."
+            },
+            viewers: {
+                type: "integer",
+                description: "Current viewers for the stream."
+            },
+            peakViewers: {
+                type: "integer",
+                description: "Peak viewers for the stream."
+            },
+            platform: {
+                type: "string",
+                description: "The platform the stream running currently.",
+                example: "twitcasting"
+            }
+        }
+    },
+    "TwitchScheduleModel": {
+        description: "The Model Representing the Twitch Live Schedule Endpoint.",
+        type: "object",
+        required: ["id", "title", "startTime", "channel", "channel_id", "thumbnail", "platform"],
+        properties: {
+            id: {
+                type: "string",
+                description: "A twitch stream ID"
+            },
+            title: {
+                type: "string",
+                description: "The stream title."
+            },
+            startTime: {
+                type: "integer",
+                description: "Scheduled/Real stream start time in UTC."
+            },
+            channel: {
+                type: "string",
+                description: "Twitch channel login name or username."
+            },
+            channel_id: {
+                type: "string",
+                description: "Twitch channel user ID."
+            },
+            thumbnail: {
+                type: "string",
+                description: "The thumbnail of ths stream."
+            },
+            platform: {
+                type: "string",
+                description: "The platform the stream running currently.",
+                example: "twitch"
             }
         }
     },
@@ -203,6 +290,82 @@ const MAIN_MODELS_SCHEMAS = {
                 example: "youtube"
             }
         }
+    },
+    "TwitcastingChannelModel": {
+        description: "The Model Representing the Twitcasting Channel Endpoint.",
+        "type": "object",
+        "required": ["id", "name", "description", "thumbnail", "followerCount", "level", "platform"],
+        properties: {
+            id: {
+                type: "string",
+                description: "Twitch username."
+            },
+            name: {
+                type: "string",
+                description: "The channel name."
+            },
+            description: {
+                type: "string",
+                description: "The channel description."
+            },
+            thumbnail: {
+                type: "string",
+                description: "The Channel profile picture."
+            },
+            followerCount: {
+                type: "integer",
+                description: "The channels subscription/followers count."
+            },
+            level: {
+                type: "integer",
+                description: "The channels level."
+            },
+            platform: {
+                type: "string",
+                description: "The platform the stream running currently.",
+                example: "twitcasting"
+            }
+        }
+    },
+    "TwitchChannelModel": {
+        description: "The Model Representing the Twitch Channel Endpoint.",
+        "type": "object",
+        "required": ["id", "user_id", "name", "description", "thumbnail", "followerCount", "viewCount", "platform"],
+        properties: {
+            id: {
+                type: "string",
+                description: "Twitch username."
+            },
+            user_id: {
+                type: "string",
+                description: "Twitch user id."
+            },
+            name: {
+                type: "string",
+                description: "The channel name."
+            },
+            description: {
+                type: "string",
+                description: "The channel description."
+            },
+            thumbnail: {
+                type: "string",
+                description: "The Channel profile picture."
+            },
+            followerCount: {
+                type: "integer",
+                description: "The channels subscription/followers count."
+            },
+            viewCount: {
+                type: "integer",
+                description: "The channels views count."
+            },
+            platform: {
+                type: "string",
+                description: "The platform the stream running currently.",
+                example: "twitch"
+            }
+        }
     }
 }
 
@@ -231,6 +394,8 @@ module.exports = {
         {"name": "Others", "description": "Others VTubers BiliBili & YouTube Endpoint"},
         {"name": "Twitcasting", "description": "Twitcasting Stream Endpoint"},
         {"name": "Twitch", "description": "Twitch Stream Endpoint"},
+        {"name": "games_api", "x-displayName": "Games API", "description": "An API wrapper anything related to games."},
+        {"name": "nh_nsfw", "x-displayName": "nH [NSFW]", "description": "An API wrapper for nH (you know what it is)."},
         {
             "name": "bilischedule_model",
             "x-displayName": "BiliBili Live Schedule",
@@ -250,16 +415,51 @@ module.exports = {
             "name": "youtubechannel_model",
             "x-displayName": "YouTube Channel",
             "description": `<SchemaDefinition schemaRef="#/components/schemas/YouTubeChannelModel" />`
-        }
+        },
+        {
+            "name": "twitchlive_model",
+            "x-displayName": "Twitch Live Schedule",
+            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitchScheduleModel" />`
+        },
+        {
+            "name": "twitchchannel_model",
+            "x-displayName": "Twitch Channel",
+            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitchChannelModel" />`
+        },
+        {
+            "name": "twitcastlive_model",
+            "x-displayName": "Twitcasting Live Schedule",
+            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingScheduleModel" />`
+        },
+        {
+            "name": "twitcastchannel_model",
+            "x-displayName": "Twitcasting Channel",
+            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingChannelModel" />`
+        },
+        {"name": "vtapi_info", "description": VTAPI_INFORMATION, "x-displayName": "Information"},
+        {"name": "otherapi_info", "description": "Soon to be written™", "x-displayName": "Information"}
     ],
     "x-tagGroups": [
         {
-            "name": "Endpoint",
-            "tags": ["Hololive", "Nijisanji", "Others", "Twitcasting", "Twitch"]
+            "name": "VTuber API",
+            "tags": ["vtapi_info", "Hololive", "Nijisanji", "Others", "Twitcasting", "Twitch"]
+        },
+        {
+            "name": "Others API",
+            "tags": ["otherapi_info", "games_api", "nh_nsfw"]
         },
         {
             "name": "Models",
-            "tags": ["bilischedule_model", "bilichannel_model", "youtubeschedule_model", "youtubechannel_model"]
+            "tags": [
+                "bilischedule_model",
+                "bilichannel_model",
+                "youtubeschedule_model",
+                "youtubechannel_model",
+                "twitcastlive_model",
+                "twitcastchannel_model",
+                "twitchlive_model",
+                "twitchchannel_model"
+            ]
         }
     ],
     // "components": {
