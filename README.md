@@ -11,13 +11,12 @@ Running the server: `npm run start`
 ## Running it yourself
 Don't.
 
-I made it not modular so you need to change some files, especially `dbconn/index.ts`
+I made it for myself so you need to change some files, especially `dbconn/index.ts`<br>
+Where I put 2 const because my brain decided to use 2 different DB and not one single db.
 
-Where I put 2 const because my dumbass use 2 different DB and not one for the same thing.
+The database can be hosted anywhere, the backend part could be found here: [noaione/vtb-schedule/server](https://github.com/noaione/vtb-schedule/tree/master/server)
 
-The database can be hosted anywhere the backend part could be found here: [noaione/vtb-schedule/server](https://github.com/noaione/vtb-schedule/tree/master/server)
-
-`routes/museid.ts` could be deleted since it was specifically for ONE discord server.
+`routes/museid.ts` could be deleted since it was specifically made for ONE discord server.
 
 ## Why do yoo have some deps that aren't even used?
 Shut the fuck up.<br>
