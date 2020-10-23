@@ -16,7 +16,7 @@ nijiroutes.use((req, res, next) => {
  * @swagger
  * /nijisanji/live:
  *  get:
- *      summary: Live/Upcoming Nijisanji/VirtuaReal BiliBili Streams
+ *      summary: Get Nijisanji/VirtuaReal BiliBili Live Schedule
  *      description: Fetch a list of live/upcoming streams from BiliBili for Nijisanji/VirtuaReal VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Nijisanji
@@ -86,7 +86,7 @@ nijiroutes.get("/live", (req, res) => {
  * @swagger
  * /nijisanji/channels:
  *  get:
- *      summary: Nijisanji/VirtuaReal Vtubers BiliBili Channel Stats
+ *      summary: Get Nijisanji/VirtuaReal BiliBili Channel Info/Stats
  *      description: Fetch a list of Nijisanji/VirtuaReal VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji
@@ -110,7 +110,7 @@ nijiroutes.get("/live", (req, res) => {
  *        - live
  *      - in: query
  *        name: sort
- *        description: Sort data by one of the values below.
+ *        description: Sort data by one of the values available.
  *        required: false
  *        type: string
  *        enum:
@@ -176,7 +176,7 @@ nijiroutes.get("/channels", (req, res) => {
  * @swagger
  * /nijisanji/youtube/live:
  *  get:
- *      summary: Live/Upcoming Nijisanji YouTube Streams
+ *      summary: Get Nijisanji YouTube Live Schedule
  *      description: |
  *          Fetch a list of live/upcoming streams from Youtube for Nijisanji VTubers, updated every 1 minute for live data and 2 minutes for upcoming data.
  *       
@@ -280,7 +280,7 @@ nijiroutes.get("/youtube/live", (req, res) => {
  * @swagger
  * /nijisanji/youtube/channels:
  *  get:
- *      summary: Nijisanji Vtubers YouTube Channel Stats
+ *      summary: Get Nijisanji YouTube Channel Info/Stats
  *      description: Fetch a list of Nijisanji VTubers YouTube channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji
@@ -316,7 +316,7 @@ nijiroutes.get("/youtube/live", (req, res) => {
  *        - nijisanjiid
  *      - in: query
  *        name: sort
- *        description: Sort data by one of the values below.
+ *        description: Sort data by one of the values available.
  *        required: false
  *        type: string
  *        enum:

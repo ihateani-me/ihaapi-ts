@@ -17,7 +17,7 @@ holoroutes.use((req, res, next) => {
  * @swagger
  * /live:
  *  get:
- *      summary: Live/Upcoming HoloPro BiliBili Streams
+ *      summary: Get HoloPro BiliBili Live Schedule
  *      description: Fetch a list of live/upcoming streams from BiliBili for HoloPro VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Hololive
@@ -94,7 +94,7 @@ holoroutes.get("/live", (req, res) => {
  * @swagger
  * /channels:
  *  get:
- *      summary: HoloPro Vtubers BiliBili Channel Stats
+ *      summary: Get HoloPro BiliBili Channel Info/Stats
  *      description: Fetch a list of HoloPro VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Hololive
@@ -118,7 +118,7 @@ holoroutes.get("/live", (req, res) => {
  *        - live
  *      - in: query
  *        name: sort
- *        description: Sort data by one of the values below.
+ *        description: Sort data by one of the values available.
  *        required: false
  *        type: string
  *        enum:

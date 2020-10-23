@@ -16,7 +16,7 @@ othersroutes.use((req, res, next) => {
  * @swagger
  * /other/upcoming:
  *  get:
- *      summary: Upcoming Others VTubers BiliBili Streams
+ *      summary: Get Others VTuber BiliBili Upcoming Schedule
  *      description: Fetch a list of upcoming streams from BiliBili for Other VTubers, updated every 4 minutes.
  *      tags:
  *      - Others
@@ -80,7 +80,7 @@ othersroutes.get("/upcoming", (req, res) => {
  * @swagger
  * /other/channels:
  *  get:
- *      summary: Others Vtubers BiliBili Channel Stats
+ *      summary: Get Other VTubers BiliBili Channel Info/Stats
  *      description: Fetch a list of Others VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Others
@@ -104,7 +104,7 @@ othersroutes.get("/upcoming", (req, res) => {
  *        - live
  *      - in: query
  *        name: sort
- *        description: Sort data by one of the values below.
+ *        description: Sort data by one of the values available.
  *        required: false
  *        type: string
  *        enum:
@@ -170,7 +170,7 @@ othersroutes.get("/channels", (req, res) => {
  * @swagger
  * /other/youtube/live:
  *  get:
- *      summary: Live/Upcoming Others VTubers YouTube Streams
+ *      summary: Get Other VTubers YouTube Live Schedule
  *      description: |
  *          Fetch a list of live/upcoming streams from YouTube for Other VTubers, updated every 1 minute for live data and 2 minutes for upcoming data.
  *       
@@ -283,7 +283,7 @@ othersroutes.get("/youtube/live", (req, res) => {
  * @swagger
  * /other/youtube/channels:
  *  get:
- *      summary: Others Vtubers YouTube Channel Stats
+ *      summary: Get Other VTubers YouTube Channel Info/Stats
  *      description: Fetch a list of Others VTubers YouTube channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Others
@@ -328,7 +328,7 @@ othersroutes.get("/youtube/live", (req, res) => {
  *        - others
  *      - in: query
  *        name: sort
- *        description: Sort data by one of the values below.
+ *        description: Sort data by one of the values available.
  *        required: false
  *        type: string
  *        enum:
