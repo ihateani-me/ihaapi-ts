@@ -1,7 +1,5 @@
 // A collection of utility dubbed swiss knife (as in swiss knife army.)
 
-import { type } from "os";
-
 /**
  * Check if the variable is a null type or not.
  * @param { any } key - things that want to be checked.
