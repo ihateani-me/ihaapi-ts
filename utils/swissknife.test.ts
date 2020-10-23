@@ -32,6 +32,31 @@ test("[Has Key] Data passed. --> {data: 'test', id: 123} get `id`", () => {
     expect(SwissKnife.hasKey({data: "test", id: 123}, "id")).toStrictEqual(true);
 })
 
+// getValueFromKey()
+test("[Get Value From Key] Undefined data passed.", () => {
+    expect(SwissKnife.getValueFromKey(null, "id")).toStrictEqual(null);
+    expect(SwissKnife.getValueFromKey(undefined, "id")).toStrictEqual(null);
+})
+test("[Get Value From Key] Undefined data passed with fallback.", () => {
+    expect(SwissKnife.getValueFromKey(null, "id", 123456)).toStrictEqual(123456);
+    expect(SwissKnife.getValueFromKey(undefined, "id", 123456)).toStrictEqual(123456);
+})
+test("[Get Value From Key] Empty data passed.", () => {
+    expect(SwissKnife.getValueFromKey({}, "id")).toStrictEqual(null);
+})
+test("[Get Value From Key] Empty data passed with fallback.", () => {
+    expect(SwissKnife.getValueFromKey({}, "id", 123456)).toStrictEqual(123456);
+})
+test("[Get Value From Key] Data passed. --> {data: 'test'} get `id`", () => {
+    expect(SwissKnife.getValueFromKey({data: "test"}, "id")).toStrictEqual(null);
+})
+test("[Get Value From Key] Data passed. --> {data: 'test'} get `id` with fallback", () => {
+    expect(SwissKnife.getValueFromKey({data: "test"}, "id", 123456)).toStrictEqual(123456);
+})
+test("[Get Value From Key] Data passed. --> {data: 'test', id: 123} get `id`", () => {
+    expect(SwissKnife.getValueFromKey({data: "test", id: 123}, "id")).toStrictEqual(123);
+})
+
 // is_none()
 test("[Is NoneType] Normal datatype passed. (Should be `false`) ", () => {
     expect(SwissKnife.is_none(["data", "y"])).toStrictEqual(false);
