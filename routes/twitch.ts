@@ -1,7 +1,7 @@
 import * as express from "express";
 import { VTubersDB } from "../dbconn";
-import { sortLive } from "../utils/filters";
-import { LiveMap, TwitchData } from "../utils/models";
+import { channel_filters, sortLive } from "../utils/filters";
+import { ChannelArray, LiveMap, TwitchChannel, TwitchData } from "../utils/models";
 const twitchroutes = express.Router()
 
 twitchroutes.use((req, res, next) => {
@@ -13,6 +13,36 @@ twitchroutes.use((req, res, next) => {
     next()
 });
 
+/**
+ * @swagger
+ * /twitch/live:
+ *  get:
+ *      summary: Get Currently Live Twitch Streams
+ *      description: Fetch a list of live streams from Twitch VTubers, updated every 1 minute.
+ *      tags:
+ *      - Twitch
+ *      produces:
+ *      - application/json
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/twitch/live").json()
+ *           print(res["live"])
+ *      responses:
+ *          '200':
+ *              description: A list of live streams
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      live:
+ *                          type: array
+ *                          items:
+ *                              $ref: '#/definitions/TwitchScheduleModel'
+ *                      cached:
+ *                          type: boolean
+ */
 twitchroutes.get("/live", (req, res) => {
     try {
         console.log("[Twitch] Fetching Database...");
@@ -31,6 +61,100 @@ twitchroutes.get("/live", (req, res) => {
                 final_mappings["live"] = sortLive(vtb_res["live"], "startTime");
                 final_mappings["cached"] = true;
                 console.log("[Twitch] Sending...");
+                res.json(final_mappings)
+            })
+            .catch(error => {
+                console.log(error);
+                res.status(500).json({message: "Internal server error occured."});
+            });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message: "Internal server error occured."});
+    }
+});
+
+
+/**
+ * @swagger
+ * /twitch/channels:
+ *  get:
+ *      summary: Get Twitch Channel Info/Stats
+ *      description: Fetch a list of VTubers Twitch channels info/statistics, updated every 6 hours.
+ *      tags:
+ *      - Twitch
+ *      produces:
+ *      - application/json
+ *      parameters:
+ *      - in: query
+ *        name: fields
+ *        description: Filter fields that will be returned, multiples value are separated by comma
+ *        required: false
+ *        type: string
+ *        enum:
+ *        - id
+ *        - user_id
+ *        - name
+ *        - description
+ *        - thumbnail
+ *        - followerCount
+ *        - viewCount
+ *      - in: query
+ *        name: sort
+ *        description: Sort data by one of the values available.
+ *        required: false
+ *        type: string
+ *        enum:
+ *        - id
+ *        - user_id
+ *        - name
+ *        - description
+ *        - thumbnail
+ *        - followerCount
+ *        - viewCount
+ *      - in: query
+ *        name: order
+ *        description: Sort order.
+ *        required: false
+ *        type: string
+ *        enum:
+ *        - ascending
+ *        - descending
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/twitch/channels").json()
+ *           print(res["channels"])
+ *      responses:
+ *          '200':
+ *              description: A list of channels.
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      channels:
+ *                          type: array
+ *                          items:
+ *                              $ref: '#/definitions/TwitchChannelModel'
+ *                      cached:
+ *                          type: boolean
+ */
+twitchroutes.get("/channels", (req, res) => {
+    let user_query = req.query;
+    try {
+        console.log("[TwitchChannel] Fetching Database...");
+        VTubersDB.open_collection("twitch_channels")
+            .then(data_docs => {
+                console.log("[TwitchChannel] Parsing Database...");
+                let vtb_res: ChannelArray<TwitchChannel> = data_docs[0];
+                try {
+                    delete vtb_res["_id"];
+                } catch (error) {
+                    console.error(error);
+                }
+                console.log("[TwitchChannel] Filtering Database...");
+                let final_mappings = channel_filters(user_query, vtb_res);
+                console.log("[TwitchChannel] Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
