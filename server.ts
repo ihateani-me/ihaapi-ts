@@ -5,9 +5,10 @@ import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
+const API_CHANGELOG = require("./views/changelog.json");
 
 const app = express();
-const app_version = "0.9.1";
+const app_version = "0.9.2";
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
@@ -36,6 +37,12 @@ app.get("/api-docs", (_, res) => {
 app.all("/swagger", (_, res) => {
     res.redirect("/api-docs", 302);
 });
+
+app.get("/changelog", (_, res) => {
+    res.render("changelog", {
+        CHANGELOGS: API_CHANGELOG
+    })
+})
 
 app.get("/ugh", (_, res) => {
     res.send("I'M AWAKEEEEEEEEEEEEE");
