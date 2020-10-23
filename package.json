@@ -1,6 +1,6 @@
 {
-  "name": "vtb-api",
-  "version": "1.0.0",
+  "name": "ihaapi-ts",
+  "version": "0.9.2",
   "description": "A VTubers Live/Upcomin API",
   "main": "server.js",
   "scripts": {
