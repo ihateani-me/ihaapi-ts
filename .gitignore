@@ -10,3 +10,5 @@ swagger.json
 swagger.yml
 coverage/
 !jest.config.js
+
+*.bat
