@@ -1,4 +1,6 @@
-const API_DESCRIPTIONS = `A maybe-pretty-fast API endpoint made mainly for VTuber stuff.<br>
+const API_DESCRIPTIONS = `Source Code: [noaione/ihaapi-ts](https://github.com/noaione/ihaapi-ts)
+
+A maybe-pretty-fast API endpoint made mainly for VTuber stuff.<br>
 
 The current API are written in TypeScript and was ported from Python.<br>
 Using MongoDB as it's Backend Database and Express as the Web Backend.<br>
@@ -379,10 +381,10 @@ module.exports = {
         },
         license: {
             "name": "MIT License",
-            "url": "https://github.com/noaione/vtb-schedule/blob/master/LICENSE"
+            "url": "https://github.com/noaione/ihaapi-ts/blob/master/LICENSE"
         },
         "x-logo": {
-            "url": "https://api.ihateani.me/favicon.png"
+            "url": "https://cdn.glitch.com/80f8c496-07f7-48d7-81a2-03e2ee470e54%2Ffavicon.png"
         }
     },
     host: "api.ihateani.me",
