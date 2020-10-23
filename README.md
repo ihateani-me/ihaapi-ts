@@ -18,7 +18,7 @@ The database can be hosted anywhere, the backend part could be found here: [noai
 
 `routes/museid.ts` could be deleted since it was specifically made for ONE discord server.
 
-## Why do yoo have some deps that aren't even used?
+## Why do you have some deps that aren't even used?
 Shut the fuck up.<br>
 I'm gonna use it later, just not now because i'm lazy.
 
