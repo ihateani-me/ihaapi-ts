@@ -55,7 +55,7 @@ export function hasKey(object_data: any, key_name: string): boolean {
  * @param { string } defaults - fallback
  * @returns { string } value of the inputted key.
  */
-export function getValueFromKey(object_data: any, key_name: string, defaults: string = null): string {
+export function getValueFromKey(object_data: any, key_name: string, defaults: any = null): any {
     if (is_none(object_data)) {
         return defaults;
     }
