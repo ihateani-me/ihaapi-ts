@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import cons = require('consolidate');
 import { basename } from 'path';
 import xml2js = require("xml2js");
 import { getValueFromKey, hasKey, is_none } from './swissknife';
@@ -71,7 +70,7 @@ class SteamUser {
         this.session = session;
         this.API_KEY = process.env.STEAM_API_KEY;
         this.BASE_API = "https://api.steampowered.com/";
-        this.BASE_STEAM = "https://steamcommunity.com/"
+        this.BASE_STEAM = "https://steamcommunity.com/";
     }
 
     check_if_vanity(user: string | number) {
