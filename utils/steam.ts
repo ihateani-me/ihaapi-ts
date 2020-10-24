@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { basename } from 'path';
 import xml2js = require("xml2js");
-import { getValueFromKey, hasKey, is_none } from './swissknife';
+import { capitalizeIt, getValueFromKey, hasKey, is_none } from './swissknife';
 
 const SDB_ALGOLIA = "https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/";
 const DEFAULT_AVATAR = "https://steamuserimages-a.akamaihd.net/ugc/868480752636433334/1D2881C5C9B3AD28A1D8852903A8F9E1FF45C2C8/";
@@ -88,6 +88,22 @@ interface SteamGameData {
     screenshots?: string[]
     price_data?: SteamGamePriceData
 }
+
+interface SteamGameSearch {
+    id: number
+    title: string
+    price?: string
+    is_free: boolean
+    thumbnail: string
+    platforms: {
+        windows?: boolean
+        mac?: boolean
+        linux?: boolean
+        osx?: boolean
+    }
+    controller_support: string
+}
+
 
 class SteamUser {
     user_data: string | number;
@@ -320,7 +336,7 @@ export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameD
     });
     let json_data = response.data;
     console.info(`[Steam:info] Parsing: ${app_id}...`);
-    let raw_steam_data = json_data[app_id]
+    let raw_steam_data = json_data[app_id];
     if (!raw_steam_data["success"]) {
         return [{}, "Failed fetching that appID from Steam."];
     }
@@ -373,6 +389,54 @@ export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameD
     }
 
     return [parsed_data, "Success"]
+}
+
+
+export async function do_search_on_steam(query_search: string): Promise<SteamGameSearch[]> {
+    const ENDPOINT = "https://store.steampowered.com/api/storesearch";
+    let qparam = {"cc": "id", "l": "en", "term": encodeURIComponent(query_search)};
+    console.info(`[Steam:search] Searching: ${query_search}...`);
+    let response = await axios.get(ENDPOINT, {
+        params: qparam,
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36"
+        }
+    });
+    let results = response.data;
+    console.info(`[Steam:info] Collecting results: ${query_search}...`);
+    if (!hasKey(results, "items")) {
+        console.info("[Steam:search] No result.");
+        return [];
+    };
+
+    let final_results: SteamGameSearch[] = [];
+    results["items"].forEach((res) => {
+        // @ts-ignore
+        let data: SteamGameSearch = {};
+        data["id"] = res["id"];
+        data["title"] = res["name"];
+        if (hasKey(res, "price")) {
+            let current_price: string = res["price"]["final"].toString();
+            let main_price = parseInt(current_price.slice(0, current_price.length - 2)).toLocaleString("en-US", {
+                minimumFractionDigits: 2
+            });
+            let additional = current_price.slice(current_price.length - 2);
+            let parsed_price = main_price.slice(0, main_price.length - 3).replace(",", ".");
+            data["price"] = `Rp ${parsed_price},${additional}`;
+            data["is_free"] = false;
+        } else {
+            data["is_free"] = true;
+        };
+        data["thumbnail"] = res["tiny_image"];
+        data["platforms"] = res["platforms"];
+        if (hasKey(res, "controller_support")) {
+            data["controller_support"] = capitalizeIt(res["controller_support"]);
+        } else {
+            data["controller_support"] = "None";
+        }
+        final_results.push(data);
+    });
+    return final_results;
 }
 
 
