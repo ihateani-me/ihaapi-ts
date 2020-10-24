@@ -1,4 +1,5 @@
 import { MongoClient, Db } from "mongodb";
+import { capitalizeIt } from "../utils/swissknife";
 const server_url = process.env.MONGODB_URI;
 
 class VTBDB {
@@ -25,7 +26,7 @@ class VTBDB {
                 let modules = info.modules;
                 if (modules.length > 0) {
                     this.dbtype = modules[0];
-                    this.dbtype = this.dbtype[0].toUpperCase() + this.dbtype.slice(1);
+                    this.dbtype = capitalizeIt(this.dbtype);
                 } else {
                     this.dbtype = "Community";
                 }
@@ -50,7 +51,7 @@ class VTBDB {
                     let modules = info.modules;
                     if (modules.length > 0) {
                         this.dbtype = modules[0];
-                        this.dbtype = this.dbtype[0].toUpperCase() + this.dbtype.slice(1);
+                        this.dbtype = capitalizeIt(this.dbtype);
                     } else {
                         this.dbtype = "Community";
                     }
