@@ -101,3 +101,13 @@ export function map_bool(input_data: any): boolean {
     }
     return fstat;
 }
+
+/**
+ * Capitalize a string.
+ * @param { string } text - text that need capitalizing.
+ * @returns { string } capitalized string
+ */
+export function capitalizeIt(text: string): string {
+    if (is_none(text)) {return text};
+    return text.slice(0, 1).toUpperCase() + text.slice(1);
+}

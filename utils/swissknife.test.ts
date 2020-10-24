@@ -98,3 +98,11 @@ test("[Map to Boolean] Passed a string that is 'y' (Should be `true`)", () => {
     expect(SwissKnife.map_bool("1")).toStrictEqual(true);
     expect(SwissKnife.map_bool(1)).toStrictEqual(true);
 })
+
+// capitalizeIt()
+test("[Capitalize It] Null data", () => {
+    expect(SwissKnife.capitalizeIt(null)).toStrictEqual(null);
+})
+test("[Capitalize It] `test_string` -> `Test_string`", () => {
+    expect(SwissKnife.capitalizeIt("test_string")).toStrictEqual("Test_string");
+})
