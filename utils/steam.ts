@@ -51,6 +51,44 @@ interface SteamUserData {
     ban_data: SteamUserBanData
 }
 
+
+interface SteamGameCategory {
+    id: number
+    description: string
+}
+
+
+interface SteamGamePriceData {
+    discount: boolean
+    price: string
+    original_price?: string
+    discounted?: string
+}
+
+interface SteamGameData {
+    id: number
+    title: string
+    platforms: {
+        windows?: boolean
+        mac?: boolean
+        linux?: boolean
+        osx?: boolean
+    }
+    developer: string[]
+    publisher: string[]
+    thumbnail: string
+    is_free: boolean
+    is_released: boolean
+    category?: SteamGameCategory[]
+    description: string
+    type: string
+    released: string | null
+    genres: SteamGameCategory[]
+    total_achivements?: number
+    screenshots?: string[]
+    price_data?: SteamGamePriceData
+}
+
 class SteamUser {
     user_data: string | number;
     is_vanity: boolean;
@@ -268,6 +306,73 @@ class SteamUser {
         }
         return user_data;
     }
+}
+
+export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameData | object, string]> {
+    const ENDPOINT = "https://store.steampowered.com/api/appdetails";
+    let qparam = {"cc": "id", "l": "en", "appids": app_id};
+    console.info(`[Steam:info] Querying ID: ${app_id}...`);
+    let response = await axios.get(ENDPOINT, {
+        params: qparam,
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36"
+        }
+    });
+    let json_data = response.data;
+    console.info(`[Steam:info] Parsing: ${app_id}...`);
+    let raw_steam_data = json_data[app_id]
+    if (!raw_steam_data["success"]) {
+        return [{}, "Failed fetching that appID from Steam."];
+    }
+    let steam_data = raw_steam_data["data"];
+    // @ts-ignore
+    let parsed_data: SteamGameData = {"price_data": {}};
+    parsed_data["id"] = steam_data["steam_appid"]
+    parsed_data["title"] = steam_data["name"]
+    parsed_data["platforms"] = steam_data["platforms"]
+    parsed_data["developer"] = steam_data["developers"]
+    parsed_data["publisher"] = steam_data["publishers"]
+    parsed_data["thumbnail"] = steam_data["header_image"]
+    parsed_data["is_free"] = steam_data["is_free"]
+    parsed_data["category"] = steam_data["categories"]
+    if (hasKey(steam_data, "achievements")) {
+        if (hasKey(steam_data["achievements"], "total")) {
+            parsed_data["total_achivements"] = steam_data["achievements"]["total"];
+        };
+    };
+    parsed_data["description"] = steam_data["short_description"]
+    parsed_data["type"] = steam_data["type"]
+
+    var release_date = null;
+    if (hasKey(steam_data["release_date"], "date")) {
+        release_date = steam_data["release_date"]["date"];
+    }
+    parsed_data["is_released"] = steam_data["release_date"]["coming_soon"];
+    parsed_data["released"] = release_date
+
+    let collect_screenshot = [];
+    if (hasKey(steam_data, "screenshots")) {
+        steam_data["screenshots"].forEach((screenies) => {
+            collect_screenshot.push(screenies["path_full"]);
+        });
+    };
+    parsed_data["screenshots"] = collect_screenshot
+
+    if (hasKey(steam_data, "price_overview")) {
+        let price_data = steam_data["price_overview"];
+        // @ts-ignore
+        let price_map: SteamGamePriceData = {};
+        price_map["price"] = price_data["final_formatted"];
+        price_map["discount"] = false;
+        if (price_data["discount_percent"] != 0) {
+            price_map["original_price"] = price_data["initial_formatted"];
+            price_map["discounted"] = `-${price_data.discount_percent}%`;
+            price_map["discount"] = true;
+        };
+        parsed_data["price_data"] = price_map;
+    }
+
+    return [parsed_data, "Success"]
 }
 
 
