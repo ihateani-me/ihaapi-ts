@@ -1,0 +1,12 @@
+{
+    "watch": [
+        "utils/*.ts",
+        "routes/*.ts",
+        "dbconn/*.ts",
+        "utils/swaggerDef.js"
+    ],
+    "ignore": [
+        "**/*.test.ts"
+    ],
+    "exec": "ts-node ./server.ts"
+}
