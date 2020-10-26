@@ -35,5 +35,8 @@
     "0.9.2": [
         "Finalized all VTuber API porting.",
         "An already private deployed version are available."
+    ],
+    "0.9.3": [
+        "Finalized Games API porting."
     ]
 }
