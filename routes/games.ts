@@ -1,7 +1,7 @@
 import * as express from "express";
 import { hltb_search } from "../utils/hltb";
-import { do_search_on_steam, fetch_steam_game_info, fetch_steam_user_info } from "../utils/steam";
-import { is_none } from "../utils/swissknife";
+import { do_search_on_steam, do_steamdb_search, fetch_steam_game_info, fetch_steam_user_info } from "../utils/steam";
+import { is_none, map_bool } from "../utils/swissknife";
 
 const gamesroutes = express.Router();
 
@@ -48,6 +48,7 @@ gamesroutes.use((req, res, next) => {
  *                  properties:
  *                      results:
  *                          type: array
+ *                          description: A list of queried HLTB Info
  *                          items:
  *                              type: object
  *                              description: HLTB data
@@ -533,6 +534,7 @@ gamesroutes.get("/steam/game/:app_id", (req, res) => {
  *                  type: object
  *                  properties:
  *                      results:
+ *                          description: A list of queried Steam Search
  *                          type: array
  *                          items:
  *                              type: object
@@ -631,6 +633,203 @@ gamesroutes.get("/steam/search", (req, res) => {
         try {
             do_search_on_steam(search_query).then((steam_results) => {
                 res.json({"results": steam_results});
+            }).catch((error) => {
+                console.error(error);
+                res.status(500).json({error: "Internal server error occured.", code: 500});
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({error: "Internal server error occured.", code: 500});
+        }
+    }
+});
+
+/**
+ * @swagger
+ * /games/steamdb/search:
+ *  get:
+ *      summary: Search Game on Steam via SteamDB
+ *      description: Search game on steam via SteamDB
+ *      tags:
+ *      - games_api
+ *      produces:
+ *      - application/json
+ *      parameters:
+ *      - in: query
+ *        name: q
+ *        description: Game that want to be searched (shorthand for `query`)
+ *        required: true
+ *        type: string
+ *      - in: query
+ *        name: dlc
+ *        description: Add DLC to search results (default `false`)
+ *        required: false
+ *        type: string
+ *        enum: ["true", "false"]
+ *      - in: query
+ *        name: app
+ *        description: Add Application to search results (default `false`)
+ *        required: false
+ *        type: string
+ *        enum: ["true", "false"]
+ *      - in: query
+ *        name: music
+ *        description: Add Music to search results (default `false`)
+ *        required: false
+ *        type: string
+ *        enum: ["true", "false"]
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/games/steamdb/search?q=Hades").json()
+ *           print(res["results"])
+ *      responses:
+ *          '200':
+ *              description: A list of queried SteamDB Search
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      results:
+ *                          type: array
+ *                          description: A list of queried SteamDB Search
+ *                          items:
+ *                              type: object
+ *                              required: ["id", "title", "platforms", "developer", "publisher", "released", "tags", "categories", "type"]
+ *                              description: Steam Game Info
+ *                              properties:
+ *                                  id:
+ *                                      type: number
+ *                                      description: The game App ID.
+ *                                  title:
+ *                                      type: string
+ *                                      description: The game title.
+ *                                  price:
+ *                                      type: string
+ *                                      description: The game price (in USD.)
+ *                                  developer:
+ *                                      type: string
+ *                                      description: The game developer.
+ *                                  publisher:
+ *                                      type: string
+ *                                      description: The game publisher.
+ *                                  released:
+ *                                      type: string
+ *                                      description: The game release date.
+ *                                  user_score:
+ *                                      type: number
+ *                                      description: The game user score.
+ *                                  platforms:
+ *                                      type: object
+ *                                      description: Available platforms
+ *                                      required: ["windows", "mac", "linux"]
+ *                                      properties:
+ *                                          windows:
+ *                                              type: boolean
+ *                                              description: Is windows supported?
+ *                                          mac:
+ *                                              type: boolean
+ *                                              description: Is macOS supported?
+ *                                          linux:
+ *                                              type: boolean
+ *                                              description: Is linux supported?
+ *                                  tags:
+ *                                      type: array
+ *                                      description: The game tags.
+ *                                      items:
+ *                                          - type: string
+ *                                  categories:
+ *                                      type: array
+ *                                      description: The game categories.
+ *                                      items:
+ *                                          - type: string
+ *                                  type:
+ *                                      type: string
+ *                                      description: The result type.
+ *                                      enum: ["game", "app", "dlc", "music"]
+ *          '400':
+ *              description: Missing query params
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      error:
+ *                          type: string
+ *                          description: Error message
+ *                          example: please provide `q` args on the url
+ *                      code:
+ *                          type: number
+ *                          description: HTTP Status code
+ *                          example: 400
+ *                      example:
+ *                          type: string
+ *                          description: Example about how you should do it (Might not be avaible.)
+ *                          example: /games/steam/search?q=Hades
+ *          'default':
+ *              description: An error occured
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      error:
+ *                          type: string
+ *                          description: Why it failed to process.
+ *                      code:
+ *                          type: number
+ *                          description: HTTP Status code
+ */
+gamesroutes.get("/steamdb/search", (req, res) => {
+    let search_query = req.query.q;
+    let add_dlc = map_bool(req.query.dlc);
+    let add_app = map_bool(req.query.app);
+    let add_music = map_bool(req.query.music);
+    if (is_none(search_query)) {
+        search_query = req.query.query;
+        if (is_none(search_query)) {
+            res.status(400).json(
+                {
+                    "error": "please provide `q` args on the url",
+                    "example": "/games/steamdb/search?q=Hades",
+                    "code": 400
+                }
+            );
+        };
+        console.info(`[Games:steamdbsearch] Searching ${search_query}`);
+        // @ts-ignore
+        search_query = decodeURIComponent(search_query);
+        try {
+            do_steamdb_search(search_query, add_dlc, add_app, add_music).then(([steam_results, message]) => {
+                if (message.toLowerCase() !== "success.") {
+                    var err_code = 500;
+                    if (message.includes("no results.")) {
+                        err_code = 404;
+                    }
+                    res.status(err_code).json({"error": message, "code": err_code});
+                } else {
+                    res.json({"results": steam_results});
+                }
+            }).catch((error) => {
+                console.error(error);
+                res.status(500).json({error: "Internal server error occured.", code: 500});
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({error: "Internal server error occured.", code: 500});
+        }
+    } else {
+        console.info(`[Games:steamdbsearch] Searching ${search_query}`);
+        // @ts-ignore
+        search_query = decodeURIComponent(search_query);
+        try {
+            do_steamdb_search(search_query, add_dlc, add_app, add_music).then(([steam_results, message]) => {
+                if (message.toLowerCase() !== "success.") {
+                    var err_code = 500;
+                    if (message.includes("no results.")) {
+                        err_code = 404;
+                    }
+                    res.status(err_code).json({"error": message, "code": err_code});
+                } else {
+                    res.json({"results": steam_results});
+                }
             }).catch((error) => {
                 console.error(error);
                 res.status(500).json({error: "Internal server error occured.", code: 500});
