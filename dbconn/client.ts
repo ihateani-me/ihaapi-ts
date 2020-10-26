@@ -14,10 +14,14 @@ class VTBDB {
         this.client = new MongoClient(server_url, { useUnifiedTopology: true });
         this.is_connected = false;
         this.db_name = database_name;
+        this.connect();
+    }
+
+    connect() {
         console.log(`[db] connecting to ${this.db_name}...`);
         this.client.connect()
         .then(client => {
-            this.db = this.client.db(database_name);
+            this.db = this.client.db(this.db_name);
             this.is_connected = true;
             console.log(`[db] connected to ${this.db_name}.`);
             var admindb = this.db.admin();
@@ -40,30 +44,13 @@ class VTBDB {
 
     open_collection(collection_name: string): Promise<any[]> {
         if (!this.is_connected) {
-            this.client.connect()
-            .then(client => {
-                this.db = this.client.db(this.db_name);
-                this.is_connected = true;
-                console.log(`[db] connected to ${this.db_name}.`);
-                var admindb = this.db.admin();
-                admindb.serverInfo((err, info) => {
-                    this.version = info.version;
-                    let modules = info.modules;
-                    if (modules.length > 0) {
-                        this.dbtype = modules[0];
-                        this.dbtype = capitalizeIt(this.dbtype);
-                    } else {
-                        this.dbtype = "Community";
-                    }
-                })
-            })
-            .catch((error) => {
-                console.error(`[db] Failed to connect to ${this.db_name}`);
-                console.error(error);
-            });
+            this.connect();
+            const collection = this.db.collection(collection_name);
+            var callback_func = collection.find().toArray();
+        } else {
+            const collection = this.db.collection(collection_name);
+            var callback_func = collection.find().toArray();
         }
-        const collection = this.db.collection(collection_name);
-        let callback_func = collection.find().toArray();
         return callback_func;
     }
 }
