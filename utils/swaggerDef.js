@@ -1,3 +1,4 @@
+const packageJson = require("../package.json");
 const API_DESCRIPTIONS = `Source Code: [noaione/ihaapi-ts](https://github.com/noaione/ihaapi-ts)
 
 A maybe-pretty-fast API endpoint made mainly for VTuber stuff.<br>
@@ -373,7 +374,7 @@ const MAIN_MODELS_SCHEMAS = {
 
 module.exports = {
     info: {
-        version: "0.9.3",
+        version: packageJson["version"],
         title: "VTubers BiliBili Schedule API",
         description: API_DESCRIPTIONS,
         contact: {

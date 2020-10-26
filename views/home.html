@@ -197,7 +197,7 @@
             - Live (YT/Twitch/Twitcasting): Every 1 minute<br>
             <br>
             <span class="nicerbold">Backend:</span><br>
-            - Framework: <span class="nicerbold">Express.js v4.17.8</span><br>
+            - Framework: <span class="nicerbold">Express.js v{{ EXPRESS_JS_VERSION }}</span><br>
             - Database: <span class="nicerbold">MongoDB {{ MONGO_DBTYPE }} v{{ MONGO_DBVERSION }}</span>
             <br><br>
             <span class="nicerbold">&lt;/&gt;</span> Source Code: <a
@@ -219,12 +219,12 @@
                 localStorage.setItem("enableScan", 1);
             };
             var scansData = localStorage.getItem("enableScan");
-            console.log(scansData);
             if (scansData == 0) {
-                console.log("removing")
+                console.log("[ScanlinesFX] Removing...");
                 document.body.classList.remove("scanlines");
             } else {
                 if (!document.body.classList.contains("scanlines")) {
+                    console.log("[ScanlinesFX] Enabling...");
                     document.body.classList.add("scanlines");
                 };
             };
@@ -263,9 +263,11 @@
         function toggleScanlines() {
             if (!document.body.classList.contains("scanlines")) {
                 document.body.classList.add("scanlines");
+                console.log("[ScanlinesFX] Enabling...");
                 localStorage.setItem("enableScan", 1);
             } else {
                 document.body.classList.remove("scanlines");
+                console.log("[ScanlinesFX] Removing...");
                 localStorage.setItem("enableScan", 0);
             }
         }

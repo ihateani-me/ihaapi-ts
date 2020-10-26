@@ -6,9 +6,10 @@ import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
 const API_CHANGELOG = require("./views/changelog.json");
+const packageJson = require("./package.json");
 
 const app = express();
-const app_version = "0.9.3";
+const app_version = packageJson["version"];
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
@@ -17,11 +18,16 @@ app.set("views", __dirname + "/views");
 app.get("/", (_, res) => {
     let current_jst = moment().tz("Asia/Tokyo");
     let current_jst_fmt = current_jst.format("ddd MMM DD YYYY HH:mm:ss JST");
+    let express_js_version = "Unknown"; 
+    try {
+        express_js_version = packageJson["dependencies"]["express"].replace("^", "").replace("~", "").replace("*", "");
+    } catch (e) {}
     res.render("home", {
         API_VERSION: app_version,
         MONGO_DBTYPE: VTubersDB.dbtype,
         MONGO_DBVERSION: VTubersDB.version,
-        MOMENT_TEMPLATE_TIME: current_jst_fmt
+        MOMENT_TEMPLATE_TIME: current_jst_fmt,
+        EXPRESS_JS_VERSION: express_js_version
     })
 });
 
