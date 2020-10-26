@@ -15,10 +15,13 @@ app.set("view engine", "html");
 app.set("views", __dirname + "/views");
 
 app.get("/", (_, res) => {
+    let current_jst = moment().tz("Asia/Tokyo");
+    let current_jst_fmt = current_jst.format("ddd MMM DD YYYY HH:mm:ss JST");
     res.render("home", {
         API_VERSION: app_version,
         MONGO_DBTYPE: VTubersDB.dbtype,
-        MONGO_DBVERSION: VTubersDB.version
+        MONGO_DBVERSION: VTubersDB.version,
+        MOMENT_TEMPLATE_TIME: current_jst_fmt
     })
 });
 
