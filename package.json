@@ -6,7 +6,8 @@
   "scripts": {
     "build": "echo Creating Swagger docs... && npx swagger-jsdoc -o ./swagger.yml -d ./utils/swaggerDef.js ./routes/*.ts && echo Compiling ts scripts to js && tsc",
     "start": "echo Starting server... && node server.js",
-    "test": "jest"
+    "test": "jest",
+    "dev": "nodemon"
   },
   "engines": {
     "node": "12.x"
