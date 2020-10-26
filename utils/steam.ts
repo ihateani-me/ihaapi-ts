@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { basename } from 'path';
 import xml2js = require("xml2js");
+import moment = require('moment-timezone');
 import { capitalizeIt, getValueFromKey, hasKey, is_none } from './swissknife';
 
 const SDB_ALGOLIA = "https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/";
@@ -102,6 +103,24 @@ interface SteamGameSearch {
         osx?: boolean
     }
     controller_support: string
+}
+
+interface SteamDBSearchData {
+    id: number | string
+    title: string
+    price?: string // In USD
+    developer: string
+    publisher: string
+    released: string
+    type: string
+    user_score?: number
+    platforms: {
+        windows?: boolean
+        mac?: boolean
+        linux?: boolean
+    }
+    tags: string[]
+    categories: string[]
 }
 
 
@@ -437,6 +456,129 @@ export async function do_search_on_steam(query_search: string): Promise<SteamGam
         final_results.push(data);
     });
     return final_results;
+}
+
+
+export async function do_steamdb_search(query, add_dlc=false, add_app=false, add_music=false): Promise<[SteamDBSearchData[], string]> {
+    const headers = {
+        "Origin": "https://steamdb.info",
+        "Referer": "https://steamdb.info/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+    }
+
+    console.info("[SDBSearch] Setting parameters...")
+    let query_param = {
+        "x-algolia-agent": "SteamDB Autocompletion",
+        "x-algolia-application-id": "94HE6YATEI",
+        "x-algolia-api-key": "4e93170f248c58869d226a339bd6a52c",
+        "hitsPerPage": 20,
+        "attributesToSnippet": "null",
+        "attributesToHighlight": "name",
+        "attributesToRetrieve": "name,objectID,tags,multiplayerCategories,vrCategories,oslist,categories,appType,userScore,developer,publisher,price_us,releaseDate,releaseYear",
+        "query": query,
+    }
+
+    try {
+        var response = await axios.get(SDB_ALGOLIA, {
+            params: query_param,
+            headers: headers
+        })
+    } catch (error) {
+        console.error(`[SDBSearch] Error occured: ${error}`);
+        return [[], "Exception occured: " + error.toString()];
+    }
+
+    console.log("[SDBSearch] Parsing info...");
+    let results = response.data;
+    if (!hasKey(results, "hits")) { return [[], "Failed to fetch results."] };
+    if (results["hits"].length == 0) { return [[], "No results."] };
+
+    var game_list = [];
+    results["hits"].forEach((res) => {
+        if (res["appType"] == "Game") {
+            game_list.push(res);
+        } else if (res["appType"] == "Games") {
+            game_list.push(res);
+        } else if (res["appType"] == "DLC" && add_dlc) {
+            game_list.push(res);
+        } else if (res["appType"] == "Music" && add_music) {
+            game_list.push(res);
+        } else if (res["appType"] == "Application" && add_app) {
+            game_list.push(res);
+        }
+    });
+
+    const type_map = {
+        "Game": "game",
+        "Application": "app",
+        "Music": "music",
+        "DLC": "dlc",
+    }
+
+    function setToUnknown(data) {
+        if (is_none(data)) { return "Unknown" };
+        return data;
+    }
+
+    let final_results: SteamDBSearchData[] = [];
+    game_list.forEach((game_res) => {
+        // @ts-ignore
+        let data: SteamDBSearchData = {};
+        let gtype = getValueFromKey(type_map, game_res["appType"], "unknown");
+        data["id"] = parseInt(game_res["objectID"]);
+        if (isNaN(data["id"])) {
+            data["id"] = game_res["objectID"];
+        };
+        data["title"] = game_res["name"];
+        data["developer"] = setToUnknown(game_res["developer"]);
+        data["publisher"] = setToUnknown(game_res["publisher"]);
+        if (hasKey(game_res, "userScore")) {
+            data["user_score"] = setToUnknown(game_res["userScore"]);
+        };
+        if (hasKey(game_res, "price_us")) {
+            data["price"] = `$${game_res["price_us"]}`;
+        };
+        let rls_date = "Coming Soon";
+        if (hasKey(game_res, "releaseDate")) {
+            if (!is_none(game_res["releaseDate"])) {
+                let rls_date_parsed = moment.unix(game_res["releaseDate"]).utc();
+                rls_date = rls_date_parsed.format("DD MMM YYYY");
+            };
+        };
+        data["released"] = rls_date;
+        data["tags"] = game_res["tags"];
+        var categories_sdb = [];
+        categories_sdb.push(...game_res["categories"]);
+        if (hasKey(game_res, "multiplayerCategories")) {
+            categories_sdb.push(...game_res["multiplayerCategories"]);
+        }
+        if (hasKey(game_res, "vrCategories")) {
+            categories_sdb.push(...game_res["vrCategories"]);
+        }
+        data["categories"] = categories_sdb;
+        let platform_tick = {"windows": false, "mac": false, "linux": false};
+        if (hasKey(game_res, "oslist")) {
+            if (game_res["oslist"].includes("Windows")) {
+                platform_tick["windows"] = true;
+            }
+            if (game_res["oslist"].includes("macOS")) {
+                platform_tick["mac"] = true;
+            }
+            if (game_res["oslist"].includes("OSX")) {
+                platform_tick["mac"] = true;
+            }
+            if (game_res["oslist"].includes("OS X")) {
+                platform_tick["mac"] = true;
+            }
+            if (game_res["oslist"].includes("Linux")) {
+                platform_tick["linux"] = true;
+            }
+        };
+        data["platforms"] = platform_tick;
+        data["type"] = gtype;
+        final_results.push(data);
+    });
+    return [final_results, "Success."];
 }
 
 
