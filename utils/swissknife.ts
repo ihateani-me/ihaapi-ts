@@ -73,7 +73,7 @@ export function getValueFromKey(object_data: any, key_name: string, defaults: an
  * @returns { boolean } mapped boolean
  */
 export function map_bool(input_data: any): boolean {
-    if (input_data == null || input_data == undefined) {
+    if (is_none(input_data)) {
         return false;
     }
     let fstat = false;
