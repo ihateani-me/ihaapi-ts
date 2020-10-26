@@ -373,7 +373,7 @@ const MAIN_MODELS_SCHEMAS = {
 
 module.exports = {
     info: {
-        version: "0.9.2",
+        version: "0.9.3",
         title: "VTubers BiliBili Schedule API",
         description: API_DESCRIPTIONS,
         contact: {

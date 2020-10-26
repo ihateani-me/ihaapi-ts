@@ -8,7 +8,7 @@ import { AssetsRoute } from "./assets";
 const API_CHANGELOG = require("./views/changelog.json");
 
 const app = express();
-const app_version = "0.9.2";
+const app_version = "0.9.3";
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
