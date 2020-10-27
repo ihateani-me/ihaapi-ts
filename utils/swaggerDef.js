@@ -375,7 +375,7 @@ const MAIN_MODELS_SCHEMAS = {
 module.exports = {
     info: {
         version: packageJson["version"],
-        title: "VTubers BiliBili Schedule API",
+        title: "ihateani.me API [ihaAPI]",
         description: API_DESCRIPTIONS,
         contact: {
             email: "noaione0809@gmail.com"
