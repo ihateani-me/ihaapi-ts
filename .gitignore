@@ -13,3 +13,8 @@ coverage/
 
 *.bat
 dist/
+
+# Private stuff
+routes/shields.ts
+server_private.ts
+shields_data.json
