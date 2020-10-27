@@ -99,19 +99,17 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
         return [[], "webmaster doesn't provide U2 Passkey"];
     }
     console.log("[getU2TorrentsRSS] fetching rss...");
-    // try {
-    //     var res = await sess.request(`https://u2.dmhy.org/torrentrss.php?${options}`);
-    // } catch (err) {
-    //     console.error(err);
-    //     return [[], "Exception occured: " + err.toString()];
-    // }
-    var res = fs.readFileSync("./rss_answer.rss").toString();
+    try {
+        var res = await sess.request(`https://u2.dmhy.org/torrentrss.php?${options}`);
+    } catch (err) {
+        console.error(err);
+        return [[], "Exception occured: " + err.toString()];
+    }
 
     if (is_none(res) || !res) {
         return [[], "Exception occurred: Invalid data received from U2"];
     }
 
-    // fs.writeFileSync("./rss_answer.rss", res);
     try {
         var u2_res = await feedParse(res);
     } catch (err) {
