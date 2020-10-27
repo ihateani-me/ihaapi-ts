@@ -7,9 +7,7 @@ import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";
 
 const DUMPED_JSON_DATA = __dirname + "/u2_scrapped.json";
-const U2_PASSKEY = process.env.U2_PASSKEY;
 // Used for Offers, the one thing needed are nexusphp_u2
-const U2_COOKIES = process.env.U2_COOKIES;
 
 function default_settings() {
     return "cat15=1&cat16=1&rows=20&icat=1&ismalldescr=1&isize=1&iuplder=1&trackerssl=1";
@@ -66,6 +64,7 @@ class U2Sessions {
     no_cookies: boolean
 
     constructor() {
+        const U2_COOKIES = process.env.U2_COOKIES;
         const session = axios.create({
             headers: {
                 "Cache-Control": "no-cache",
@@ -88,6 +87,7 @@ class U2Sessions {
 
 export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torrent[], string]> {
     const sess = new U2Sessions();
+    const U2_PASSKEY = process.env.U2_PASSKEY;
     if (is_none(options)) {
         options = default_settings();
     } else {
@@ -98,6 +98,7 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
         console.warn("[getU2TorrentsRSS] `U2_PASSKEY` are not provided in env file.");
         return [[], "webmaster doesn't provide U2 Passkey"];
     }
+    options += "&passkey=" + U2_PASSKEY;
     console.log("[getU2TorrentsRSS] fetching rss...");
     try {
         var res = await sess.request(`https://u2.dmhy.org/torrentrss.php?${options}`);
