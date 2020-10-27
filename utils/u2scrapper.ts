@@ -148,10 +148,3 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
     u2_results = sortObjectsByKey(u2_results, "pubSort");
     return [u2_results, "Success"];
 }
-
-// getU2TorrentsRSS().then(([res, msg]) => {
-//     console.log(res);
-// }).catch((err) => {
-//     console.log("Error");
-//     console.error(err);
-// })
