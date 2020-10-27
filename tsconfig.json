@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "sourceMap": true
-
+        "sourceMap": false,
+        "outDir": "dist"
     },
     "include": [
         "**/*"
