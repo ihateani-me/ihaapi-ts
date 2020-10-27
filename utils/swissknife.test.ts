@@ -106,6 +106,9 @@ test("[Object[] Sort] Undefined data passed.", () => {
 test("[Object[] Sort] Empty data passed.", () => {
     expect(SwissKnife.sortObjectsByKey([], "id")).toEqual([]);
 })
+test("[Object[] Sort] Passed non-array.", () => {
+    expect(SwissKnife.sortObjectsByKey({id: "55555"}, "id")).toEqual({id: "55555"});
+})
 test("[Object[] Sort] Data passed, but only one passed.", () => {
     expect(SwissKnife.sortObjectsByKey([{id: "555555"}], "data")).toEqual([{id: "555555"}]);
 })
