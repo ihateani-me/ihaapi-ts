@@ -1,6 +1,7 @@
 import * as express from "express";
 import { VTubersDB } from "../dbconn";
-import { channel_filters, sortLive } from "../utils/filters";
+import { channel_filters } from "../utils/filters";
+import { sortObjectsByKey } from "../utils/swissknife";
 import { ChannelArray, LiveMap, TwitchChannel, TwitchData } from "../utils/models";
 const twitchroutes = express.Router()
 
@@ -58,7 +59,7 @@ twitchroutes.get("/live", (req, res) => {
                 let final_mappings: LiveMap<TwitchData[]> = {};
                 console.log("[Twitch] Filtering Database...");
                 // @ts-ignore
-                final_mappings["live"] = sortLive(vtb_res["live"], "startTime");
+                final_mappings["live"] = sortObjectsByKey(vtb_res["live"], "startTime");
                 final_mappings["cached"] = true;
                 console.log("[Twitch] Sending...");
                 res.json(final_mappings)

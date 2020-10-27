@@ -1,6 +1,7 @@
 import * as express from "express";
 import { NijiTubeDB, VTubersDB } from "../dbconn";
-import { parse_youtube_live_args, bilibili_use_uuids, sortLive, channel_filters } from "../utils/filters";
+import { parse_youtube_live_args, bilibili_use_uuids, channel_filters } from "../utils/filters";
+import { sortObjectsByKey } from "../utils/swissknife";
 import { LiveMap, BilibiliData, YTLiveArray, YouTubeData, ChannelMap, YouTubeChannel, BiliBiliChannel, ChannelArray } from "../utils/models";
 const nijiroutes = express.Router()
 
@@ -64,7 +65,7 @@ nijiroutes.get("/live", (req, res) => {
                 let final_mappings: LiveMap<BilibiliData[]> = {};
                 console.log("[NijisanjiBili] Filtering Database...");
                 // @ts-ignore
-                final_mappings["live"] = sortLive(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
+                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
                 // @ts-ignore
                 final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, vtb_res["upcoming"]);
                 final_mappings["cached"] = true;

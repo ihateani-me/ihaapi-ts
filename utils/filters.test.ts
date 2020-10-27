@@ -238,26 +238,6 @@ test("[Group Check] Data passed, but it's not on list.", () => {
 test("[Group Check] Data passed, and it's on list.", () => {
     expect(Filters.get_group("nijisanji")).not.toBeNull();
 })
-// Data sort
-test("[Data Sort] Undefined data passed.", () => {
-    // @ts-ignore
-    expect(Filters.sortLive(undefined, "id")).toEqual([]);
-})
-test("[Data Sort] Empty data passed.", () => {
-    expect(Filters.sortLive([], "id")).toEqual([]);
-})
-test("[Data Sort] Data passed, but only one passed.", () => {
-    // @ts-ignore
-    expect(Filters.sortLive([{id: "555555"}], "data")).toEqual([{id: "555555"}]);
-})
-test("[Data Sort] Data passed, but key doesn't exist.", () => {
-    // @ts-ignore
-    expect(Filters.sortLive([{id: "555555"}, {"id": "44444"}], "data")).toEqual([{id: "555555"}, {"id": "44444"}]);
-})
-test("[Data Sort] Data passed, and key exist.", () => {
-    // @ts-ignore
-    expect(Filters.sortLive([{id: "555555"}, {"id": "44444"}], "id")).toEqual([{id: "44444"}, {"id": "555555"}]);
-})
 
 // Test YouTube live check.
 test("[YouTube Live Parsing] No args passed by user.", () => {

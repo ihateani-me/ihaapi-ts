@@ -1,6 +1,7 @@
 import * as express from "express";
 import { VTubersDB } from "../dbconn";
-import { bilibili_use_uuids, sortLive, channel_filters } from "../utils/filters";
+import { bilibili_use_uuids, channel_filters } from "../utils/filters";
+import { sortObjectsByKey } from "../utils/swissknife";
 import { LiveMap, BilibiliData, BiliBiliChannel, ChannelMap } from "../utils/models";
 const holoroutes = express.Router();
 
@@ -71,7 +72,7 @@ holoroutes.get("/live", (req, res) => {
                 let final_mappings: LiveMap<BilibiliData[]> = {};
                 console.log("[HololiveBili] Filtering Database...");
                 // @ts-ignore
-                final_mappings["live"] = sortLive(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
+                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
                 // @ts-ignore
                 final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, vtb_res["upcoming"]);
                 final_mappings["cached"] = true;

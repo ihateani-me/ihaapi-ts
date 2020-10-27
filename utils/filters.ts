@@ -1,7 +1,7 @@
 // Filters function, this will filter data that fetched from database.
 
-import { is_none, filter_empty, hasKey } from "./swissknife";
-import { YouTubeData, BilibiliData, TwitcastingData, TwitchData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
+import { is_none, filter_empty, hasKey, sortObjectsByKey } from "./swissknife";
+import { YouTubeData, BilibiliData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
 import moment = require('moment-timezone');
 
 const GROUPS_MAPPINGS = {
@@ -55,31 +55,6 @@ function get_group(group_name: string) {
         return GROUPS_MAPPINGS[group_name];
     }
     return null;
-}
-
-function sortLive(results: YouTubeData[] | BilibiliData[] | TwitcastingData[] | TwitchData[], key_base: string) {
-    if (is_none(results)) { return []; }
-    if (results.length < 2) {
-        return results;
-    }
-    if (!hasKey(results[0], key_base)) {
-        return results;
-    }
-    var sortable = [];
-    let sorted_results: YouTubeData[] | BilibiliData[] | TwitcastingData[] | TwitchData[] = [];
-    results.forEach((res, index) => {
-        sortable.push([index.toString(), res[key_base]]);
-    });
-    sortable.sort((a, b) => {
-        return a[1] - b[1];
-    });
-    sortable.forEach((value_map) => {
-        let [index_res, _] = value_map;
-        index_res = parseInt(index_res);
-        // @ts-ignore
-        sorted_results.push(results[index_res]);
-    });
-    return sorted_results;
 }
 
 function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArray<YouTubeData[]>): LiveMap<YouTubeData[]> {
@@ -177,13 +152,13 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArra
 
     if (!key_to_delete.includes("startTime")) {
         // @ts-ignore
-        filtered_live = sortLive(filtered_live, "startTime");
+        filtered_live = sortObjectsByKey(filtered_live, "startTime");
         // @ts-ignore
-        filtered_upcoming = sortLive(filtered_upcoming, "startTime");
+        filtered_upcoming = sortObjectsByKey(filtered_upcoming, "startTime");
     }
     if (!key_to_delete.includes("endTime")) {
         // @ts-ignore
-        filtered_ended = sortLive(filtered_ended, "endTime");
+        filtered_ended = sortObjectsByKey(filtered_ended, "endTime");
     }
     let finalized_livemap: LiveMap<YouTubeData[]> = {}
     if (add_lives) { finalized_livemap["live"] = filtered_live; }
@@ -309,7 +284,7 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
     }));
 
     if (hasKey(channels_data[0], sort_by)) {
-        channels_data = sortLive(channels_data, sort_by);
+        channels_data = sortObjectsByKey(channels_data, sort_by);
     };
     if (sort_order == "descending") { channels_data = channels_data.reverse(); };
 
@@ -320,4 +295,4 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
 }
 
 // Export main function,
-export { bilibili_use_uuids, parse_youtube_live_args, sortLive, channel_filters, get_group };
+export { bilibili_use_uuids, parse_youtube_live_args, channel_filters, get_group };

@@ -102,6 +102,35 @@ export function map_bool(input_data: any): boolean {
     return fstat;
 }
 
+export function sortObjectsByKey(results: any, key_base: string) {
+    if (is_none(results)) {
+        return [];
+    }
+    if (!Array.isArray(results)) {
+        return results;
+    }
+    if (results.length < 2) {
+        return results;
+    }
+    if (!hasKey(results[0], key_base)) {
+        return results;
+    }
+    var data_sort = [];
+    let results_sorted = [];
+    results.forEach((res, index) => {
+        data_sort.push([index.toString(), res[key_base]]);
+    });
+    data_sort.sort((a, b) => {
+        return a[1] - b[1];
+    });
+    data_sort.forEach((value_map) => {
+        let [index_res, _] = value_map;
+        index_res = parseInt(index_res);
+        results_sorted.push(results[index_res]);
+    });
+    return results_sorted;
+}
+
 /**
  * Capitalize a string.
  * @param { string } text - text that need capitalizing.

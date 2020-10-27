@@ -99,6 +99,23 @@ test("[Map to Boolean] Passed a string that is 'y' (Should be `true`)", () => {
     expect(SwissKnife.map_bool(1)).toStrictEqual(true);
 })
 
+// Object[] sort
+test("[Object[] Sort] Undefined data passed.", () => {
+    expect(SwissKnife.sortObjectsByKey(undefined, "id")).toEqual([]);
+})
+test("[Object[] Sort] Empty data passed.", () => {
+    expect(SwissKnife.sortObjectsByKey([], "id")).toEqual([]);
+})
+test("[Object[] Sort] Data passed, but only one passed.", () => {
+    expect(SwissKnife.sortObjectsByKey([{id: "555555"}], "data")).toEqual([{id: "555555"}]);
+})
+test("[Object[] Sort] Data passed, but key doesn't exist.", () => {
+    expect(SwissKnife.sortObjectsByKey([{id: "555555"}, {"id": "44444"}], "data")).toEqual([{id: "555555"}, {"id": "44444"}]);
+})
+test("[Object[] Sort] Data passed, and key exist.", () => {
+    expect(SwissKnife.sortObjectsByKey([{id: "555555"}, {"id": "44444"}], "id")).toEqual([{id: "44444"}, {"id": "555555"}]);
+})
+
 // capitalizeIt()
 test("[Capitalize It] Null data", () => {
     expect(SwissKnife.capitalizeIt(null)).toStrictEqual(null);
