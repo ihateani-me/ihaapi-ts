@@ -1,4 +1,6 @@
 # ihaapi-ts
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)
+
 api.ihateani.me but written in TypeScript
 
 The website are originally written in Python with Sanic as it's backend.<br>
@@ -78,3 +80,5 @@ This assume you use MongoDB Atlas.
 
 ## License
 MIT License, refer more to the [LICENSE](https://github.com/noaione/ihaapi-ts/blob/master/LICENSE) file.
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_large)
