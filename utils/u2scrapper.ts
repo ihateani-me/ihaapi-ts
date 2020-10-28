@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import FeedParser = require('feedparser');
 import cheerio = require("cheerio");
 import fs = require("fs");
-import { is_none, sortObjectsByKey } from './swissknife';
+import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";
 
@@ -28,6 +28,37 @@ interface U2Torrent {
     size: string
     publishedAt: string
     pubSort: number
+}
+
+// "id": offer_id,
+// "title": torrent_name,
+// "summary": torrent_desc,
+// "link": offer_url,
+// "category": category_name,
+// "size": torrent_size,
+// "author": torrent_uploader,
+// "vote_url": offer_vote_url,
+// "vote_data": {
+//     "for": accept_vote,
+//     "against": reject_vote
+// },
+// "posted": torrent_uploaded,
+// "timeout": torrent_timeout
+interface U2OfferTorrent {
+    id?: string
+    title?: string
+    summary?: string
+    link?: string
+    category?: string
+    size?: string
+    author?: string
+    vote_url?: string
+    vote_data?: {
+        for?: number
+        against?: number
+    }
+    posted?: string
+    timeout?: string
 }
 
 async function feedParse(text_data: string): Promise<U2RSSResults> {
@@ -146,4 +177,91 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
     });
     u2_results = sortObjectsByKey(u2_results, "pubSort");
     return [u2_results, "Success"];
+}
+
+export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> {
+    const sess = new U2Sessions();
+    if (sess.no_cookies) {
+        console.warn("[getU2TorrentOffers] `U2_COOKIES` are not provided in env file.");
+        return [[], "webmaster doesn't provide U2 Cookies"];
+    }
+
+    try {
+        var res = await sess.request(`https://u2.dmhy.org/offers.php`);
+    } catch (err) {
+        console.error(err);
+        return [[], "Exception occured: " + err.toString()];
+    }
+
+    if (is_none(res) || !res) {
+        return [[], "Exception occurred: Invalid data received from U2"];
+    }
+
+    let $ = cheerio.load(res);
+
+    // scuffed way to only select the main tr and not inner one.
+    // this is bad, and very hacky, and might be broken.
+    // :FubukiWorry:
+    let $main_table = $("table.mainouter");
+    let $torrents_set: cheerio.Cheerio[] = $main_table.find("table.torrents > tbody > tr").map((index, elem) => {
+        return $(elem);
+    }).get();
+    let $main_head = $torrents_set[0];
+    let parsed_data = $torrents_set.slice(1).map(($torrent) => {
+        let all_td = $torrent.children("td");
+        if (all_td.length == 0) {
+            return {};
+        };
+
+        // category
+        let category_name = $(all_td[0]).children("a").text().trimRight();
+        let title_set = $(all_td[1]).find("table.torrentname > tbody > tr");
+
+        // name, desc, and url
+        let $torrent_alink = $(title_set[0]).find("a")
+        let torrent_name = $torrent_alink.attr("title");
+        let torrent_desc = $(title_set[1]).find("td.embedded.overflow-control").text().trim();
+        let offer_url = "https://u2.dmhy.org/offers.php" + $torrent_alink.attr("href").trim();
+        let offer_id = offer_url.substr(offer_url.indexOf("?id=") + 4, offer_url.indexOf("&off_detail") - offer_url.indexOf("?id=") - 4);
+
+        // vote data
+        let $torrent_votes = $(all_td[2]).find("a");
+        let offer_vote_url = "https://u2.dmhy.org/offers.php" + $torrent_votes.attr("href");
+        let accept_vote = parseInt($($torrent_votes.children("font")[0]).text().trim());
+        let reject_vote = parseInt($($torrent_votes.children("font")[1]).text().trim());
+
+        // torrent size
+        let torrent_sizes_arr = filter_empty($(all_td[3]).text().split(/^([\d.]*)([\w]+)$/gm));
+        let torrent_size = torrent_sizes_arr.join(" ");
+
+        // upload date
+        let upload_date_arr = filter_empty($(all_td[5]).text().split(/^([\d]{2,4}-[\d]{1,2}-[\d]{2})(.*)$/gm));
+        let torrent_uploaded = upload_date_arr.join(" ");
+
+        // vote timeout date
+        let timeout_date_arr = filter_empty($(all_td[6]).text().split(/^([\d]{2,4}-[\d]{1,2}-[\d]{2})(.*)$/gm));
+        let torrent_timeout = timeout_date_arr.join(" ");
+
+        // uploader name
+        let torrent_uploader = $(all_td[7]).text();
+
+        return {
+            "id": offer_id,
+            "title": torrent_name,
+            "summary": torrent_desc,
+            "link": offer_url,
+            "category": category_name,
+            "size": torrent_size,
+            "author": torrent_uploader,
+            "vote_url": offer_vote_url,
+            "vote_data": {
+                "for": accept_vote,
+                "against": reject_vote
+            },
+            "posted": torrent_uploaded,
+            "timeout": torrent_timeout
+        };
+    });
+
+    return [parsed_data, "Success"];
 }
