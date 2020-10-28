@@ -38,5 +38,9 @@
     ],
     "0.9.3": [
         "Finalized Games API porting."
+    ],
+    "0.9.4": [
+        "Finalized U2 API porting.",
+        "Still missing API docs, will be documented later."
     ]
 }
