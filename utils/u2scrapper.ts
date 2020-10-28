@@ -5,8 +5,10 @@ import fs = require("fs");
 import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";
+import { VTBDB } from "../dbconn";
 
 const DUMPED_JSON_DATA = __dirname + "/u2_scrapped.json";
+const U2_DATABASE = new VTBDB("u2db");
 // Used for Offers, the one thing needed are nexusphp_u2
 
 function default_settings() {
@@ -264,4 +266,66 @@ export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> 
     });
 
     return [parsed_data, "Success"];
+}
+
+export async function checkNewestRSS(options: string = null, sort_from_newest: boolean = false): Promise<U2Torrent[]> {
+    try {
+        var [u2_dataset, msg] = await getU2TorrentsRSS(options);
+    } catch (e) {
+        return [];
+    }
+
+    if (u2_dataset.length < 1) {
+        return [];
+    }
+
+    console.log("[checkNewestRSS] Fetching old data...");
+    let u2_olddata = (await U2_DATABASE.open_collection("u2data"))[0];
+    let u2_filtered_data = [];
+    u2_dataset.forEach((new_data) => {
+        if (!u2_olddata["data"].includes(new_data["link"])) {
+            u2_filtered_data.push(new_data);
+            u2_olddata["data"].push(new_data["link"]);
+        };
+    });
+
+    if (u2_filtered_data.length > 0) {
+        console.log("[checkNewestRSS] Updating old data...");
+        await U2_DATABASE.update_collection("u2data", u2_olddata);
+    }
+    if (sort_from_newest) {
+        u2_filtered_data = u2_filtered_data.reverse();
+    }
+    return u2_filtered_data;
+}
+
+export async function checkNewestOffers(sort_from_newest: boolean = false): Promise<U2OfferTorrent[]> {
+    try {
+        var [u2_dataset, msg] = await getU2TorrentOffers();
+    } catch (e) {
+        return [];
+    }
+
+    if (u2_dataset.length < 1) {
+        return [];
+    }
+
+    console.log("[checkNewestOffers] Fetching old data...");
+    let u2_olddata = (await U2_DATABASE.open_collection("offersdata"))[0];
+    let u2_filtered_data = [];
+    u2_dataset.forEach((new_data) => {
+        if (!u2_olddata["data"].includes(new_data["link"])) {
+            u2_filtered_data.push(new_data);
+            u2_olddata["data"].push(new_data["link"]);
+        };
+    });
+
+    if (u2_filtered_data.length > 0) {
+        console.log("[checkNewestOffers] Updating old data...");
+        await U2_DATABASE.update_collection("offersdata", u2_olddata);
+    }
+    if (sort_from_newest) {
+        u2_filtered_data = u2_filtered_data.reverse();
+    }
+    return u2_filtered_data;
 }

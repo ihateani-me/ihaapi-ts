@@ -53,6 +53,20 @@ class VTBDB {
         }
         return callback_func;
     }
+    
+    async update_collection(collection_name: string, collection_data: any) {
+        if (!this.is_connected) {
+            this.connect();
+            const collection = this.db.collection(collection_name);
+            var callback_func = collection.updateOne({}, collection_data);
+        } else {
+            const collection = this.db.collection(collection_name);
+            var callback_func = collection.updateOne({}, {
+                $set: collection_data
+            });
+        }
+        await callback_func;
+    }
 }
 
 export { VTBDB };
