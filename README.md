@@ -1,5 +1,5 @@
 # ihaapi-ts
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small) ![Code Coverage](https://img.shields.io/codecov/c/github/noaione/ihaapi-ts?style=flat-square)
 
 api.ihateani.me but written in TypeScript
 
