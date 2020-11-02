@@ -1,5 +1,5 @@
 # ihaapi-ts
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small) ![Code Coverage](https://img.shields.io/codecov/c/github/noaione/ihaapi-ts?style=flat-square)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_small) ![Code Coverage](https://img.shields.io/codecov/c/github/ihateani-me/ihaapi-ts?style=flat-square)
 
 api.ihateani.me but written in TypeScript
 
@@ -16,7 +16,7 @@ Don't.
 I made it for myself so you need to change some files, especially `dbconn/index.ts`<br>
 Where I put 2 const because my brain decided to use 2 different DB and not one single db.
 
-The database can be hosted anywhere, the backend part could be found here: [noaione/vtb-schedule/server](https://github.com/noaione/vtb-schedule/tree/master/server)
+The database can be hosted anywhere, the backend part could be found here: [ihateani-me/vtb-schedule/server](https://github.com/ihateani-me/vtb-schedule/tree/master/server)
 
 `routes/museid.ts` could be deleted since it was specifically made for ONE discord server.
 
@@ -79,6 +79,6 @@ You also need, to create the following collection with document:<br>
 This assume you use MongoDB Atlas.
 
 ## License
-MIT License, refer more to the [LICENSE](https://github.com/noaione/ihaapi-ts/blob/master/LICENSE) file.
+MIT License, refer more to the [LICENSE](https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE) file.
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_large)

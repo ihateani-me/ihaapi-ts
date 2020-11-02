@@ -1,5 +1,5 @@
 const packageJson = require("../package.json");
-const API_DESCRIPTIONS = `Source Code: [noaione/ihaapi-ts](https://github.com/noaione/ihaapi-ts)
+const API_DESCRIPTIONS = `Source Code: [ihateani-me/ihaapi-ts](https://github.com/ihateani-me/ihaapi-ts)
 
 A maybe-pretty-fast API endpoint made mainly for VTuber stuff.<br>
 
@@ -382,7 +382,7 @@ module.exports = {
         },
         license: {
             "name": "MIT License",
-            "url": "https://github.com/noaione/ihaapi-ts/blob/master/LICENSE"
+            "url": "https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE"
         },
         "x-logo": {
             "url": "https://cdn.glitch.com/80f8c496-07f7-48d7-81a2-03e2ee470e54%2Ffavicon.png"
