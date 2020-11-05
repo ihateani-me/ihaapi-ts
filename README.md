@@ -82,3 +82,8 @@ This assume you use MongoDB Atlas.
 MIT License, refer more to the [LICENSE](https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE) file.
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_large)
+
+## Attributions
+The [ATTRIBUTIONS.md](https://github.com/ihateani-me/ihaapi-ts/blob/master/ATTRIBUTIONS.md) file are generated with [FOSSA](https://fossa.com)
+
+You can view the file here: [ATTRIBUTIONS.md](https://github.com/ihateani-me/ihaapi-ts/blob/master/ATTRIBUTIONS.md)
