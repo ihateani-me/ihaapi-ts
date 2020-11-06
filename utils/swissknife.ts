@@ -140,3 +140,25 @@ export function capitalizeIt(text: string): string {
     if (is_none(text)) {return text};
     return text.slice(0, 1).toUpperCase() + text.slice(1);
 }
+
+/**
+ * Remove a key from Array of Object
+ * @param array_of_object - array of object to remove it's key.
+ * @param key_base - key to remove.
+ */
+export function removeKeyFromObjects(array_of_object: any[], key_base: string): any[] {
+    if (is_none(array_of_object)) {
+        return array_of_object;
+    }
+    if (!Array.isArray(array_of_object)) {
+        return array_of_object;
+    }
+    if (!hasKey(array_of_object[0], key_base)) {
+        return array_of_object;
+    }
+    let fixed_array_of_object = array_of_object.map((obj) => {
+        delete obj[key_base];
+        return obj;
+    });
+    return fixed_array_of_object;
+}
