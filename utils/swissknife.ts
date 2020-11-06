@@ -146,7 +146,7 @@ export function capitalizeIt(text: string): string {
  * @param array_of_object - array of object to remove it's key.
  * @param key_base - key to remove.
  */
-export function removeKeyFromObjects(array_of_object: any[], key_base: string): any[] {
+export function removeKeyFromObjects(array_of_object: any, key_base: string): any {
     if (is_none(array_of_object)) {
         return array_of_object;
     }

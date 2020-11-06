@@ -141,3 +141,18 @@ describe("Capitalize first letter", () => {
         expect(SwissKnife.capitalizeIt("test string")).toStrictEqual("Test string");
     });
 });
+
+describe("Remove a Key/Value Pair from Array of Object", () => {
+    it("Passed a null data", () => {
+        expect(SwissKnife.removeKeyFromObjects(null, "test")).toStrictEqual(null);
+    })
+    it("Passed non-array object data", () => {
+        expect(SwissKnife.removeKeyFromObjects("this is a string", "test")).toStrictEqual("this is a string");
+    })
+    it("Passed properly, but missing key.", () => {
+        expect(SwissKnife.removeKeyFromObjects([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}], "test")).toStrictEqual([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}]);
+    })
+    it("Passed properly, key exist.", () => {
+        expect(SwissKnife.removeKeyFromObjects([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}], "id")).toStrictEqual([{"name": "nao"}, {"name": "nope"}]);
+    })
+})
