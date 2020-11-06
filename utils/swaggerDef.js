@@ -398,7 +398,9 @@ module.exports = {
         {"name": "Twitcasting", "description": "Twitcasting Stream Endpoint"},
         {"name": "Twitch", "description": "Twitch Stream Endpoint"},
         {"name": "games_api", "x-displayName": "Games API", "description": "An API wrapper anything related to games."},
+        {"name": "sauce_api", "x-displayName": "Sauce Finder API", "description": "An API wrapper for SauceNAO, IQDB, and ASCII2D."},
         {"name": "nh_nsfw", "x-displayName": "nH [NSFW]", "description": "An API wrapper for nH (you know what it is)."},
+        {"name": "u2_api", "x-displayName": "U2 API", "description": "An API wrapper for U2 RSS and Offers."},
         {
             "name": "bilischedule_model",
             "x-displayName": "BiliBili Live Schedule",
@@ -449,7 +451,7 @@ module.exports = {
         },
         {
             "name": "Others API",
-            "tags": ["otherapi_info", "games_api", "nh_nsfw"]
+            "tags": ["otherapi_info", "games_api", "sauce_api", "nh_nsfw", "u2_api"]
         },
         {
             "name": "Models",
