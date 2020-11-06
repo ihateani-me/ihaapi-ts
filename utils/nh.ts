@@ -270,10 +270,12 @@ export async function nhLatestDoujin(page: number): Promise<[nhSearchData, numbe
 
     let json_final_data: nhSearchData = {
         "total_page": res_data["num_pages"],
+        "current_page": page,
         "results": parsed_results,
         "total_data": parsed_results.length
     };
 
+    await REDIS_INSTANCE.setex(`nhlatest_page${page}`, 60 * 30, json_final_data);
     return [json_final_data, 200];
 }
 
@@ -283,7 +285,7 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
     let ext = base_name.slice(base_name.length - 1, base_name.length).join(".");
     let mimetype = getMimeType(ext);
     let img_cache = await REDIS_INSTANCE.get(url);
-    if (!is_none(img_cache)) {
+    if (is_none(img_cache)) {
         console.info(`[nh:imgcache] ${url} cache not found, requesting.`);
         while (true) {
             var [r_img, stat_code] = await nhRequest(url, session);
