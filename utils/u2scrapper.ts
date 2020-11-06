@@ -5,7 +5,7 @@ import fs = require("fs");
 import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";
-import { VTBDB } from "../dbconn";
+import { VTBDB } from "../dbconn/mongo_client";
 
 const DUMPED_JSON_DATA = __dirname + "/u2_scrapped.json";
 const U2_DATABASE = new VTBDB("u2db");
@@ -32,20 +32,6 @@ interface U2Torrent {
     pubSort: number
 }
 
-// "id": offer_id,
-// "title": torrent_name,
-// "summary": torrent_desc,
-// "link": offer_url,
-// "category": category_name,
-// "size": torrent_size,
-// "author": torrent_uploader,
-// "vote_url": offer_vote_url,
-// "vote_data": {
-//     "for": accept_vote,
-//     "against": reject_vote
-// },
-// "posted": torrent_uploaded,
-// "timeout": torrent_timeout
 interface U2OfferTorrent {
     id?: string
     title?: string
@@ -98,19 +84,20 @@ class U2Sessions {
 
     constructor() {
         const U2_COOKIES = process.env.U2_COOKIES;
-        const session = axios.create({
-            headers: {
-                "Cache-Control": "no-cache",
-                "Cookie": is_none(U2_COOKIES) ? "" : U2_COOKIES,
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
-            }
-        });
+        const SESSION_HEADERS = {
+            "Cache-Control": "no-cache",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+        }
+        if (!is_none(U2_COOKIES)) {
+            SESSION_HEADERS["Cookie"] = U2_COOKIES;
+        }
+        const session = axios.create({headers: SESSION_HEADERS});
         this.session = session;
         this.no_cookies = is_none(U2_COOKIES) ? true : false;
     }
 
     async request(url: string) {
-        if (this.no_cookies) {
+        if (this.no_cookies && !url.includes("passkey")) {
             return "";
         }
         return (await this.session.get(url)).data;
@@ -162,6 +149,9 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
         let temp_title = entry_data["title"];
         let title_array = title_regex.exec(temp_title).groups;
         let temp_author = entry_data["author"];
+        if (temp_author.endsWith("/i")) {
+            temp_author = temp_author.slice(0, temp_author.indexOf(" "));
+        }
         let author = `${temp_author}@u2.dmhy.org (${temp_author})`;
 
         let pubdate_parsed = moment(entry_data["pubdate"]);
