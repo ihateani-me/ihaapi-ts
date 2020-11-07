@@ -55,6 +55,9 @@ export class RedisDB {
         if (is_none(value)) {
             return null;
         }
+        if (Buffer.isBuffer(value)) {
+            return value;
+        }
         try {
             // @ts-ignore
             value = JSON.parse(value);
