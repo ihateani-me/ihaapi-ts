@@ -402,16 +402,22 @@ describe("Filter YouTube Live data by Query Argument", () => {
             live: EXPECTED_YTDB_ONE["live"]
         }
         // @ts-ignore
-        expect(Filters.parse_youtube_live_args({ status: "live" }, EXAMPLE_YTDB_DATA)).toEqual(EXPECTED_RESULTS);
+        expect(Filters.parse_youtube_live_args({ status: "live" }, EXAMPLE_YTDB_DATA)).toEqual({"live": EXPECTED_YTDB_ONE["live"]});
+        // @ts-ignore
+        expect(Filters.parse_youtube_live_args({ status: "upcoming" }, EXAMPLE_YTDB_DATA)).toEqual({"upcoming": EXPECTED_YTDB_ONE["upcoming"]});
     });
     test("Status passed by user. (`live` and `past`)", () => {
         let EXPECTED_RESULTS = {
-            live: EXPECTED_YTDB_ONE["live"]
+            live: EXPECTED_YTDB_ONE["live"],
+            ended: EXPECTED_YTDB_ONE["ended"]
+        }
+        let EXPECTED_RESULTS_2 = {
+            upcoming: EXPECTED_YTDB_ONE["upcoming"]
         }
         // @ts-ignore
-        expect(Filters.parse_youtube_live_args({ status: "live,past" }, EXAMPLE_YTDB_DATA)).toEqual(EXPECTED_RESULTS);
+        expect(Filters.parse_youtube_live_args({ status: "live,ended" }, EXAMPLE_YTDB_DATA)).toEqual({"live": EXPECTED_YTDB_ONE["live"], "ended": EXPECTED_YTDB_ONE["ended"]});
         // @ts-ignore
-        expect(Filters.parse_youtube_live_args({ status: "live%2Cpast" }, EXAMPLE_YTDB_DATA)).toEqual(EXPECTED_RESULTS);
+        expect(Filters.parse_youtube_live_args({ status: "live%2Cended" }, EXAMPLE_YTDB_DATA)).toEqual({"live": EXPECTED_YTDB_ONE["live"], "ended": EXPECTED_YTDB_ONE["ended"]});
     });
     test("Fields passed by user. (single opts. `id`)", () => {
         let EXPECTED_RESULTS = {
