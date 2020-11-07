@@ -299,9 +299,9 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
             await sleep(500);
         }
         console.log(`[nh:imgcache] Caching ${url}`);
-        await REDIS_INSTANCE.setex(url, 60 * 60 * 24 * 7, r_img);
-        // used for expressjs return.
         let buffer_image = Buffer.from(r_img);
+        await REDIS_INSTANCE.setex(url, 60 * 60 * 24 * 7, buffer_image);
+        // used for expressjs return.
         return [buffer_image, mimetype];
     } else {
         console.info(`[nhproxy:imgcache] ${url} cache found.`);
