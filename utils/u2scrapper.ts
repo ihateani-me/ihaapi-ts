@@ -7,7 +7,6 @@ import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";
 import { VTBDB } from "../dbconn/mongo_client";
 
-const DUMPED_JSON_DATA = __dirname + "/u2_scrapped.json";
 const U2_DATABASE = new VTBDB("u2db");
 // Used for Offers, the one thing needed are nexusphp_u2
 

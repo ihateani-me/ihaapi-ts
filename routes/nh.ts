@@ -1,4 +1,3 @@
-import { reverse } from "dns";
 import * as express from "express";
 import { nhFetchInfo, nhImagePathProxy, nhImageProxy, nhLatestDoujin, nhSearchDoujin } from "../utils/nh";
 import { is_none } from "../utils/swissknife";
