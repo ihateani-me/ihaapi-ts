@@ -1,5 +1,6 @@
 {
     "watch": [
+        "*.ts",
         "utils/*.ts",
         "routes/*.ts",
         "dbconn/*.ts",
@@ -8,5 +9,6 @@
     "ignore": [
         "**/*.test.ts"
     ],
-    "exec": "ts-node ./server.ts"
+    "exec": "ts-node ./server.ts",
+    "ext": "js json ts html"
 }
