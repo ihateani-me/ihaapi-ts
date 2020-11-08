@@ -42,5 +42,9 @@
     "0.9.4": [
         "Finalized U2 API porting.",
         "Still missing API docs, will be documented later."
+    ],
+    "0.9.5": [
+        "Finished nHentai API",
+        "Still missing API docs, will be documented later."
     ]
 }
