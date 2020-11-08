@@ -284,7 +284,11 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
     let base_name = basename(url).split(".");
     let ext = base_name.slice(base_name.length - 1, base_name.length).join(".");
     let mimetype = getMimeType(ext);
-    let img_cache = await REDIS_INSTANCE.get(url);
+    try {
+        var img_cache = await REDIS_INSTANCE.get(url);
+    } catch (e) {
+        return [null, null];
+    }
     if (is_none(img_cache)) {
         console.info(`[nh:imgcache] ${url} cache not found, requesting.`);
         while (true) {
@@ -299,14 +303,14 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
             await sleep(500);
         }
         console.log(`[nh:imgcache] Caching ${url}`);
-        let buffer_image = Buffer.from(r_img);
-        await REDIS_INSTANCE.setex(url, 60 * 60 * 24 * 7, buffer_image);
+        let buffer_image = Buffer.from(r_img, "binary");
+        await REDIS_INSTANCE.setex(url, 60 * 60 * 24 * 7, buffer_image.toString("base64"));
         // used for expressjs return.
         return [buffer_image, mimetype];
     } else {
         console.info(`[nhproxy:imgcache] ${url} cache found.`);
         // used for expressjs return.
-        let buffer_image = Buffer.from(img_cache);
+        let buffer_image = Buffer.from(img_cache, "base64");
         return [buffer_image, mimetype];
     }
 }
@@ -316,7 +320,8 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
     let session = axios.create({
         headers: {
             "User-Agent": CHROME_UA
-        }
+        },
+        responseType: "arraybuffer"
     });
     console.info(`[nh:simg] finding info cache: ${doujin_id}`)
     let parsed_info_cache = await REDIS_INSTANCE.get(`nhi${doujin_id}`)
@@ -365,7 +370,8 @@ export async function nhImagePathProxy(path: string, is_thumbnail: boolean = fal
     let session = axios.create({
         headers: {
             "User-Agent": CHROME_UA
-        }
+        },
+        responseType: "arraybuffer"
     });
 
     let image_url = `${base_url}${path}`;
