@@ -1,9 +1,8 @@
-import { Tedis } from "tedis";
+import Redis = require("ioredis");
 import { is_none } from "../utils/swissknife";
-import { inspect } from "util";
 
 export class RedisDB {
-    client: Tedis
+    client: Redis.Redis
     usable: boolean
     host: string
     port: number
@@ -12,23 +11,20 @@ export class RedisDB {
         this.host = host;
         this.port = port;
         if (!is_none(password)) {
-            var tedis = new Tedis({
-                host: host,
-                port: port,
-                password: password
+            var redis_db = new Redis(port, host, {
+                "password": password,
             });
         } else {
-            var tedis = new Tedis({
-                host: host,
-                port: port
+            var redis_db = new Redis(port, host, {
+                "password": password,
             });
         }
-        this.client = tedis;
+        this.client = redis_db;
         this.usable = true;
     }
 
     close() {
-        this.client.close();
+        this.client.disconnect();
     }
 
     private async safe_call(callback: Function): Promise<any> {
@@ -37,6 +33,7 @@ export class RedisDB {
             return res;
         } catch (e) {
             console.error(e);
+            return null;
         }
     }
 
