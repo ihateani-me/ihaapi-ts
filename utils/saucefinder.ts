@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import xml2js = require("xml2js");
 import cheerio = require("cheerio");
+import FormData = require('form-data');
 import { getValueFromKey, hasKey, is_none, sortObjectsByKey } from './swissknife';
 const packageJson = require("../package.json");
 
@@ -926,7 +927,7 @@ class IQDB {
         } else if (hasKey(child_data, "preview_url")) {
             source = child_data["preview_url"];
         }
-        return [title, {}, source, "generic"]
+        return [title, {}, source, "generic"];
     }
 
     private async buildResults(xml_data: string): Promise<SauceFinderResult[]> {
@@ -1009,6 +1010,181 @@ class IQDB {
         });
         console.info("[IQDB] Requesting sauce...");
         let response = await session.get(build_url);
+        return (await this.buildResults(response.data));
+    }
+}
+
+export class ASCII2D {
+    results_limit: number
+    base_url: string
+    _sessions: AxiosInstance
+
+    constructor(limit: number = 2) {
+        this.base_url = "https://ascii2d.net/";
+        this.results_limit = limit;
+        this._sessions = axios.create({
+            headers: {
+                "User-Agent": CHROME_UA
+            }
+        })
+    }
+
+    private async requestToken(): Promise<string> {
+        console.info("[ASCII2D] Requesting token...");
+        let response = await this._sessions.get(this.base_url, {
+            responseType: "text"
+        });
+        let $ = cheerio.load(response.data);
+        let $csrf_token = $("meta[name=csrf-token]");
+        return $csrf_token.attr("content");
+    }
+
+    private formatPixiv($html_data: cheerio.Cheerio, $: cheerio.Root): [string, object, string, string, string] {
+        let $image_box = $html_data.children(".image-box");
+        let $info_box = $html_data.children(".info-box");
+        let $info_links = $info_box.children(".detail-box");
+    
+        let img_hash = $info_box.children(".hash").text();
+        var title = "";
+        var source = "";
+        var artwork_name = null;
+        $info_links.find("a").each((_, elem) => {
+            let $a_elem = $(elem);
+            if ($a_elem.attr("href").includes("artwork")) {
+                source = $a_elem.attr("href");
+                artwork_name = $a_elem.text().trim();
+            } else if ($a_elem.attr("href").includes("user")) {
+                title += `[${$a_elem.text().trim()}] `;
+            }
+        })
+        if (is_none(artwork_name)) {
+            title += img_hash;
+        } else {
+            title += artwork_name;
+        }
+    
+        var thumbnail = $image_box.find("img").attr("src");
+        if (thumbnail.startsWith("/")) {
+            thumbnail = this.base_url.slice(0, -1) + thumbnail;
+        } else {
+            thumbnail = this.base_url + thumbnail;
+        }
+        return [title, {}, source, thumbnail, "pixiv"]
+    }
+
+    private formatTwitter($html_data: cheerio.Cheerio, $: cheerio.Root): [string, object, string, string, string] {
+        let $image_box = $html_data.children(".image-box");
+        let $info_box = $html_data.children(".info-box");
+        let $info_links = $info_box.children(".detail-box");
+    
+        let img_hash = $info_box.children(".hash").text();
+        var title = "";
+        var source = "";
+        var artwork_name = null;
+        $info_links.find("a").each((_, elem) => {
+            let $a_elem = $(elem);
+            if ($a_elem.attr("href").includes("status")) {
+                source = $a_elem.attr("href");
+                artwork_name = $a_elem.text().trim();
+            } else if ($a_elem.attr("href").includes("user")) {
+                title += `[${$a_elem.text().trim()}] `;
+            }
+        })
+        if (is_none(artwork_name)) {
+            title += img_hash;
+        } else {
+            title += artwork_name;
+        }
+    
+        var thumbnail = $image_box.find("img").attr("src");
+        if (thumbnail.startsWith("/")) {
+            thumbnail = this.base_url.slice(0, -1) + thumbnail;
+        } else {
+            thumbnail = this.base_url + thumbnail;
+        }
+        return [title, {}, source, thumbnail, "twitter"]
+    }
+
+    private formatGeneric($html_data: cheerio.Cheerio, $: cheerio.Root): [string, object, string, string, string] {
+        let $image_box = $html_data.children(".image-box");
+        let $info_box = $html_data.children(".info-box");
+    
+        let title = $info_box.children(".hash").text();
+
+        var thumbnail = $image_box.find("img").attr("src");
+        if (thumbnail.startsWith("/")) {
+            thumbnail = this.base_url.slice(0, -1) + thumbnail;
+        } else {
+            thumbnail = this.base_url + thumbnail;
+        }
+        return [title, {}, "", thumbnail, "generic"]
+    }
+
+    private async buildResults(html_res: string): Promise<SauceFinderResult[]> {
+        let $ = cheerio.load(html_res);
+        let $rows_data = $("div.container > div.row");
+        let $all_results = $rows_data.children("div").children(".item-box");
+        console.info(`[ASCII2D] Raw Result: ${$all_results.length}`);
+
+        let parsed_data: SauceFinderResult[] = $all_results.slice(1).map((index, elem) => {
+            if (index >= this.results_limit) {
+                return null;
+            }
+            // @ts-ignore
+            let data_map: SauceFinderResult = {};
+            let $html_data = $(elem);
+            let $detail_box = $html_data.find(".detail-box.gray-link");
+            let indexer = $detail_box.find("small").text().trim();
+            switch (indexer) {
+                case "twitter":
+                    var [title, extra_info, source, thumbnail, index_er] = this.formatTwitter($html_data, $);
+                    break;
+                case "pixiv":
+                    var [title, extra_info, source, thumbnail, index_er] = this.formatPixiv($html_data, $);
+                    break;
+                default:
+                    var [title, extra_info, source, thumbnail, index_er] = this.formatGeneric($html_data, $);
+                    break;
+            }
+            data_map["title"] = title;
+            data_map["source"] = source;
+            data_map["thumbnail"] = thumbnail;
+            data_map["confidence"] = index;
+            data_map["indexer"] = index_er;
+            data_map["extra_info"] = extra_info;
+            return data_map;
+        }).get();
+
+        let finalized_parsed_data: SauceFinderResult[] = [];
+        parsed_data.forEach((data) => {
+            if (!is_none(data)) {
+                finalized_parsed_data.push(data);
+            }
+        });
+        finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
+        console.info(`[ASCII2D] Finalized Result: ${finalized_parsed_data.length}`);
+        return finalized_parsed_data;
+    }
+
+    async getSauce(url: string): Promise<SauceFinderResult[]> {
+        let token = await this.requestToken();
+        console.info("[ASCII2D] Searching sauce...");
+        let forms_data = new FormData();
+        forms_data.append("utf-8", "✓");
+        forms_data.append("uri", url);
+        forms_data.append("authenticity_token", token);
+        console.info("[ASCII2D] Requesting sauce...");
+        let response = await this._sessions.post(
+            this.base_url + "search/uri",
+            forms_data,
+            {
+                headers: {
+                    "User-Agent": CHROME_UA,
+                    "Content-Type": `multipart/form-data; boundary=${forms_data.getBoundary()}`
+                },
+                responseType: "text"
+            }
+        )
         return (await this.buildResults(response.data));
     }
 }
