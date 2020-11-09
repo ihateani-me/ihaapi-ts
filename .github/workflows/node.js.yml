@@ -1,7 +1,8 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# This workflow also try to build swagger specification from jsdoc and validate it.
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Test Code
+name: Multi-Tests
 
 on:
   push:
@@ -24,6 +25,16 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+    - name: Clean Install and Build
+      run: |
+        npm ci
+        npm run build --if-present
+    - name: Run Jest Test
+      run: npm test
+    - name: Build Swagger/OpenAPI Specification
+      run: npx swagger-jsdoc -o ./swagger.yml -d ./utils/swaggerDef.js ./routes/*.ts
+    - name: Validate Swagger/OpenAPI Specification
+      uses: mbowman100/swagger-validator-action@1.5
+      with:
+        files: |
+          swagger.yml
