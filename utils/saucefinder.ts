@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import xml2js = require("xml2js");
 import cheerio = require("cheerio");
 import { getValueFromKey, hasKey, is_none, sortObjectsByKey } from './swissknife';
+const packageJson = require("../package.json");
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
 
@@ -803,11 +804,211 @@ export class SauceNAO {
         console.debug(`[SauceNAO] Searching with ${build_url} ...`);
         let session = axios.create({
             headers: {
-                "User-Agent": "ihaAPI/0.9.6"
+                "User-Agent": `ihaAPI/${packageJson['version']}`
             },
             responseType: "json"
         });
         let response = await session.post(build_url);
+        return (await this.buildResults(response.data));
+    }
+}
+
+class IQDB {
+    minsim: number
+
+    constructor(minsim: number = 47.5) {
+        this.minsim = minsim
+    }
+
+    private formatBaseBooru(child_data, root_path: string): [string, object, string] {
+        var title = "";
+        if (hasKey(child_data, "author")) {
+            title += `[${child_data["author"]}] `;
+        }
+        if (hasKey(child_data, "tags")) {
+            title += child_data["tags"];
+            if (hasKey(child_data, "id")) {
+                title += ` (${child_data["id"]})`;
+            }
+        }
+        if (!title) {
+            title = child_data["md5"];
+        }
+        title = title.trimRight();
+        let source = `${root_path}${child_data["id"]}`;
+        return [title, {}, source];
+    }
+
+    private formatDanbooru(child_data): [string, object, string, string] {
+        let root_path = "https://danbooru.donmai.us/posts/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "danbooru"];
+    }
+
+    private formatYandere(child_data): [string, object, string, string] {
+        let root_path = "https://yande.re/post/show/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "yande.re"];
+    }
+
+    private formatGelbooru(child_data): [string, object, string, string] {
+        let root_path = "https://gelbooru.com/index.php?page=post&s=view&id=";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "gelbooru"];
+    }
+
+    private formatZerochan(child_data): [string, object, string, string] {
+        let root_path = "https://www.zerochan.net/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "zerochan"];
+    }
+
+    private formatKonachan(child_data): [string, object, string, string] {
+        let root_path = "https://konachan.com/post/show/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "konachan"];
+    }
+
+    private formatAnimePictures(child_data): [string, object, string, string] {
+        let root_path = "https://anime-pictures.net/pictures/view_post/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "anime-pictures.net"];
+    }
+
+    private formatSankaku(child_data): [string, object, string, string] {
+        let root_path = "https://chan.sankakucomplex.com/post/show/";
+        let [t, ei, s] = this.formatBaseBooru(child_data, root_path);
+        return [t, ei, s, "sankaku"];
+    }
+
+    private formatEShuushuu(child_data): [string, object, string, string] {
+        let root_path = "https://e-shuushuu.net/image/";
+        var title = "";
+        if (hasKey(child_data, "author")) {
+            title += `[${child_data["author"]}] `;
+        }
+        if (hasKey(child_data, "theme_tags")) {
+            title += child_data["theme_tags"];
+            if (hasKey(child_data, "id")) {
+                title += ` (${child_data["id"]})`;
+            }
+        }
+        if (!title) {
+            title = child_data["md5"];
+        }
+        title = title.trimRight();
+        let source = `${root_path}${child_data["id"]}`;
+        return [title, {}, source, "e-shuushuu.net"];
+    }
+
+    private formatGeneric(child_data): [string, object, string, string] {
+        var title = "";
+        if (hasKey(child_data, "tags")) {
+            title += child_data["tags"];
+            if (hasKey(child_data, "id")) {
+                title += ` (${child_data["id"]})`;
+            }
+        } else if (hasKey(child_data, "id")) {
+            title = child_data["id"];
+        } else {
+            title = child_data["md5"];
+        }
+        title = title.trimRight();
+        var source = "";
+        if (hasKey(child_data, "source")) {
+            source = child_data["source"];
+        } else if (hasKey(child_data, "file_url")) {
+            source = child_data["file_url"];
+        } else if (hasKey(child_data, "jpeg_url")) {
+            source = child_data["file_url"];
+        } else if (hasKey(child_data, "sample_url")) {
+            source = child_data["sample_url"];
+        } else if (hasKey(child_data, "preview_url")) {
+            source = child_data["preview_url"];
+        }
+        return [title, {}, source, "generic"]
+    }
+
+    private async buildResults(xml_data: string): Promise<SauceFinderResult[]> {
+        let root = await xml2js.parseStringPromise(xml_data);
+        if (hasKey(root, "error")) {
+            console.error(`[IQDB] Request error: ${root["error"]["$"]["message"]}`);
+            return [];
+        }
+
+        let matches: any[] = root.matches.match;
+        console.info(`[IQDB] Raw Result: ${matches.length}`);
+        let parsed_data = matches.map((match) => {
+            let match_data = match["$"];
+            // @ts-ignore
+            let data: SauceFinderResult = {};
+            let confidence = parseFloat(match_data["sim"]);
+            if (confidence <= this.minsim) {
+                return data;
+            }
+            switch (match_data["service"]) {
+                case "danbooru.donmai.us":
+                    var [title, extra_info, source, index_er] = this.formatDanbooru(match["post"][0]["$"]);
+                    break;
+                case "gelbooru.com":
+                    var [title, extra_info, source, index_er] = this.formatGelbooru(match["post"][0]["$"]);
+                    break;
+                case "konachan.com":
+                    var [title, extra_info, source, index_er] = this.formatKonachan(match["post"][0]["$"]);
+                    break;
+                case "zerochan.net":
+                    var [title, extra_info, source, index_er] = this.formatZerochan(match["post"][0]["$"]);
+                    break;
+                case "yande.re":
+                    var [title, extra_info, source, index_er] = this.formatYandere(match["post"][0]["$"]);
+                    break;
+                case "anime-pictures.net":
+                    var [title, extra_info, source, index_er] = this.formatAnimePictures(match["post"][0]["$"]);
+                    break;
+                case "e-shuushuu.net":
+                    var [title, extra_info, source, index_er] = this.formatEShuushuu(match["post"][0]["$"]);
+                    break;
+                case "chan.sankakucomplex.com":
+                    var [title, extra_info, source, index_er] = this.formatSankaku(match["post"][0]["$"]);
+                    break;
+                default:
+                    var [title, extra_info, source, index_er] = this.formatGeneric(match["post"][0]["$"]);
+                    break;
+            }
+            data["title"] = title;
+            data["source"] = source;
+            data["confidence"] = confidence;
+            data["thumbnail"] = "https:" + match_data["preview"];
+            data["extra_info"] = extra_info;
+            data["indexer"] = index_er;
+            return data;
+        })
+
+        let finalized_parsed_data: SauceFinderResult[] = [];
+        parsed_data.forEach((data) => {
+            // @ts-ignore
+            if (Object.keys(data).length > 0) {
+                finalized_parsed_data.push(data);
+            }
+        });
+        finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
+        finalized_parsed_data = finalized_parsed_data.reverse();
+        console.info(`[IQDB] Finalized Result: ${finalized_parsed_data.length}`);
+        return finalized_parsed_data;
+    }
+
+    async getSauce(url: string): Promise<SauceFinderResult[]> {
+        console.info("[IQDB] Searching sauce...");
+        let build_url = `https://iqdb.org/index.xml?url=${encodeURIComponent(url)}`;
+        console.debug(`[IQDB] Searching with ${build_url} ...`);
+        let session = axios.create({
+            headers: {
+                "User-Agent": `ihaAPI/${packageJson['version']}`
+            },
+            responseType: "text"
+        });
+        console.info("[IQDB] Requesting sauce...");
+        let response = await session.get(build_url);
         return (await this.buildResults(response.data));
     }
 }
