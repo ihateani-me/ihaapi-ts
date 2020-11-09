@@ -21,14 +21,13 @@ holoroutes.use((req, res, next) => {
  *      description: Fetch a list of live/upcoming streams from BiliBili for HoloPro VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Hololive
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: uids
  *        description: Filter upcoming results with User ID (support multiple id separated by comma)
  *        required: false
- *        type: string
+ *        schema:
+ *          type: string
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -39,19 +38,21 @@ holoroutes.use((req, res, next) => {
  *      responses:
  *          '200':
  *              description: A list of live/upcoming streams
- *              schema:
- *                  type: object
- *                  properties:
- *                      live:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliScheduleModel'
- *                      upcoming:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliScheduleModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              live:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliScheduleModel'
+ *                              upcoming:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliScheduleModel'
+ *                              cached:
+ *                                  type: boolean
  */
 holoroutes.get("/live", (req, res) => {
     let user_query = req.query;
@@ -98,46 +99,47 @@ holoroutes.get("/live", (req, res) => {
  *      description: Fetch a list of HoloPro VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Hololive
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - room_id
- *        - name
- *        - description
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
- *        - live
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - room_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
+ *          - live
  *      - in: query
  *        name: sort
  *        description: Sort data by one of the values available.
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - room_id
- *        - name
- *        - description
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - room_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
  *      - in: query
  *        name: order
  *        description: Sort order.
  *        required: false
- *        type: string
- *        enum:
- *        - ascending
- *        - descending
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - ascending
+ *          - descending
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -148,15 +150,17 @@ holoroutes.get("/live", (req, res) => {
  *      responses:
  *          '200':
  *              description: A list of channels.
- *              schema:
- *                  type: object
- *                  properties:
- *                      channels:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliBiliChannelModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              channels:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliBiliChannelModel'
+ *                              cached:
+ *                                  type: boolean
  */
 holoroutes.get("/channels", (req, res) => {
     let user_query = req.query;

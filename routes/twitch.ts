@@ -22,8 +22,6 @@ twitchroutes.use((req, res, next) => {
  *      description: Fetch a list of live streams from Twitch VTubers, updated every 1 minute.
  *      tags:
  *      - Twitch
- *      produces:
- *      - application/json
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -34,15 +32,17 @@ twitchroutes.use((req, res, next) => {
  *      responses:
  *          '200':
  *              description: A list of live streams
- *              schema:
- *                  type: object
- *                  properties:
- *                      live:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/TwitchScheduleModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              live:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/TwitchScheduleModel'
+ *                              cached:
+ *                                  type: boolean
  */
 twitchroutes.get("/live", (req, res) => {
     try {
@@ -83,43 +83,44 @@ twitchroutes.get("/live", (req, res) => {
  *      description: Fetch a list of VTubers Twitch channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Twitch
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - user_id
- *        - name
- *        - description
- *        - thumbnail
- *        - followerCount
- *        - viewCount
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - user_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - followerCount
+ *          - viewCount
  *      - in: query
  *        name: sort
  *        description: Sort data by one of the values available.
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - user_id
- *        - name
- *        - description
- *        - thumbnail
- *        - followerCount
- *        - viewCount
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - user_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - followerCount
+ *          - viewCount
  *      - in: query
  *        name: order
  *        description: Sort order.
  *        required: false
- *        type: string
- *        enum:
- *        - ascending
- *        - descending
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - ascending
+ *          - descending
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -130,15 +131,17 @@ twitchroutes.get("/live", (req, res) => {
  *      responses:
  *          '200':
  *              description: A list of channels.
- *              schema:
- *                  type: object
- *                  properties:
- *                      channels:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/TwitchChannelModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              channels:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/TwitchChannelModel'
+ *                              cached:
+ *                                  type: boolean
  */
 twitchroutes.get("/channels", (req, res) => {
     let user_query = req.query;

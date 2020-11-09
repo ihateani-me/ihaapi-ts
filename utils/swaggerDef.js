@@ -105,7 +105,7 @@ const MAIN_MODELS_SCHEMAS = {
             status: {
                 type: "string",
                 description: "Status of streams",
-                choices: ["live", "upcoming", "past"]
+                enum: ["live", "upcoming", "past"]
             },
             thumbnail: {
                 type: "string",
@@ -373,6 +373,7 @@ const MAIN_MODELS_SCHEMAS = {
 }
 
 module.exports = {
+    openapi: "3.0.0",
     info: {
         version: packageJson["version"],
         title: "ihateani.me API [ihaAPI]",
@@ -388,9 +389,16 @@ module.exports = {
             "url": "https://cdn.glitch.com/80f8c496-07f7-48d7-81a2-03e2ee470e54%2Ffavicon.png"
         }
     },
-    host: "api.ihateani.me",
-    basePath: "/",
-    schemes: ["https"],
+    servers: [
+        {
+            "url": "https://api.ihateani.me",
+            "description": "Production-ready API"
+        },
+        {
+            "url": "https://ihaapi.glitch.me",
+            "description": "Development API (Glitch)"
+        }
+    ],
     tags: [
         {"name": "Hololive", "description": "Hololive BiliBili Endpoint"},
         {"name": "Nijisanji", "description": "Nijisanji BiliBili & YouTube Endpoint"},
@@ -470,5 +478,7 @@ module.exports = {
     // "components": {
     //     schemas: MAIN_MODELS_SCHEMAS
     // },
-    "definitions": MAIN_MODELS_SCHEMAS
+    "components": {
+        "schemas": MAIN_MODELS_SCHEMAS
+    }
 }

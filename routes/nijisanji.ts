@@ -21,30 +21,31 @@ nijiroutes.use((req, res, next) => {
  *      description: Fetch a list of live/upcoming streams from BiliBili for Nijisanji/VirtuaReal VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Nijisanji
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: uids
  *        description: Filter upcoming results with User ID (support multiple id separated by comma)
  *        required: false
- *        type: string
+ *        schema:
+ *          type: string
  *      responses:
  *          '200':
  *              description: A list of live/upcoming streams
- *              schema:
- *                  type: object
- *                  properties:
- *                      live:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliScheduleModel'
- *                      upcoming:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliScheduleModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              live:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliScheduleModel'
+ *                              upcoming:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliScheduleModel'
+ *                              cached:
+ *                                  type: boolean
  */
 nijiroutes.get("/live", (req, res) => {
     let user_query = req.query;
@@ -91,58 +92,61 @@ nijiroutes.get("/live", (req, res) => {
  *      description: Fetch a list of Nijisanji/VirtuaReal VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - room_id
- *        - name
- *        - description
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
- *        - live
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - room_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
+ *          - live
  *      - in: query
  *        name: sort
  *        description: Sort data by one of the values available.
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - room_id
- *        - name
- *        - description
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - room_id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
  *      - in: query
  *        name: order
  *        description: Sort order.
  *        required: false
- *        type: string
- *        enum:
- *        - ascending
- *        - descending
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - ascending
+ *          - descending
  *      responses:
  *          '200':
  *              description: A list of channels.
- *              schema:
- *                  type: object
- *                  properties:
- *                      channels:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/BiliBiliChannelModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              channels:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/BiliBiliChannelModel'
+ *                              cached:
+ *                                  type: boolean
  */
 nijiroutes.get("/channels", (req, res) => {
     let user_query = req.query;
@@ -188,64 +192,67 @@ nijiroutes.get("/channels", (req, res) => {
  *          Wrong parameters value will just be ignored and not gonna return error.
  *      tags:
  *      - Nijisanji
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: status
  *        description: Filter status (live/upcoming/ended) that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - live
- *        - upcoming
- *        - ended
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - live
+ *          - upcoming
+ *          - ended
  *      - in: query
  *        name: group
  *        description: Filter groups that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - nijisanji
- *        - nijisanjiworld
- *        - nijisanjijp
- *        - nijisanjikr
- *        - nijisanjien
- *        - nijisanjiid
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - nijisanji
+ *          - nijisanjiworld
+ *          - nijisanjijp
+ *          - nijisanjikr
+ *          - nijisanjien
+ *          - nijisanjiid
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - title
- *        - startTime
- *        - endTime
- *        - status
- *        - thumbnail
- *        - viewers
- *        - channel
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - title
+ *          - startTime
+ *          - endTime
+ *          - status
+ *          - thumbnail
+ *          - viewers
+ *          - channel
  *      responses:
  *          '200':
  *              description: A list of live/upcoming/ended streams
- *              schema:
- *                  type: object
- *                  properties:
- *                      live:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/YouTubeScheduleModel'
- *                      upcoming:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/YouTubeScheduleModel'
- *                      ended:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/YouTubeScheduleModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              live:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/YouTubeScheduleModel'
+ *                              upcoming:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/YouTubeScheduleModel'
+ *                              ended:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/YouTubeScheduleModel'
+ *                              cached:
+ *                                  type: boolean
  */
 nijiroutes.get("/youtube/live", (req, res) => {
     let user_query = req.query;
@@ -285,71 +292,75 @@ nijiroutes.get("/youtube/live", (req, res) => {
  *      description: Fetch a list of Nijisanji VTubers YouTube channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - name
- *        - description
- *        - publishedAt
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
- *        - group
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - name
+ *          - description
+ *          - publishedAt
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
+ *          - group
  *      - in: query
  *        name: group
  *        description: Filter groups that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - nijisanji
- *        - nijisanjiworld
- *        - nijisanjijp
- *        - nijisanjikr
- *        - nijisanjien
- *        - nijisanjiid
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - nijisanji
+ *          - nijisanjiworld
+ *          - nijisanjijp
+ *          - nijisanjikr
+ *          - nijisanjien
+ *          - nijisanjiid
  *      - in: query
  *        name: sort
  *        description: Sort data by one of the values available.
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - name
- *        - description
- *        - publishedAt
- *        - thumbnail
- *        - subscriberCount
- *        - viewCount
- *        - videoCount
- *        - group
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - name
+ *          - description
+ *          - publishedAt
+ *          - thumbnail
+ *          - subscriberCount
+ *          - viewCount
+ *          - videoCount
+ *          - group
  *      - in: query
  *        name: order
  *        description: Sort order.
  *        required: false
- *        type: string
- *        enum:
- *        - ascending
- *        - descending
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - ascending
+ *          - descending
  *      responses:
  *          '200':
  *              description: A list of channels.
- *              schema:
- *                  type: object
- *                  properties:
- *                      channels:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/YouTubeChannelModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              channels:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/YouTubeChannelModel'
+ *                              cached:
+ *                                  type: boolean
  */
 nijiroutes.get("/youtube/channels", (req, res) => {
     let user_query = req.query;

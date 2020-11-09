@@ -22,8 +22,6 @@ twitcastroutes.use((req, res, next) => {
  *      description: Fetch a list of live streams from Twitcasting VTubers, updated every 1 minute.
  *      tags:
  *      - Twitcasting
- *      produces:
- *      - application/json
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -34,15 +32,17 @@ twitcastroutes.use((req, res, next) => {
  *      responses:
  *          '200':
  *              description: A list of live streams
- *              schema:
- *                  type: object
- *                  properties:
- *                      live:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/TwitcastingScheduleModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              live:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/TwitcastingScheduleModel'
+ *                              cached:
+ *                                  type: boolean
  */
 twitcastroutes.get("/live", (req, res) => {
     try {
@@ -82,41 +82,42 @@ twitcastroutes.get("/live", (req, res) => {
  *      description: Fetch a list of VTubers Twitcasting channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Twitcasting
- *      produces:
- *      - application/json
  *      parameters:
  *      - in: query
  *        name: fields
  *        description: Filter fields that will be returned, multiples value are separated by comma
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - name
- *        - description
- *        - thumbnail
- *        - followerCount
- *        - level
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - followerCount
+ *          - level
  *      - in: query
  *        name: sort
  *        description: Sort data by one of the values available.
  *        required: false
- *        type: string
- *        enum:
- *        - id
- *        - name
- *        - description
- *        - thumbnail
- *        - followerCount
- *        - level
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - id
+ *          - name
+ *          - description
+ *          - thumbnail
+ *          - followerCount
+ *          - level
  *      - in: query
  *        name: order
  *        description: Sort order.
  *        required: false
- *        type: string
- *        enum:
- *        - ascending
- *        - descending
+ *        schema:
+ *          type: string
+ *          enum:
+ *          - ascending
+ *          - descending
  *      x-codeSamples:
  *      - lang: Python
  *        label: Python3
@@ -127,15 +128,17 @@ twitcastroutes.get("/live", (req, res) => {
  *      responses:
  *          '200':
  *              description: A list of channels.
- *              schema:
- *                  type: object
- *                  properties:
- *                      channels:
- *                          type: array
- *                          items:
- *                              $ref: '#/definitions/TwitcastingChannelModel'
- *                      cached:
- *                          type: boolean
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              channels:
+ *                                  type: array
+ *                                  items:
+ *                                      $ref: '#/components/schemas/TwitcastingChannelModel'
+ *                              cached:
+ *                                  type: boolean
  */
 twitcastroutes.get("/channels", (req, res) => {
     let user_query = req.query;
