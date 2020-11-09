@@ -1,5 +1,5 @@
 # ihaapi-ts
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_small) ![Code Coverage](https://img.shields.io/codecov/c/github/ihateani-me/ihaapi-ts?style=flat-square) ![Test Code](https://github.com/ihateani-me/ihaapi-ts/workflows/Test%20Code/badge.svg)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnoaione%2Fihaapi-ts?ref=badge_small) [![Code Coverage](https://img.shields.io/codecov/c/github/ihateani-me/ihaapi-ts?style=flat-square)](https://codecov.io/gh/ihateani-me/ihaapi-ts) [![Test Code](https://img.shields.io/github/workflow/status/ihateani-me/ihaapi-ts/Test%20Code?style=flat-square)](https://github.com/ihateani-me/ihaapi-ts/actions?query=workflow%3A%22Test+Code%22)
 
 api.ihateani.me but written in TypeScript
 
