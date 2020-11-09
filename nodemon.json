@@ -10,5 +10,5 @@
         "**/*.test.ts"
     ],
     "exec": "ts-node ./server.ts",
-    "ext": "js json ts html"
+    "ext": "js ts"
 }
