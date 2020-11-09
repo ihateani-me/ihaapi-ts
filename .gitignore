@@ -6,8 +6,8 @@ node_modules
 .vscode
 
 *.js.map
-swagger.json
-swagger.yml
+swagger*.json
+swagger*.yml
 coverage/
 !jest.config.js
 
