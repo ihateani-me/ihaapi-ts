@@ -8,7 +8,7 @@ import { basename } from 'path';
 interface nhInfoData {
     id: string
     title: string
-    original_string?: {
+    original_title?: {
         japanase?: string
         other?: string
     }
