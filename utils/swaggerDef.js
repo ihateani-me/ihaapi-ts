@@ -379,14 +379,17 @@ module.exports = {
         title: "ihateani.me API [ihaAPI]",
         description: API_DESCRIPTIONS,
         contact: {
-            email: "noaione0809@gmail.com"
+            name: "Contact",
+            email: "noaione0809@gmail.com",
+            url: "https://github.com/ihateani-me/ihaapi-ts"
         },
         license: {
             "name": "MIT License",
             "url": "https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE"
         },
         "x-logo": {
-            "url": "https://cdn.glitch.com/80f8c496-07f7-48d7-81a2-03e2ee470e54%2Ffavicon.png"
+            "url": "https://p.n4o.xyz/i/ihaTranslucent.png",
+            "altText": "ihaAPI Logo"
         }
     },
     servers: [
