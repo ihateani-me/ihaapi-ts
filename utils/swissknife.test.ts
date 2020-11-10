@@ -1,3 +1,4 @@
+import { exec } from 'child_process';
 import * as SwissKnife from './swissknife';
 
 // filter_empty()
@@ -154,5 +155,20 @@ describe("Remove a Key/Value Pair from Array of Object", () => {
     })
     it("Passed properly, key exist.", () => {
         expect(SwissKnife.removeKeyFromObjects([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}], "id")).toStrictEqual([{"name": "nao"}, {"name": "nope"}]);
+    })
+});
+
+describe("Convert to Number with Fallback", () => {
+    it("Passed a non-number string with no fallback.", () => {
+        expect(SwissKnife.fallbackNaN(parseFloat, "test")).toStrictEqual("test");
+    })
+    it("Passed a non-string number with a fallback.", () => {
+        expect(SwissKnife.fallbackNaN(parseFloat, "test", 57.5)).toStrictEqual(57.5);
+    })
+    it("Passed a number string with no fallback", () => {
+        expect(SwissKnife.fallbackNaN(parseFloat, "60")).toStrictEqual(60);
+    })
+    it("Passed a number string with with a fallback", () => {
+        expect(SwissKnife.fallbackNaN(parseFloat, "60", 57.5)).toStrictEqual(60);
     })
 })

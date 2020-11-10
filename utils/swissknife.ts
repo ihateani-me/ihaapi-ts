@@ -162,3 +162,18 @@ export function removeKeyFromObjects(array_of_object: any, key_base: string): an
     });
     return fixed_array_of_object;
 }
+
+/**
+ * Convert a string/number to a number using fallback if it's NaN (Not a number).
+ * If fallback is not specified, it will return to_convert.
+ * @param cb parseFloat or parseInt function that will be run
+ * @param to_convert number or string to convert
+ * @param fallback fallback number
+ */
+export function fallbackNaN(cb: Function, to_convert: any, fallback?: number): number {
+    if (isNaN(cb(to_convert))) {
+        return is_none(fallback) ? to_convert : fallback;
+    } else {
+        return cb(to_convert);
+    }
+}
