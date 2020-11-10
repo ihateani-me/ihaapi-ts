@@ -66,6 +66,7 @@ app.use("/museid", Routes.MuseIDRoutes);
 app.use("/games", Routes.GamesRoutes);
 app.use("/u2", Routes.U2Routes);
 app.use("/nh", Routes.NHRoutes);
+app.use("/sauce", Routes.SauceRoutes);
 
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
