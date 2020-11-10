@@ -369,6 +369,38 @@ const MAIN_MODELS_SCHEMAS = {
                 example: "twitch"
             }
         }
+    },
+    "SauceFinderResultModel": {
+        description: "A possible match for image sauce.",
+        type: "object",
+        required: ["title", "confidence", "thumbnail", "indexer"],
+        properties: {
+            title: {
+                type: "string",
+                description: "The result image title."
+            },
+            source: {
+                type: "string",
+                description: "The result source if available."
+            },
+            confidence: {
+                type: "number",
+                description: "The result match confidence."
+            },
+            thumbnail: {
+                type: "string",
+                description: "The image thumbnail (temporary)"
+            },
+            extra_info: {
+                type: "object",
+                description: "Extra info dict, might be available to some of them.",
+                properties: {}
+            },
+            indexer: {
+                type: "string",
+                description: "The result indexer"
+            }
+        }
     }
 }
 
