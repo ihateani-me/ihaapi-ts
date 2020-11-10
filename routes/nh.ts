@@ -560,10 +560,7 @@ nhroutes.get("/latest", (req, res) => {
         req_page = "1";
     }
     // @ts-ignore
-    var page_num = parseInt(req_page);
-    if (isNaN(page_num)) {
-        page_num = 1;
-    }
+    var page_num = fallbackNaN(parseInt, req_page, 1);
     if (page_num < 1) {
         page_num = 1
     }
@@ -816,10 +813,7 @@ nhroutes.get("/search", (req, res) => {
         req_page = "1";
     }
     // @ts-ignore
-    var page_num = parseInt(req_page);
-    if (isNaN(page_num)) {
-        page_num = 1;
-    }
+    var page_num = fallbackNaN(parseInt, req_page, 1);
     if (page_num < 1) {
         page_num = 1
     }

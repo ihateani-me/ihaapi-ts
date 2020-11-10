@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import xml2js = require("xml2js");
 import cheerio = require("cheerio");
 import FormData = require('form-data');
-import { getValueFromKey, hasKey, is_none, sortObjectsByKey } from './swissknife';
+import { fallbackNaN, getValueFromKey, hasKey, is_none, sortObjectsByKey } from './swissknife';
 const packageJson = require("../package.json");
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
@@ -48,9 +48,9 @@ export class SauceNAO {
         } else if (this.api_key == "PLEASECHANGETHIS") {
             throw new Error("Please change the SAUCENAO_API_KEY in your .env to start using SauceNAO module.");
         }
-        this.minsim = parseFloat(getValueFromKey(settings, "minsim", 57.5));
-        this.numres = parseInt(getValueFromKey(settings, "minsim", 6));
-        this.db_index = parseInt(getValueFromKey(settings, "db_index", 999));
+        this.minsim = getValueFromKey(settings, "minsim", 57.5);
+        this.numres = getValueFromKey(settings, "minsim", 6);
+        this.db_index = getValueFromKey(settings, "db_index", 999);
         this.dbmask = getValueFromKey(settings, "dbmask_enable");
         this.dbmaski = getValueFromKey(settings, "dbmask_disable");
         this.test_mode = getValueFromKey(settings, "testmode", false);
@@ -61,15 +61,9 @@ export class SauceNAO {
      * This will precheck settings for number and boolean.
      */
     private precheckSettings() {
-        if (isNaN(this.minsim)) {
-            this.minsim = 57.5;
-        }
-        if (isNaN(this.numres)) {
-            this.numres = 6;
-        }
-        if (isNaN(this.db_index)) {
-            this.db_index = 999;
-        }
+        this.minsim = fallbackNaN(parseFloat, this.minsim, 57.5);
+        this.numres = fallbackNaN(parseInt, this.numres, 6);
+        this.db_index = fallbackNaN(parseInt, this.db_index, 999);
         if (this.db_index < 0 || (this.db_index > 37 && this.db_index !== 999)) {
             this.db_index = 999;
         }

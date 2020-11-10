@@ -170,7 +170,7 @@ export function removeKeyFromObjects(array_of_object: any, key_base: string): an
  * @param to_convert number or string to convert
  * @param fallback fallback number
  */
-export function fallbackNaN(cb: Function, to_convert: any, fallback?: number): number {
+export function fallbackNaN(cb: Function, to_convert: any, fallback?: any): any {
     if (isNaN(cb(to_convert))) {
         return is_none(fallback) ? to_convert : fallback;
     } else {

@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { basename } from 'path';
 import xml2js = require("xml2js");
 import moment = require('moment-timezone');
-import { capitalizeIt, getValueFromKey, hasKey, is_none } from './swissknife';
+import { capitalizeIt, fallbackNaN, getValueFromKey, hasKey, is_none } from './swissknife';
 
 const SDB_ALGOLIA = "https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/";
 const DEFAULT_AVATAR = "https://steamuserimages-a.akamaihd.net/ugc/868480752636433334/1D2881C5C9B3AD28A1D8852903A8F9E1FF45C2C8/";
@@ -525,10 +525,7 @@ export async function do_steamdb_search(query, add_dlc=false, add_app=false, add
         // @ts-ignore
         let data: SteamDBSearchData = {};
         let gtype = getValueFromKey(type_map, game_res["appType"], "unknown");
-        data["id"] = parseInt(game_res["objectID"]);
-        if (isNaN(data["id"])) {
-            data["id"] = game_res["objectID"];
-        };
+        data["id"] = fallbackNaN(parseInt, game_res["objectID"], game_res["objectID"]);
         data["title"] = game_res["name"];
         data["developer"] = setToUnknown(game_res["developer"]);
         data["publisher"] = setToUnknown(game_res["publisher"]);

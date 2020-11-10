@@ -1,7 +1,7 @@
 import * as express from "express";
 import { hltb_search } from "../utils/hltb";
 import { do_search_on_steam, do_steamdb_search, fetch_steam_game_info, fetch_steam_user_info } from "../utils/steam";
-import { is_none, map_bool } from "../utils/swissknife";
+import { fallbackNaN, is_none, map_bool } from "../utils/swissknife";
 
 const gamesroutes = express.Router();
 
@@ -135,10 +135,7 @@ gamesroutes.get("/hltb", (req, res) => {
         req_page = "1";
     }
     // @ts-ignore
-    let page_num = parseInt(req_page);
-    if (isNaN(page_num)) {
-        page_num = 1;
-    }
+    let page_num = fallbackNaN(parseInt, req_page, 1);
     if (is_none(search_query)) {
         search_query = req.query.query;
         if (is_none(search_query)) {
