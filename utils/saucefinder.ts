@@ -62,6 +62,9 @@ export class SauceNAO {
      */
     private precheckSettings() {
         this.minsim = fallbackNaN(parseFloat, this.minsim, 57.5);
+        if (this.minsim <= 0 || this.minsim >= 100) {
+            this.minsim = 57.5;
+        }
         this.numres = fallbackNaN(parseInt, this.numres, 6);
         this.db_index = fallbackNaN(parseInt, this.db_index, 999);
         if (this.db_index < 0 || (this.db_index > 37 && this.db_index !== 999)) {
@@ -808,11 +811,14 @@ export class SauceNAO {
     }
 }
 
-class IQDB {
+export class IQDB {
     minsim: number
 
     constructor(minsim: number = 47.5) {
-        this.minsim = minsim
+        this.minsim = fallbackNaN(parseFloat, minsim, 47.5);
+        if (this.minsim <= 0 || this.minsim >= 100) {
+            this.minsim = 47.5;
+        }
     }
 
     private formatBaseBooru(child_data, root_path: string): [string, object, string] {
@@ -1015,7 +1021,10 @@ export class ASCII2D {
 
     constructor(limit: number = 2) {
         this.base_url = "https://ascii2d.net/";
-        this.results_limit = limit;
+        this.results_limit = fallbackNaN(parseInt, limit, 2);
+        if (this.results_limit < 1) {
+            this.results_limit = 2;
+        }
         this._sessions = axios.create({
             headers: {
                 "User-Agent": CHROME_UA
