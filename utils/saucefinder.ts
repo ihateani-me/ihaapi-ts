@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import xml2js = require("xml2js");
 import cheerio = require("cheerio");
 import FormData = require('form-data');
-import { fallbackNaN, getValueFromKey, hasKey, is_none, sortObjectsByKey } from './swissknife';
+import { fallbackNaN, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from './swissknife';
 const packageJson = require("../package.json");
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
@@ -1190,4 +1190,82 @@ export class ASCII2D {
         )
         return (await this.buildResults(response.data));
     }
+}
+
+function fallbackBool(boolean_data: any, fallback?: boolean): boolean {
+    if (typeof boolean_data === "boolean") {
+        return boolean_data;
+    } else {
+        return is_none(fallback) ? map_bool(boolean_data) : fallback;
+    }
+}
+
+export interface MultiFinderSettings {
+    enableSauceNAO?: boolean
+    enableIQDB?: boolean
+    enableAscii2D?: boolean
+    sauceNAOSetting?: SauceNAOSettings
+    iqdbMinsim?: number
+    ascii2DLimit?: number
+}
+
+interface MultiSauceResults {
+    saucenao?: SauceFinderResult[],
+    iqdb?: SauceFinderResult[],
+    ascii2d?: SauceFinderResult[]
+}
+
+export async function multiSauceFinder(url: string, settings: MultiFinderSettings): Promise<MultiSauceResults> {
+    let enableSauceNAO = fallbackBool(getValueFromKey(settings, "enableSauceNAO", true), true);
+    let enableIQDB = fallbackBool(getValueFromKey(settings, "enableIQDB", true), true);
+    let enableAscii2D = fallbackBool(getValueFromKey(settings, "enableAscii2D", true), true);
+    let iqdbMinsim = fallbackNaN(parseFloat, getValueFromKey(settings, "iqdbMinsim", 47.5), 47.5);
+    let ascii2DLimit = fallbackNaN(parseInt, getValueFromKey(settings, "ascii2DLimit", 2), 2);
+    let sauceNAOSetting = getValueFromKey(settings, "sauceNAOSetting", {});
+
+    let sauceNAO_API_Key = getValueFromKey(sauceNAOSetting, "api_key");
+    let sauceNAO_minsim = fallbackNaN(parseFloat, getValueFromKey(sauceNAOSetting, "minsim", 57.5), 57.5);
+
+    if (!enableSauceNAO && !enableIQDB && !enableAscii2D) {
+        console.warn("[SFMulti] No sauce finder picked, ignoring...");
+        return {};
+    }
+    if (enableSauceNAO && is_none(sauceNAO_API_Key)) {
+        console.warn("[SFMulti] Ignoring SauceNAO, since no key is provided.");
+        enableSauceNAO = false;
+    }
+
+    let parsed_results: MultiSauceResults = {};
+    console.log(`[SFMulti] Searching sauce: ${url} ...`);
+    try {
+        if (enableSauceNAO) {
+            let saucerSN = new SauceNAO({"api_key": sauceNAO_API_Key, "minsim": sauceNAO_minsim});
+            let resSN = await saucerSN.getSauce(url);
+            parsed_results["saucenao"] = resSN;
+        }
+    } catch (e) {
+        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
+        console.error(e);
+    }
+    try {
+        if (enableIQDB) {
+            let saucerIQDB = new IQDB(iqdbMinsim);
+            let resIQDB = await saucerIQDB.getSauce(url);
+            parsed_results["iqdb"] = resIQDB;
+        }
+    } catch (e) {
+        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
+        console.error(e);
+    }
+    try {
+        if (enableAscii2D) {
+            let saucerA2D = new ASCII2D(ascii2DLimit);
+            let resA2D = await saucerA2D.getSauce(url);
+            parsed_results["ascii2d"] = resA2D;
+        }
+    } catch (e) {
+        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
+        console.error(e);
+    }
+    return parsed_results;
 }
