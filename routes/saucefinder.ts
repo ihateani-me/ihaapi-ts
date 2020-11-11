@@ -1,6 +1,6 @@
 import * as express from "express";
-import { ASCII2D, IQDB, SauceNAO } from "../utils/saucefinder";
-import { fallbackNaN, getValueFromKey, is_none } from "../utils/swissknife";
+import { ASCII2D, IQDB, SauceNAO, multiSauceFinder } from "../utils/saucefinder";
+import { fallbackNaN, getValueFromKey, is_none, map_bool } from "../utils/swissknife";
 const sauceroutes = express.Router()
 
 sauceroutes.use((req, res, next) => {
@@ -286,7 +286,7 @@ sauceroutes.get("/ascii2d", (req, res) => {
     console.log("[Sauce:ascii2d:get] GET request received.");
     let body_bag = req.query;
     let payload_url = getValueFromKey(body_bag, "url");
-    let maxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "minsim", 2), 2);
+    let maxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "maxres", 2), 2);
     if (is_none(payload_url)) {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
@@ -301,7 +301,46 @@ sauceroutes.get("/ascii2d", (req, res) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
     }
-})
+});
+
+sauceroutes.get("/multi", (req, res) => {
+    console.log("[Sauce:multi:get] GET request received.");
+    let body_bag = req.query;
+    let payload_url = getValueFromKey(body_bag, "url");
+    let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 57.5), 57.5);
+    let enableSN = map_bool(getValueFromKey(body_bag, "enableSauceNAO", 1));
+    let enableIQDB = map_bool(getValueFromKey(body_bag, "enableIQDB", 1));
+    let enableA2D = map_bool(getValueFromKey(body_bag, "enableASCII2D", 1));
+    let a2dmaxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "ascii2dlimit", 2), 2);
+    if (is_none(payload_url)) {
+        res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
+    } else {
+        payload_url = decodeURIComponent(payload_url);
+        console.info("[Sauce:multi:get] Finding that tasty sauce...");
+        multiSauceFinder(
+            payload_url,
+            {
+                "ascii2DLimit": a2dmaxres,
+                "enableAscii2D": enableA2D,
+                "enableIQDB": enableIQDB,
+                "enableSauceNAO": enableSN,
+                "iqdbMinsim": minsim,
+                "sauceNAOSetting": {
+                    "api_key": process.env.SAUCENAO_API_KEY,
+                    "minsim": minsim
+                }
+            }
+        ).then((multi_result) => {
+            console.info("[Sauce:multi:get] Finished finding that tasty sauce!");
+            multi_result["status_code"] = 200;
+            res.json(multi_result);
+        }).catch((err) => {
+            console.error("[Sauce:multi:get] Failed to process overall request");
+            console.error(err);
+            res.status(500).json({"message": `Failed to process request: ${err.toString()}`, "status_code": 500});
+        })
+    }
+});
 
 sauceroutes.use(express.json());
 
@@ -587,6 +626,45 @@ sauceroutes.post("/ascii2d", (req, res) => {
             res.json({results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
+        })
+    }
+});
+
+sauceroutes.post("/multi", (req, res) => {
+    console.log("[Sauce:multi:post] POST request received.");
+    let body_bag = req.body;
+    let payload_url = getValueFromKey(body_bag, "url");
+    let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 57.5), 57.5);
+    let enableSN = map_bool(getValueFromKey(body_bag, "enableSauceNAO", 1));
+    let enableIQDB = map_bool(getValueFromKey(body_bag, "enableIQDB", 1));
+    let enableA2D = map_bool(getValueFromKey(body_bag, "enableASCII2D", 1));
+    let a2dmaxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "ascii2dlimit", 2), 2);
+    if (is_none(payload_url)) {
+        res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
+    } else {
+        payload_url = decodeURIComponent(payload_url);
+        console.info("[Sauce:multi:post] Finding that tasty sauce...");
+        multiSauceFinder(
+            payload_url,
+            {
+                "ascii2DLimit": a2dmaxres,
+                "enableAscii2D": enableA2D,
+                "enableIQDB": enableIQDB,
+                "enableSauceNAO": enableSN,
+                "iqdbMinsim": minsim,
+                "sauceNAOSetting": {
+                    "api_key": process.env.SAUCENAO_API_KEY,
+                    "minsim": minsim
+                }
+            }
+        ).then((multi_result) => {
+            console.info("[Sauce:multi:post] Finished finding that tasty sauce!");
+            multi_result["status_code"] = 200;
+            res.json(multi_result);
+        }).catch((err) => {
+            console.error("[Sauce:multi:post] Failed to process overall request");
+            console.error(err);
+            res.status(500).json({"message": `Failed to process request: ${err.toString()}`, "status_code": 500});
         })
     }
 });
