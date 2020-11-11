@@ -484,6 +484,11 @@ module.exports = {
             "x-displayName": "Twitcasting Channel",
             "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingChannelModel" />`
         },
+        {
+            "name": "saucefinder_model",
+            "x-displayName": "Sauce Result Model",
+            "description": `<SchemaDefinition schemaRef="#/components/schemas/SauceFinderResultModel" />`
+        },
         {"name": "vtapi_info", "description": VTAPI_INFORMATION, "x-displayName": "Information"},
         {"name": "otherapi_info", "description": "Soon to be written™", "x-displayName": "Information"}
     ],
@@ -506,7 +511,8 @@ module.exports = {
                 "twitcastlive_model",
                 "twitcastchannel_model",
                 "twitchlive_model",
-                "twitchchannel_model"
+                "twitchchannel_model",
+                "saucefinder_model"
             ]
         }
     ],
