@@ -307,8 +307,8 @@ sauceroutes.get("/ascii2d", (req, res) => {
  * @swagger
  * /sauce/multi:
  *  get:
- *      summary: Get Image Sauce using IQDB
- *      description: This will return a possible image sauce match using IQDB as its backend.
+ *      summary: Get Image Sauce using Multiple Backend
+ *      description: This will return a possible image sauce match using multiple backend, some backend can be disabled by passing proper params.
  *      tags:
  *      - sauce_api
  *      parameters:
