@@ -1,7 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import FeedParser = require('feedparser');
 import cheerio = require("cheerio");
-import fs = require("fs");
 import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import * as stringToStream from "string-to-stream";

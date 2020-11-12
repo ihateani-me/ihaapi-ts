@@ -1,4 +1,3 @@
-import { exec } from 'child_process';
 import * as SwissKnife from './swissknife';
 
 // filter_empty()
