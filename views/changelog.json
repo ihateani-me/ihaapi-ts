@@ -46,5 +46,9 @@
     "0.9.5": [
         "Finished nHentai API",
         "Still missing API docs, will be documented later."
+    ],
+    "0.9.6": [
+        "Finalized Sauce Finder API",
+        "Migrated OpenAPI Spec to v3.0"
     ]
 }
