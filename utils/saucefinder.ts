@@ -1209,13 +1209,8 @@ export interface MultiFinderSettings {
     ascii2DLimit?: number
 }
 
-interface MultiSauceResults {
-    saucenao?: SauceFinderResult[],
-    iqdb?: SauceFinderResult[],
-    ascii2d?: SauceFinderResult[]
-}
 
-export async function multiSauceFinder(url: string, settings: MultiFinderSettings): Promise<MultiSauceResults> {
+export async function multiSauceFinder(url: string, settings: MultiFinderSettings): Promise<[SauceFinderResult[], string][]> {
     let enableSauceNAO = fallbackBool(getValueFromKey(settings, "enableSauceNAO", true), true);
     let enableIQDB = fallbackBool(getValueFromKey(settings, "enableIQDB", true), true);
     let enableAscii2D = fallbackBool(getValueFromKey(settings, "enableAscii2D", true), true);
@@ -1228,44 +1223,42 @@ export async function multiSauceFinder(url: string, settings: MultiFinderSetting
 
     if (!enableSauceNAO && !enableIQDB && !enableAscii2D) {
         console.warn("[SFMulti] No sauce finder picked, ignoring...");
-        return {};
+        return [];
     }
     if (enableSauceNAO && is_none(sauceNAO_API_Key)) {
         console.warn("[SFMulti] Ignoring SauceNAO, since no key is provided.");
         enableSauceNAO = false;
     }
 
-    let parsed_results: MultiSauceResults = {};
+    async function safeSaucerFetcher(cb: Function, identifier: string): Promise<[SauceFinderResult[], string]> {
+        try {
+            let res = await cb();
+            return [res, identifier];
+        } catch (e) {
+            console.error(e);
+            return [[], identifier];
+        }
+    }
+
+    let saucerPromises = [];
     console.log(`[SFMulti] Searching sauce: ${url} ...`);
-    try {
-        if (enableSauceNAO) {
-            let saucerSN = new SauceNAO({"api_key": sauceNAO_API_Key, "minsim": sauceNAO_minsim});
-            let resSN = await saucerSN.getSauce(url);
-            parsed_results["saucenao"] = resSN;
-        }
-    } catch (e) {
-        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
-        console.error(e);
+    if (enableSauceNAO) {
+        let saucerSN = new SauceNAO({"api_key": sauceNAO_API_Key, "minsim": sauceNAO_minsim});
+        let promiseSaucer = safeSaucerFetcher(saucerSN.getSauce.bind(saucerSN, url), "saucenao");
+        saucerPromises.push(promiseSaucer);
     }
-    try {
-        if (enableIQDB) {
-            let saucerIQDB = new IQDB(iqdbMinsim);
-            let resIQDB = await saucerIQDB.getSauce(url);
-            parsed_results["iqdb"] = resIQDB;
-        }
-    } catch (e) {
-        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
-        console.error(e);
+    if (enableIQDB) {
+        let saucerIQDB = new IQDB(iqdbMinsim);
+        let promiseSaucer = safeSaucerFetcher(saucerIQDB.getSauce.bind(saucerIQDB, url), "iqdb");
+        saucerPromises.push(promiseSaucer);
     }
-    try {
-        if (enableAscii2D) {
-            let saucerA2D = new ASCII2D(ascii2DLimit);
-            let resA2D = await saucerA2D.getSauce(url);
-            parsed_results["ascii2d"] = resA2D;
-        }
-    } catch (e) {
-        console.error("[SFMulti] Failed to process SauceNAO, ignoring...");
-        console.error(e);
+    if (enableAscii2D) {
+        let saucerA2D = new ASCII2D(ascii2DLimit);
+        let promiseSaucer = safeSaucerFetcher(saucerA2D.getSauce.bind(saucerA2D, url), "ascii2d");
+        saucerPromises.push(promiseSaucer);
     }
-    return parsed_results;
+
+    let multi_results = await Promise.all(saucerPromises);
+    return multi_results;
 }
+
