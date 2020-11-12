@@ -67,7 +67,7 @@ class HowLongToBeat {
 
             let $details_div_block = $details_div.find(".search_list_details_block");
 
-            let $time_data = $details_div_block.find("div");
+            let $time_data = $details_div_block.children("div");
             let $details_divb_t = $details_div_block.find(".search_list_tidbit.text_white.shadow_text");
             let $details_divb_b = $details_div_block.find(".search_list_tidbit.center.back_primary");
 
@@ -88,8 +88,13 @@ class HowLongToBeat {
                 hltb_res["stats"][dtb_head] = dtb_data;
             });
 
-            let $hltbs_title = $time_data.find(".search_list_tidbit.text_white.shadow_text");
-            let $hltbs_stats = $time_data.find(".search_list_tidbit.center");
+            if ($time_data.children("div").length > 0) {
+                var $hltbs_title = $time_data.find(".search_list_tidbit.text_white.shadow_text");
+                var $hltbs_stats = $time_data.find(".search_list_tidbit.center");
+            } else {
+                var $hltbs_title = $details_div_block.find(".search_list_tidbit_short");
+                var $hltbs_stats = $details_div_block.find(".search_list_tidbit_long");
+            }
 
             $hltbs_title.each((n_index, hltb_title) => {
                 let $hltb_stats = $($hltbs_stats[n_index])
@@ -97,8 +102,8 @@ class HowLongToBeat {
                     .trimRight()
                     .replace("¼", ".25")
                     .replace("½", ".5")
-                    .replace("¾", ".75");
-                let $header_data = $(hltb_title)
+                    .replace("¾", ".75"); 
+                let $header_data = $(hltb_title);
                 let header_name = $header_data.text().trimRight();
                 let proper_data = getValueFromKey(naming_scheme, hltb_stats, hltb_stats);
                 let proper_name = getValueFromKey(naming_scheme, header_name, "other");
@@ -145,7 +150,7 @@ class HowLongToBeat {
                 return [[], "Unknown error occured"];
             };
         };
-        console.log(`[HLTB] Start parsing: ${q}`)
+        console.log(`[HLTB] Start parsing: ${q}`);
         let $ = cheerio.load(response.data);
         let results = $("li.back_darkish");
         if (results.length == 0) {
