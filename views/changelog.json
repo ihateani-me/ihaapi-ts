@@ -50,5 +50,9 @@
     "0.9.6": [
         "Finalized Sauce Finder API",
         "Migrated OpenAPI Spec to v3.0"
+    ],
+    "1.0.0": [
+        "Finally released v1 of the API",
+        "This introduces a ton of new API publicly and it's now using JS as it's backend."
     ]
 }
