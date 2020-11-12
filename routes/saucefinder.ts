@@ -303,6 +303,112 @@ sauceroutes.get("/ascii2d", (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /sauce/multi:
+ *  get:
+ *      summary: Get Image Sauce using IQDB
+ *      description: This will return a possible image sauce match using IQDB as its backend.
+ *      tags:
+ *      - sauce_api
+ *      parameters:
+ *      - in: query
+ *        name: url
+ *        description: The image URL to check.
+ *        required: true
+ *        schema:
+ *          type: string
+ *      - in: query
+ *        name: minsim
+ *        description: The minimum similarity to be returned
+ *        required: false
+ *        schema:
+ *          type: number
+ *      - in: query
+ *        name: enableSauceNAO
+ *        description: Disable or enable SauceNAO backend for this multi-search.
+ *        required: false
+ *        schema:
+ *          type: string
+ *          enum: ["true", "false"]
+ *      - in: query
+ *        name: enableIQDB
+ *        description: Disable or enable IQDB backend for this multi-search.
+ *        required: false
+ *        schema:
+ *          type: string
+ *          enum: ["true", "false"]
+ *      - in: query
+ *        name: enableASCII2D
+ *        description: Disable or enable ASCII2D backend for this multi-search.
+ *        required: false
+ *        schema:
+ *          type: string
+ *          enum: ["true", "false"]
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.get("https://api.ihateani.me/sauce/multi", params={"url": "https://url.tld/image.png"})
+ *           print(res.json())
+ *      responses:
+ *          200:
+ *              description: The closest-matching sauce for provided image
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          description: The closest-matching sauce for provided image
+ *                          properties:
+ *                              saucenao:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from SauceNAO, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              iqdb:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from IQDB, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              ascii2d:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from ASCII2D, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              status_code:
+ *                                  type: number
+ *                                  description: HTTP Status Code
+ *                                  example: 200
+ *          400:
+ *              description: Missing URL param
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              error:
+ *                                  type: string
+ *                                  description: Why it failed to process.
+ *                                  example: please provide image with `url` key in query parameters
+ *                              code:
+ *                                  type: number
+ *                                  description: HTTP Status code
+ *                                  example: 400
+ *          'default':
+ *              description: An error occured
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              error:
+ *                                  type: string
+ *                                  description: Why it failed to process.
+ *                              code:
+ *                                  type: number
+ *                                  description: HTTP Status code
+ */
 sauceroutes.get("/multi", (req, res) => {
     console.log("[Sauce:multi:get] GET request received.");
     let body_bag = req.query;
@@ -331,9 +437,13 @@ sauceroutes.get("/multi", (req, res) => {
                 }
             }
         ).then((multi_result) => {
-            console.info("[Sauce:multi:get] Finished finding that tasty sauce!");
-            multi_result["status_code"] = 200;
-            res.json(multi_result);
+            console.info("[Sauce:multi:get] Finished finding that tasty sauce, mapping results...");
+            let proper_multi_results = {};
+            multi_result.forEach(([sf_result, ident]) => {
+                proper_multi_results[ident] = sf_result;
+            })
+            proper_multi_results["status_code"] = 200;
+            res.json(proper_multi_results);
         }).catch((err) => {
             console.error("[Sauce:multi:get] Failed to process overall request");
             console.error(err);
@@ -630,6 +740,106 @@ sauceroutes.post("/ascii2d", (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /sauce/multi:
+ *  post:
+ *      summary: Get Image Sauce using Multiple Backend
+ *      description: This will return a possible image sauce match using multiple backend, some backend can be disabled by passing proper params.
+ *      tags:
+ *      - sauce_api
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      required: ["url"]
+ *                      properties:
+ *                          url:
+ *                              type: string
+ *                              description: The image URL to check.
+ *                          minsim:
+ *                              type: number
+ *                              description: The minimum similarity to be returned (Default to 57.5)
+ *                          ascii2dlimit:
+ *                              type: number
+ *                              description: The maximum results to be returned from ASCII2D (Default to 2)
+ *                          enableSauceNAO:
+ *                              type: string
+ *                              description: Disable or enable SauceNAO backend for this multi-search.
+ *                              enum: ["true", "false"]
+ *                          enableIQDB:
+ *                              type: string
+ *                              description: Disable or enable IQDB backend for this multi-search.
+ *                              enum: ["true", "false"]
+ *                          enableASCII2D:
+ *                              type: string
+ *                              description: Disable or enable ASCII2D backend for this multi-search.
+ *                              enum: ["true", "false"]
+ *      x-codeSamples:
+ *      - lang: Python
+ *        label: Python3
+ *        source: |
+ *           import requests
+ *           res = requests.post("https://api.ihateani.me/sauce/multi", json={"url": "https://url.tld/image.png"})
+ *           print(res.json())
+ *      responses:
+ *          200:
+ *              description: The closest-matching sauce for provided image
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          description: The closest-matching sauce for provided image
+ *                          properties:
+ *                              saucenao:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from SauceNAO, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              iqdb:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from IQDB, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              ascii2d:
+ *                                  type: array
+ *                                  description: The closest-matching sauce that received from ASCII2D, can be disabled.
+ *                                  items:
+ *                                      $ref: '#/components/schemas/SauceFinderResultModel'
+ *                              status_code:
+ *                                  type: number
+ *                                  description: HTTP Status Code
+ *                                  example: 200
+ *          400:
+ *              description: Missing URL param
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              error:
+ *                                  type: string
+ *                                  description: Why it failed to process.
+ *                                  example: please provide data with `url` key
+ *                              code:
+ *                                  type: number
+ *                                  description: HTTP Status code
+ *                                  example: 400
+ *          'default':
+ *              description: An error occured
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              error:
+ *                                  type: string
+ *                                  description: Why it failed to process.
+ *                              code:
+ *                                  type: number
+ *                                  description: HTTP Status code
+ */
 sauceroutes.post("/multi", (req, res) => {
     console.log("[Sauce:multi:post] POST request received.");
     let body_bag = req.body;
@@ -658,9 +868,13 @@ sauceroutes.post("/multi", (req, res) => {
                 }
             }
         ).then((multi_result) => {
-            console.info("[Sauce:multi:post] Finished finding that tasty sauce!");
-            multi_result["status_code"] = 200;
-            res.json(multi_result);
+            console.info("[Sauce:multi:post] Finished finding that tasty sauce, mapping results...");
+            let proper_multi_results = {};
+            multi_result.forEach(([sf_result, ident]) => {
+                proper_multi_results[ident] = sf_result;
+            })
+            proper_multi_results["status_code"] = 200;
+            res.json(proper_multi_results);
         }).catch((err) => {
             console.error("[Sauce:multi:post] Failed to process overall request");
             console.error(err);
