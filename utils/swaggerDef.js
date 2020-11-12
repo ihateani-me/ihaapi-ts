@@ -30,6 +30,16 @@ If you need more Other VTubers to add to the list.<br>
 After you add me, please Send Message directly so I'll know.
 `
 
+const OTHERAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
+It mainly consists of **Games API** that include HowLongToBeat and Steam, **Sauce Finder API** that use SauceNAO, IQDB, and ASCII2D as available backend,<br>
+**nHentai API** that also include an Image proxier to bypass government block, and finally an **U2 API** that fetch torrents from a website called U2 DMHY (Mainly Japanese Anime torrents)
+
+The API for this are experimental and subject to change, there's already some changes between this and the original one.<br>
+I'm still planning to add more stuff, but that's for later day.<br>
+If you have more suggestion what I should add, you could contact me at **Discord: _N4O#8868_**<br>
+After you add me, please Send Message directly so I'll know.
+`
+
 const MAIN_MODELS_SCHEMAS = {
     "BiliScheduleModel": {
         description: "The Model Representing the BiliBili Live Schedule Endpoint.",
@@ -490,7 +500,7 @@ module.exports = {
             "description": `<SchemaDefinition schemaRef="#/components/schemas/SauceFinderResultModel" />`
         },
         {"name": "vtapi_info", "description": VTAPI_INFORMATION, "x-displayName": "Information"},
-        {"name": "otherapi_info", "description": "Soon to be written™", "x-displayName": "Information"}
+        {"name": "otherapi_info", "description": OTHERAPI_INFORMATION, "x-displayName": "Information"}
     ],
     "x-tagGroups": [
         {
