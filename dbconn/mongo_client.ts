@@ -53,6 +53,14 @@ class VTBDB {
         }
         return callback_func;
     }
+
+    getCollection(collection_name: string) {
+        if (!this.is_connected) {
+            setTimeout(this.getCollection.bind(this, collection_name), 500);
+        } else {
+            return this.db.collection(collection_name);
+        }
+    }
     
     async update_collection(collection_name: string, collection_data: any) {
         if (!this.is_connected) {
