@@ -94,11 +94,13 @@
             background-color: rgb(0 0 0 / 0.07) !important;
         }
     </style>
+    <link href="/assets/css/swagger_box.css" rel="stylesheet">
 </head>
 
 <body>
     <app id="redoc"></app>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0-rc.46/bundles/redoc.standalone.js"> </script>
+    <script src="//cdn.jsdelivr.net/npm/redoc@2.0.0-rc.46/bundles/redoc.standalone.js"> </script>
+    <script src="/assets/js/redoc-try.js"></script>
     <script>
         const darkenTheme = {
             colors: {
@@ -129,11 +131,26 @@
             }
         };
 
-        Redoc.init('{{ SPEC_URL }}', {
-            hideDownloadButton: true,
-            disableSearch: false,
-            theme: darkenTheme
-        }, document.getElementById("redoc"));
+        initTry({
+            openApi: "{{ SPEC_URL }}",
+            tryText: "Try it",
+            trySwaggerInApi: true,
+            swaggerOptions: {
+                url: "{{ SPEC_URL }}",
+            },
+            redocOptions: ["{{ SPEC_URL }}", {
+                hideDownloadButton: true,
+                disableSearch: false,
+                theme: darkenTheme,
+                enableConsole: true,
+            }, document.getElementById("redoc")]
+        })
+
+        // Redoc.init('{{ SPEC_URL }}', {
+        //     hideDownloadButton: true,
+        //     disableSearch: false,
+        //     theme: darkenTheme
+        // }, document.getElementById("redoc"));
     </script>
 </body>
 

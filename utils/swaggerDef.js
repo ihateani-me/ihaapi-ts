@@ -436,12 +436,7 @@ module.exports = {
     },
     servers: [
         {
-            "url": "https://api.ihateani.me",
-            "description": "Production-ready API"
-        },
-        {
-            "url": "https://ihaapi.glitch.me",
-            "description": "Development API (Glitch)"
+            "url": "https://api.ihateani.me"
         }
     ],
     tags: [
