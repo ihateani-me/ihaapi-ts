@@ -39,7 +39,7 @@ export interface TwitchChannelData {
     platform: string
 }
 
-interface TwitchChannelDocument {
+export interface TwitchChannelDocument {
     [channel_name: string]: TwitchChannelData
 }
 

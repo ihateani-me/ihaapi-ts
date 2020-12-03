@@ -36,7 +36,7 @@ export interface TwitcastingChannelData {
     platform: string
 }
 
-interface TwitcastingChannelDocument {
+export interface TwitcastingChannelDocument {
     [channel_name: string]: TwitcastingChannelData
 }
 
