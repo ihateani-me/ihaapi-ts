@@ -71,6 +71,7 @@
     "@types/graphql": "^14.5.0",
     "@types/ioredis": "^4.17.8",
     "@types/jest": "^26.0.15",
+    "@types/lodash": "^4.14.165",
     "@types/moment": "^2.13.0",
     "@types/moment-timezone": "^0.5.30",
     "@types/mongodb": "^3.6.0",
