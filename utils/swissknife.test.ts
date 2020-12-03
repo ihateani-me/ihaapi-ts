@@ -130,6 +130,43 @@ describe("Sort an Array of Object by using a key on Object", () => {
     it("Passed Array of Object, and key exist on Object.", () => {
         expect(SwissKnife.sortObjectsByKey([{id: "555555"}, {"id": "44444"}], "id")).toEqual([{id: "44444"}, {"id": "555555"}]);
     });
+    it("Passed a proper stuff, but some of them missing a key needed.", () => {
+        let base = [
+            {
+                id: "55555"
+            },
+            {
+                name: "string"
+            },
+            {
+                id: "44444"
+            },
+            {
+                name: "yes"
+            },
+            {
+                id: "45000"
+            }
+        ]
+        let expected = [
+            {
+                "id": "44444"
+            },
+            {
+                "id": "45000"
+            },
+            {
+                "id": "55555"
+            },
+            {
+                "name": "string"
+            },
+            {
+                "name": "yes"
+            }
+        ]
+        expect(SwissKnife.sortObjectsByKey(base, "id")).toEqual(expected);
+    })
 });
 
 // capitalizeIt()
