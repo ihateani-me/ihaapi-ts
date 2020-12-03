@@ -36,9 +36,11 @@ export const VTAPIv2 = gql`
 
     type ChannelObject {
         id: ID!
+        user_id: String
         room_id: String
         name: String!
         description: String!
+        publishedAt: String
         thumbnail: String!
         statistics: ChannelStatistics!
         group: String!
@@ -110,9 +112,11 @@ export interface ChannelStatistics {
 
 export interface ChannelObject {
     id: string | number
+    user_id?: string
     room_id?: string
     name: string
     description: string
+    publishedAt?: string
     thumbnail: string
     statistics: ChannelStatistics
     group?: string
