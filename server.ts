@@ -5,6 +5,9 @@ import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
+
+import APIV2GQL from "./graphql";
+
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
 
@@ -73,8 +76,11 @@ app.use(function (req, res, next) {
     res.status(404).json({"time": current_utc, "status": 404, "message": `path '${req.path}' not found.`});
 })
 
-const listener = app.listen(process.env.PORT, () => {
-    console.log("VTB API is now up and running!");
+APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
+
+const listener = app.listen(4000, () => {
+    console.log("🚀 VTB API is now up and running!");
     // @ts-ignore
     console.log("http://127.0.0.1:" + listener.address().port + "\n");
+    console.log(`Access GraphQL V2 API here: http://127.0.0.1:4000/${APIV2GQL.graphqlPath}`);
 });
