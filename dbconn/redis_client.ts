@@ -1,5 +1,5 @@
 import Redis = require("ioredis");
-import { is_none } from "../utils/swissknife";
+import { fallbackNaN, is_none } from "../utils/swissknife";
 
 export class RedisDB {
     client: Redis.Redis
@@ -60,9 +60,7 @@ export class RedisDB {
             value = JSON.parse(value);
         } catch (e) {};
         if (typeof value === "string") {
-            if (!isNaN(parseFloat(value))) {
-                value = parseFloat(value);
-            }
+            value = fallbackNaN(parseFloat, value);
         }
         return value;
     }
