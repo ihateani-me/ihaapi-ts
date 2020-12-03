@@ -1,9 +1,8 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb'
 import { ObjectID } from "mongodb";
-import { BilibiliData } from '../../utils/models';
 import { is_none } from '../../utils/swissknife';
 
-interface BiliBiliLive {
+export interface BiliBiliLive {
     id: string
     room_id: number
     title: string
@@ -17,7 +16,7 @@ interface BiliBiliLive {
     platform: string
 }
 
-interface BiliBiliChannel {
+export interface BiliBiliChannel {
     id: string
     room_id: string
     name: string
@@ -38,9 +37,10 @@ interface BiliBiliDocument {
     channels: BiliBiliChannel[]
 }
 
-export default class BiliBili extends MongoDataSource<BiliBiliDocument> {
+export class BiliBili extends MongoDataSource<BiliBiliDocument> {
     async getChannels(user_id: string[]) {
-        let results = (await this.collection.aggregate([{"$project": {"channels": 1}}]).toArray())[0];
+        let raw_results = await this.collection.aggregate([{"$project": {"channels": 1}}]).toArray();
+        let results = raw_results[0];
         let proper_results: BiliBiliChannel[] = [];
         if (!is_none(user_id)) {
             for (let i = 0; i < results["channels"].length; i++) {
@@ -56,7 +56,8 @@ export default class BiliBili extends MongoDataSource<BiliBiliDocument> {
     }
 
     async getLive(user_id: string[]) {
-        let results = (await this.collection.aggregate([{"$project": {"live": 1}}]).toArray())[0];
+        let raw_results = await this.collection.aggregate([{"$project": {"live": 1}}]).toArray();
+        let results = raw_results[0];
         let proper_results: BiliBiliLive[] = [];
         if (!is_none(user_id)) {
             for (let i = 0; i < results["live"].length; i++) {
@@ -72,7 +73,8 @@ export default class BiliBili extends MongoDataSource<BiliBiliDocument> {
     }
 
     async getUpcoming(user_id: string[]) {
-        let results = (await this.collection.aggregate([{"$project": {"upcoming": 1}}]).toArray())[0];
+        let raw_results = await this.collection.aggregate([{"$project": {"upcoming": 1}}]).toArray();
+        let results = raw_results[0]
         let proper_results: BiliBiliLive[] = [];
         if (!is_none(user_id)) {
             for (let i = 0; i < results["upcoming"].length; i++) {

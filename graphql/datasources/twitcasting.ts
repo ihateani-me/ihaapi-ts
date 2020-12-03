@@ -2,7 +2,7 @@ import { MongoDataSource } from 'apollo-datasource-mongodb'
 import { ObjectId } from 'mongodb'
 import { is_none } from '../../utils/swissknife';
 
-interface TwitcastingLiveData {
+export interface TwitcastingLiveData {
     id: string
     title: string
     startTime: number
@@ -25,7 +25,7 @@ export class TwitcastingLive extends MongoDataSource<TwitcastingLiveDocument> {
     }
 }
 
-interface TwitcastingChannelData {
+export interface TwitcastingChannelData {
     id: string
     name: string
     description: string
