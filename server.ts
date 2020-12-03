@@ -1,5 +1,5 @@
 require('dotenv').config();
-import * as express from "express";
+import express from "express";
 import * as cons from "consolidate";
 import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
@@ -71,16 +71,16 @@ app.use("/u2", Routes.U2Routes);
 app.use("/nh", Routes.NHRoutes);
 app.use("/sauce", Routes.SauceRoutes);
 
+app.use(APIV2GQL.getMiddleware({path: "/v2/vtuber"}));
+
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
     res.status(404).json({"time": current_utc, "status": 404, "message": `path '${req.path}' not found.`});
 })
 
-APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
-
-const listener = app.listen(4000, () => {
+const listener = app.listen(4200, () => {
     console.log("🚀 VTB API is now up and running!");
     // @ts-ignore
     console.log("http://127.0.0.1:" + listener.address().port + "\n");
-    console.log(`Access GraphQL V2 API here: http://127.0.0.1:4000/${APIV2GQL.graphqlPath}`);
+    console.log(`Access GraphQL V2 API here: http://127.0.0.1:4200${APIV2GQL.graphqlPath}`);
 });
