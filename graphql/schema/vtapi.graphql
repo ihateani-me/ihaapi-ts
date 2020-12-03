@@ -1,0 +1,86 @@
+enum PlatformName {
+    youtube
+    bilibili
+    twitch
+    twitcasting
+}
+
+enum LiveStatus {
+    live
+    upcoming
+    ended
+}
+
+enum SortOrder {
+    ascending
+    descending
+}
+
+type ChannelStatistics {
+    subscriberCount: Int!
+    viewCount: Int
+    videoCount: Int
+    level: Int
+}
+
+type ChannelData {
+    id: ID!
+    room_id: String
+    name: String!
+    description: String!
+    thumbnail: String!
+    statistics: ChannelStatistics!
+    group: String!
+    is_live: Boolean
+    platform: PlatformName!
+}
+
+type LiveObject {
+    id: ID!
+    room_id: Int
+    title: String!
+    startTime: Int!
+    endTime: Int
+    channel_id: ID!
+    channel: ChannelData!
+    thumbnail: String
+    status: LiveStatus!
+    viewers: Int!
+    peakViewers: Int
+    group: String!
+    platform: PlatformName!
+}
+
+type Query {
+    live(
+        channel_id: [ID],
+        status: [VideoStatus],
+        groups: [String],
+        platforms: [PlatformName],
+        sort_by: String = "startTime"
+        sort_order: SortOrder = asc
+    ): [LiveObject!]!
+    upcoming(
+        channel_id: [ID],
+        status: [VideoStatus],
+        groups: [String],
+        platforms: [PlatformName],
+        sort_by: String = "startTime"
+        sort_order: SortOrder = asc
+    ): [LiveObject!]!
+    ended(
+        channel_id: [ID],
+        status: [VideoStatus],
+        groups: [String],
+        platforms: [PlatformName],
+        sort_by: String = "endTime"
+        sort_order: SortOrder = asc
+    ): [LiveObject!]!
+    channels(
+        id: [ID],
+        groups: [String],
+        platforms: [PlatformName],
+        sort_by: String = "id"
+        sort_order: SortOrder = asc
+    ): [ChannelData!]!
+}
