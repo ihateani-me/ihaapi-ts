@@ -43,7 +43,7 @@ export const VTAPIv2 = gql`
         publishedAt: String
         thumbnail: String!
         statistics: ChannelStatistics!
-        group: String!
+        group: String
         is_live: Boolean
         platform: PlatformName!
     }
@@ -58,9 +58,9 @@ export const VTAPIv2 = gql`
         channel: ChannelObject!
         thumbnail: String
         status: LiveStatus!
-        viewers: Int!
+        viewers: Int
         peakViewers: Int
-        group: String!
+        group: String
         platform: PlatformName!
     }
 
