@@ -56,14 +56,14 @@ export const VTAPIv2 = gql`
         desc
     }
 
-    type ChannelStatistics {
+    type ChannelStatistics @cacheControl(maxAge: 3600) {
         subscriberCount: Int
         viewCount: Int
         videoCount: Int
         level: Int
     }
 
-    type ChannelObject {
+    type ChannelObject @cacheControl(maxAge: 1800) {
         id: ID!
         user_id: String
         room_id: String
@@ -114,14 +114,14 @@ export const VTAPIv2 = gql`
             platforms: [PlatformName],
             sort_by: String = "endTime"
             sort_order: SortOrder = asc
-        ): [LiveObject!]!
+        ): [LiveObject!]! @cacheControl(maxAge: 60)
         channels(
             id: [ID],
             groups: [String],
             platforms: [PlatformName],
             sort_by: String = "id"
             sort_order: SortOrder = asc
-        ): [ChannelObject!]!
+        ): [ChannelObject!]! @cacheControl(maxAge: 1800)
     }
 `;
 
