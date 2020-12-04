@@ -1,7 +1,7 @@
 import _ from "lodash";
 
 // Import models
-import { get_group, GROUPS_KEY } from "../../utils/filters";
+import { get_group } from "../../utils/filters";
 import { IResolvers } from "apollo-server-express";
 import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar } from "../schemas";
 import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "../datasources/youtube";
@@ -11,6 +11,9 @@ import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "../dat
 import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "../datasources/twitcasting";
 
 function anyNijiGroup(group_choices: string[]) {
+    if (is_none(group_choices) || group_choices.length == 0) {
+        return true; // force true if no groups defined.
+    }
     if (
         group_choices.includes("nijisanji") ||
         group_choices.includes("nijisanjijp") ||
@@ -26,6 +29,9 @@ function anyNijiGroup(group_choices: string[]) {
 }
 
 function anyHoloProGroup(groups_choices: string[]) {
+    if (is_none(groups_choices) || groups_choices.length == 0) {
+        return true; // force true if no groups defined.
+    }
     if (
         groups_choices.includes("holopro") ||
         groups_choices.includes("hololive") ||
@@ -61,7 +67,7 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             delete combinedyt_res["_id"];
         } catch (e) {};
         let nijitube_res: YoutubeDocument<YoutubeLiveData[]>;
-        if (groups_choices && anyNijiGroup(groups_choices)) {
+        if (anyNijiGroup(groups_choices)) {
             nijitube_res = await dataSources.nijitubeLive.getLive(allowed_users);
             try {
                 delete nijitube_res["_id"];
@@ -111,20 +117,20 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
         if (type === "upcoming") {
             let upcome_other: BiliBiliLive[] = await dataSources.otherbili.getUpcoming(allowed_users);
             combined_map = _.concat(combined_map, upcome_other);
-            if (groups_choices && anyHoloProGroup(groups_choices)) {
+            if (anyHoloProGroup(groups_choices)) {
                 let holobili: BiliBiliLive[] = await dataSources.holobili.getUpcoming(allowed_users);
                 combined_map = _.concat(combined_map, holobili);
             }
-            if (groups_choices && anyNijiGroup(groups_choices)) {
+            if (anyNijiGroup(groups_choices)) {
                 let nijibili: BiliBiliLive[] = await dataSources.nijibili.getUpcoming(allowed_users);
                 combined_map = _.concat(combined_map, nijibili);
             }
         } else if (type === "live") {
-            if (groups_choices && anyHoloProGroup(groups_choices)) {
+            if (anyHoloProGroup(groups_choices)) {
                 let holobili: BiliBiliLive[] = await dataSources.holobili.getLive(allowed_users);
                 combined_map = _.concat(combined_map, holobili);
             }
-            if (groups_choices && anyNijiGroup(groups_choices)) {
+            if (anyNijiGroup(groups_choices)) {
                 let nijibili: BiliBiliLive[] = await dataSources.nijibili.getLive(allowed_users);
                 combined_map = _.concat(combined_map, nijibili);
             }
