@@ -1,14 +1,14 @@
 import _ from "lodash";
 
 // Import models
-import { get_group, GROUPS_KEY } from "../utils/filters";
+import { get_group, GROUPS_KEY } from "../../utils/filters";
 import { IResolvers } from "apollo-server-express";
-import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar } from "./schemas";
-import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "./datasources/youtube";
-import { filter_empty, getValueFromKey, hasKey, is_none, sortObjectsByKey } from "../utils/swissknife";
-import { BiliBiliChannel, BiliBiliLive } from "./datasources/bilibili";
-import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "./datasources/twitch";
-import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "./datasources/twitcasting";
+import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar } from "../schemas";
+import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "../datasources/youtube";
+import { filter_empty, getValueFromKey, hasKey, is_none, sortObjectsByKey } from "../../utils/swissknife";
+import { BiliBiliChannel, BiliBiliLive } from "../datasources/bilibili";
+import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "../datasources/twitch";
+import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "../datasources/twitcasting";
 
 function anyNijiGroup(group_choices: string[]) {
     if (
@@ -600,7 +600,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
 }
 
 // Create main resolvers
-export const resolvers: IResolvers = {
+export const VTAPIv2Resolvers: IResolvers = {
     Query: {
         live: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LiveObject[]> => {
             console.log("[GraphQL-VTAPIv2] Processing live()");

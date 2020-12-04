@@ -2,7 +2,7 @@ import { ApolloServer, gql } from "apollo-server-express";
 import { RedisCache } from "apollo-server-cache-redis";
 import { VTAPIv2 } from "./schemas";
 
-import Resolvers = require("./resolver");
+import { VTAPIv2Resolvers } from "./resolvers";
 import { is_none } from "../utils/swissknife";
 import { NijiTubeDB, VTubersDB } from "../dbconn";
 import { BiliBili } from "./datasources/bilibili";
@@ -28,7 +28,7 @@ const REDIS_PORT = parseInt(process.env.REDIS_PORT);
 
 const server = new ApolloServer({
     typeDefs: VTAPIv2,
-    resolvers: Resolvers.resolvers,
+    resolvers: VTAPIv2Resolvers,
     // cache: cacheServers,
     // tracing: true,
     dataSources: () => ({
