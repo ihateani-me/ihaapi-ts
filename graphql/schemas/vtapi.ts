@@ -1,11 +1,40 @@
 import { gql } from "apollo-server-express";
+import { GraphQLScalarType, Kind } from "graphql";
+import moment from "moment-timezone";
+import { is_none } from "../../utils/swissknife";
 
+export const DateTimeScalar = new GraphQLScalarType({
+    name: "DateTime",
+    description: "Date time custom scalar type",
+    parseValue(value) {
+        if (is_none(value)) {
+            return null;
+        }
+        return moment.tz(value, "UTC");
+    },
+    serialize(value) {
+        if (is_none(value)) {
+            return null;
+        }
+        return value.valueOf();
+    },
+    parseLiteral(value) {
+        if (value.kind === Kind.INT) {
+            return parseInt(value.value, 10);
+        } else if (value.kind === Kind.FLOAT) {
+            return parseFloat(value.value);
+        }
+        return null;
+    }
+})
 
 
 export const VTAPIv2 = gql`
     directive @deprecated(
         reason: String = "No longer supported"
     ) on FIELD_DEFINITION | ENUM_VALUE
+
+    scalar DateTime
 
     enum PlatformName {
         youtube
@@ -28,7 +57,7 @@ export const VTAPIv2 = gql`
     }
 
     type ChannelStatistics {
-        subscriberCount: Int!
+        subscriberCount: Int
         viewCount: Int
         videoCount: Int
         level: Int
@@ -40,7 +69,7 @@ export const VTAPIv2 = gql`
         room_id: String
         name: String!
         description: String!
-        publishedAt: String
+        publishedAt: DateTime
         thumbnail: String!
         statistics: ChannelStatistics!
         group: String
