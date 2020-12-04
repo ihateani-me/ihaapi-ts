@@ -29,7 +29,7 @@ export const GROUPS_MAPPINGS = {
     "vapart": ["vapart"],
     "honeystrap": ["honeystrap"],
     "sugarlyric": ["sugarlyric"],
-    "others": ["entum", "solotuber", "solovtuber", "paryiproject", "vic", "dotlive", "vgaming"],
+    "others": ["entum", "solotuber", "solovtuber", "paryiproject", "vic", "dotlive", "vgaming", "vshojo", "upd8"],
     "mahapanca": ["mahapanca"],
     "vivid": ["vivid"],
     "noripro": ["noripro"],
@@ -43,7 +43,8 @@ export const GROUPS_MAPPINGS = {
     "solo": ["solotuber", "solovtuber"],
     "solotuber": ["solotuber"],
     "solovtuber": ["solovtuber"],
-    "entum": ["entum"]
+    "entum": ["entum"],
+    "vshojo": ["vshojo"]
 }
 export const GROUPS_KEY = [
     "vtuberesports",
