@@ -42,7 +42,7 @@ function anyHoloProGroup(groups_choices: string[]) {
 
 async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources): Promise<LiveObject[]> {
     let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
-    let groups_choices: string[] = getValueFromKey(args, "groups", GROUPS_KEY);
+    let groups_choices: string[] = getValueFromKey(args, "groups", null);
     let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
     let orderby: string = getValueFromKey(args, "sort_order", "ascending");
     orderby = orderby.toLowerCase();
@@ -61,7 +61,7 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             delete combinedyt_res["_id"];
         } catch (e) {};
         let nijitube_res: YoutubeDocument<YoutubeLiveData[]>;
-        if (anyNijiGroup(groups_choices)) {
+        if (groups_choices && anyNijiGroup(groups_choices)) {
             nijitube_res = await dataSources.nijitubeLive.getLive(allowed_users);
             try {
                 delete nijitube_res["_id"];
@@ -111,20 +111,20 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
         if (type === "upcoming") {
             let upcome_other: BiliBiliLive[] = await dataSources.otherbili.getUpcoming(allowed_users);
             combined_map = _.concat(combined_map, upcome_other);
-            if (anyHoloProGroup(groups_choices)) {
+            if (groups_choices && anyHoloProGroup(groups_choices)) {
                 let holobili: BiliBiliLive[] = await dataSources.holobili.getUpcoming(allowed_users);
                 combined_map = _.concat(combined_map, holobili);
             }
-            if (anyNijiGroup(groups_choices)) {
+            if (groups_choices && anyNijiGroup(groups_choices)) {
                 let nijibili: BiliBiliLive[] = await dataSources.nijibili.getUpcoming(allowed_users);
                 combined_map = _.concat(combined_map, nijibili);
             }
         } else if (type === "live") {
-            if (anyHoloProGroup(groups_choices)) {
+            if (groups_choices && anyHoloProGroup(groups_choices)) {
                 let holobili: BiliBiliLive[] = await dataSources.holobili.getLive(allowed_users);
                 combined_map = _.concat(combined_map, holobili);
             }
-            if (anyNijiGroup(groups_choices)) {
+            if (groups_choices && anyNijiGroup(groups_choices)) {
                 let nijibili: BiliBiliLive[] = await dataSources.nijibili.getLive(allowed_users);
                 combined_map = _.concat(combined_map, nijibili);
             }
@@ -219,15 +219,20 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
         main_results = _.concat(main_results, mapped_twcast);
     }
     let allowed_groups = [];
-    groups_choices.forEach((value) => {
-        let groups_map = get_group(value);
-        if (groups_map) {
-            allowed_groups = allowed_groups.concat(groups_map);
-        }
-    })
+    if (groups_choices) {
+        groups_choices.forEach((value) => {
+            let groups_map = get_group(value);
+            if (groups_map) {
+                allowed_groups = allowed_groups.concat(groups_map);
+            }
+        })
+    }
     let filtered_results = _.map(main_results, (value) => {
         if (value["status"] !== type) {
             return null;
+        }
+        if (!allowed_groups) {
+            return value;
         }
         if (hasKey(value, "group")) {
             if (is_none(value["group"])) {
@@ -468,7 +473,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
         }
 
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
-        let groups_choices: string[] = getValueFromKey(args, "groups", GROUPS_KEY);
+        let groups_choices: string[] = getValueFromKey(args, "groups", null);
         let orderby: string = getValueFromKey(args, "sort_order", "ascending");
         orderby = orderby.toLowerCase();
         let sort_key: string = getValueFromKey(args, "sort_by", "id");
@@ -571,12 +576,14 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
         }
 
         let allowed_groups = [];
-        groups_choices.forEach((value) => {
-            let groups_map = get_group(value);
-            if (groups_map) {
-                allowed_groups = allowed_groups.concat(groups_map);
-            }
-        })
+        if (groups_choices) {
+            groups_choices.forEach((value) => {
+                let groups_map = get_group(value);
+                if (groups_map) {
+                    allowed_groups = allowed_groups.concat(groups_map);
+                }
+            })
+        }
         let filtered_results = _.map(combined_channels, (value) => {
             if (hasKey(value, "group")) {
                 if (is_none(value["group"])) {
@@ -602,25 +609,25 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
 // Create main resolvers
 export const VTAPIv2Resolvers: IResolvers = {
     Query: {
-        live: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LiveObject[]> => {
+        live: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
             console.log("[GraphQL-VTAPIv2] Processing live()");
             console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
             let results = await performQueryOnLive(args, "live", dataSources);
             return results;
         },
-        upcoming: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LiveObject[]> => {
+        upcoming: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
             console.log("[GraphQL-VTAPIv2] Processing upcoming()");
             console.log("[GraphQL-VTAPIv2-upcoming()] Arguments ->", args);
             let results = await performQueryOnLive(args, "upcoming", dataSources);
             return results;
         },
-        ended: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LiveObject[]> => {
+        ended: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
             console.log("[GraphQL-VTAPIv2] Processing ended()");
             console.log("[GraphQL-VTAPIv2-ended()] Arguments ->", args);
             let results = await performQueryOnLive(args, "past", dataSources);
             return results;
         },
-        channels: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<ChannelObject[]> => {
+        channels: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<ChannelObject[]> => {
             console.log("[GraphQL-VTAPIv2] Processing channels()");
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
             let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
@@ -632,7 +639,7 @@ export const VTAPIv2Resolvers: IResolvers = {
         }
     },
     ChannelObject: {
-        statistics: async (parent: ChannelObject, args, { dataSources }, _): Promise<ChannelStatistics> => {
+        statistics: async (parent: ChannelObject, args, { dataSources }, _i): Promise<ChannelStatistics> => {
             // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
             let settings: ChannelParents = {
                 platform: parent.platform,
@@ -661,7 +668,7 @@ export const VTAPIv2Resolvers: IResolvers = {
         }
     },
     LiveObject: {
-        channel: async (parent: LiveObject, args: ChannelObjectParams, { dataSources }, _): Promise<ChannelObject> => {
+        channel: async (parent: LiveObject, args: ChannelObjectParams, { dataSources }, _i): Promise<ChannelObject> => {
             console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
             let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
                 // @ts-ignore
