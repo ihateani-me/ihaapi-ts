@@ -33,7 +33,7 @@ export interface TwitchChannelData {
     name: string
     description: string
     thumbnail: string
-    followersCount: number
+    followerCount: number
     viewCount: number
     group: string
     platform: string

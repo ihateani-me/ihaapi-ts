@@ -30,7 +30,7 @@ export interface TwitcastingChannelData {
     name: string
     description: string
     thumbnail: string
-    followersCount: number
+    followerCount: number
     level: number
     group: string
     platform: string

@@ -322,7 +322,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             try {
                 let twcast_user_stats: TwitcastingChannelData = twcast_stats[parents.channel_id[0]];
                 return {
-                    "subscriberCount": twcast_user_stats["followersCount"],
+                    "subscriberCount": twcast_user_stats["followerCount"],
                     "level": twcast_user_stats["level"],
                     "viewCount": null,
                     "videoCount": null
@@ -341,7 +341,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             try {
                 let twch_user_stats: TwitchChannelData = twch_stats[parents.channel_id[0]];
                 return {
-                    "subscriberCount": twch_user_stats["followersCount"],
+                    "subscriberCount": twch_user_stats["followerCount"],
                     "viewCount": twch_user_stats["viewCount"],
                     "videoCount": null,
                     "level": null
