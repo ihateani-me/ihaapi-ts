@@ -231,7 +231,7 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
         if (value["status"] !== type) {
             return null;
         }
-        if (!allowed_groups) {
+        if (allowed_groups.length == 0) {
             return value;
         }
         if (hasKey(value, "group")) {
@@ -587,6 +587,9 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
         let filtered_results = _.map(combined_channels, (value) => {
             if (hasKey(value, "group")) {
                 if (is_none(value["group"])) {
+                    return value;
+                }
+                if (allowed_groups.length == 0) {
                     return value;
                 }
                 if (allowed_groups.includes(value["group"])) {
