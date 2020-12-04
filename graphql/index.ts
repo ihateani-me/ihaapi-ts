@@ -30,7 +30,7 @@ const server = new ApolloServer({
     typeDefs: VTAPIv2,
     resolvers: Resolvers.resolvers,
     // cache: cacheServers,
-    tracing: true,
+    // tracing: true,
     dataSources: () => ({
         holobili: new BiliBili(VTubersDB.db.collection("hololive_data")),
         nijibili: new BiliBili(VTubersDB.db.collection("nijisanji_data")),
