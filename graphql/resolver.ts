@@ -633,7 +633,7 @@ export const resolvers: IResolvers = {
     },
     ChannelObject: {
         statistics: async (parent: ChannelObject, args, { dataSources }, _): Promise<ChannelStatistics> => {
-            console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
+            // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
             let settings: ChannelParents = {
                 platform: parent.platform,
                 // @ts-ignore
