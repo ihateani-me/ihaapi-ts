@@ -43,6 +43,9 @@ export interface TwitcastingChannelDocument {
 export class TwitcastingChannel extends MongoDataSource<TwitcastingChannelDocument> {
     async getChannels(user_ids: string[] = null) {
         let get_data = (await this.collection.find().toArray())[0];
+        try {
+            delete get_data["_id"];
+        } catch (e) {}
         let new_data: TwitcastingChannelDocument = {};
         if (is_none(user_ids)) {
             new_data = get_data;

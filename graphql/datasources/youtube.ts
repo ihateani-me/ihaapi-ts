@@ -44,10 +44,18 @@ export class YoutubeLive extends MongoDataSource<YoutubeDocument<YoutubeLiveData
         }
         if (channel_ids) {
             let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
-            return results[0];
+            let main_res = results[0];
+            try {
+                delete main_res["_id"];
+            } catch (e) {}
+            return main_res;
         } else {
             let results = await this.collection.find().toArray();
-            return results[0];
+            let main_res = results[0];
+            try {
+                delete main_res["_id"];
+            } catch (e) {}
+            return main_res;
         }
     }
 }
@@ -63,10 +71,18 @@ export class YoutubeChannel extends MongoDataSource<YoutubeDocument<YoutubeChann
         }
         if (channel_ids) {
             let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
-            return results[0];
+            let main_res = results[0];
+            try {
+                delete main_res["_id"];
+            } catch (e) {}
+            return main_res;
         } else {
             let results = await this.collection.find().toArray();
-            return results[0];
+            let main_res = results[0];
+            try {
+                delete main_res["_id"];
+            } catch (e) {}
+            return main_res;
         }
     }
 

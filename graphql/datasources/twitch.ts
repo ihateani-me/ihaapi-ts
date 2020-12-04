@@ -47,6 +47,9 @@ export class TwitchChannel extends MongoDataSource<TwitchChannelDocument> {
     async getChannels(user_ids: string[] = null) {
         let get_data = (await this.collection.find().toArray())[0];
         let new_data: TwitchChannelDocument = {};
+        try {
+            delete get_data["_id"];
+        } catch (e) {}
         if (is_none(user_ids)) {
             for (let [channel_name, channel_data] of Object.entries(get_data)) {
                 if (channel_name !==  "_id") {
