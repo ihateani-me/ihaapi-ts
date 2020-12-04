@@ -13,23 +13,23 @@ import { TwitchLive, TwitchChannel } from "./datasources/twitch";
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_HOST = process.env.REDIS_HOST;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT);
-// if (is_none(REDIS_PASSWORD)) {
-//     var cacheServers = new RedisCache({
-//         host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
-//         port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT
-//     })
-// } else {
-//     var cacheServers = new RedisCache({
-//         host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
-//         port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT,
-//         password: REDIS_PASSWORD,
-//     })
-// }
+if (is_none(REDIS_PASSWORD)) {
+    var cacheServers = new RedisCache({
+        host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
+        port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT
+    })
+} else {
+    var cacheServers = new RedisCache({
+        host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
+        port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT,
+        password: REDIS_PASSWORD,
+    })
+}
 
 const server = new ApolloServer({
     typeDefs: VTAPIv2,
     resolvers: VTAPIv2Resolvers,
-    // cache: cacheServers,
+    cache: cacheServers,
     // tracing: true,
     dataSources: () => ({
         holobili: new BiliBili(VTubersDB.db.collection("hololive_data")),
