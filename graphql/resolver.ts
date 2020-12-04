@@ -499,7 +499,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             combined_channels = _.concat(combined_channels, ytchan_mapped);
         }
         if (platforms_choices.includes("bilibili")) {
-            let otherbili_chans: BiliBiliChannel[] = await dataSources.otherbili.getChannel(user_ids_limit);
+            let otherbili_chans: BiliBiliChannel[] = await dataSources.otherbili.getChannels(user_ids_limit);
             if (anyNijiGroup(groups_choices)) {
                 let nijibili_chans: BiliBiliChannel[] = await dataSources.nijibili.getChannels(user_ids_limit);
                 _.merge(otherbili_chans, nijibili_chans);
