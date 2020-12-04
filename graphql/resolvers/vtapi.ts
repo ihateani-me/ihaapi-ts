@@ -683,7 +683,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 // @ts-ignore
                 "channel_id": [parent.channel_id],
                 "force_single": true,
-                "type": "channel"
+                "type": "channel",
+                "group": parent.group,
+                "platform": parent.platform
             });
             return results[0];
         }
