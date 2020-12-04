@@ -3,13 +3,12 @@ import _ from "lodash";
 // Import models
 import { get_group, GROUPS_KEY } from "../utils/filters";
 import { IResolvers } from "apollo-server-express";
-import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName } from "./schemas";
+import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar } from "./schemas";
 import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "./datasources/youtube";
 import { filter_empty, getValueFromKey, hasKey, is_none, sortObjectsByKey } from "../utils/swissknife";
 import { BiliBiliChannel, BiliBiliLive } from "./datasources/bilibili";
 import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "./datasources/twitch";
 import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "./datasources/twitcasting";
-import { group } from "console";
 
 function anyNijiGroup(group_choices: string[]) {
     if (
@@ -77,6 +76,7 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
                 // @ts-ignore
                 let remap: LiveObject = {}
                 remap["id"] = value["id"];
+                remap["room_id"] = null;
                 remap["title"] = value["title"];
                 remap["startTime"] = value["startTime"];
                 remap["endTime"] = value["endTime"];
@@ -88,6 +88,15 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
                     remap["viewers"] = value["viewers"];
                     if (hasKey(value, "peakViewers")) {
                         remap["peakViewers"] = value["peakViewers"];
+                    } else {
+                        remap["peakViewers"] = null;
+                    }
+                } else {
+                    remap["viewers"] = null;
+                    if (hasKey(value, "peakViewers")) {
+                        remap["peakViewers"] = value["peakViewers"];
+                    } else {
+                        remap["peakViewers"] = null;
                     }
                 }
                 remap["group"] = value["group"];
@@ -131,11 +140,22 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             remap["channel_id"] = value["channel"];
             if (hasKey(value, "thumbnail")) {
                 remap["thumbnail"] = value["thumbnail"];
+            } else {
+                remap["thumbnail"] = null;
             }
             if (hasKey(value, "viewers")) {
                 remap["viewers"] = value["viewers"];
                 if (hasKey(value, "peakViewers")) {
                     remap["peakViewers"] = value["peakViewers"];
+                } else {
+                    remap["peakViewers"] = null;
+                }
+            } else {
+                remap["viewers"] = null;
+                if (hasKey(value, "peakViewers")) {
+                    remap["peakViewers"] = value["peakViewers"];
+                } else {
+                    remap["peakViewers"] = null;
                 }
             }
             remap["status"] = type;
@@ -155,6 +175,7 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             remap["id"] = value["id"];
             remap["title"] = value["title"];
             remap["startTime"] = value["startTime"];
+            remap["endTime"] = null;
             remap["channel_id"] = value["channel"];
             remap["thumbnail"] = value["thumbnail"];
             remap["viewers"] = value["viewers"];
@@ -162,6 +183,8 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             remap["status"] = "live";
             if (hasKey(value, "group")) {
                 remap["group"] = value["group"];
+            } else {
+                remap["group"] = null;
             }
             remap["platform"] = "twitch";
             return remap;
@@ -179,12 +202,16 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             remap["channel_id"] = value["channel"];
             if (hasKey(value, "thumbnail")) {
                 remap["thumbnail"] = value["thumbnail"];
+            } else {
+                remap["thumbnail"] = null;
             }
             remap["viewers"] = value["viewers"];
             remap["peakViewers"] = value["peakViewers"];
             remap["status"] = "live";
             if (hasKey(value, "group")) {
                 remap["group"] = value["group"];
+            } else {
+                remap["group"] = null;
             }
             remap["platform"] = "twitch";
             return remap;
@@ -203,6 +230,10 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
             return null;
         }
         if (hasKey(value, "group")) {
+            if (is_none(value["group"])) {
+                // just add that have missing group for now.
+                return value;
+            }
             if (allowed_groups.includes(value["group"])) {
                 return value;
             }
@@ -241,6 +272,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             }
             try {
                 let yt_stats_channel: ChannelStatistics = yt_stats[parents.channel_id[0]];
+                yt_stats_channel["level"] = null;
                 return yt_stats_channel
             } catch (e) {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
@@ -248,6 +280,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     "subscriberCount": 0,
                     "viewCount": 0,
                     "videoCount": 0,
+                    "level": null
                 }
             };
         } else if (parents.platform === "bilibili") {
@@ -272,7 +305,8 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     return {
                         "subscriberCount": bili_elem_stats["subscriberCount"],
                         "viewCount": bili_elem_stats["viewCount"],
-                        "videoCount": bili_elem_stats["videoCount"]
+                        "videoCount": bili_elem_stats["videoCount"],
+                        "level": null
                     }
                 }
             }
@@ -281,6 +315,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 "subscriberCount": 0,
                 "viewCount": 0,
                 "videoCount": 0,
+                "level": null
             }
         } else if (parents.platform === "twitcasting") {
             let twcast_stats = await dataSources.twitcastingChannels.getChannels(parents.channel_id);
@@ -288,13 +323,17 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 let twcast_user_stats: TwitcastingChannelData = twcast_stats[parents.channel_id[0]];
                 return {
                     "subscriberCount": twcast_user_stats["followersCount"],
-                    "level": twcast_user_stats["level"]
+                    "level": twcast_user_stats["level"],
+                    "viewCount": null,
+                    "videoCount": null
                 }
             } catch (e) {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 return {
                     "subscriberCount": 0,
                     "level": 0,
+                    "viewCount": null,
+                    "videoCount": null
                 }
             };
         } else if (parents.platform === "twitch") {
@@ -303,18 +342,25 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 let twch_user_stats: TwitchChannelData = twch_stats[parents.channel_id[0]];
                 return {
                     "subscriberCount": twch_user_stats["followersCount"],
-                    "viewCount": twch_user_stats["viewCount"]
+                    "viewCount": twch_user_stats["viewCount"],
+                    "videoCount": null,
+                    "level": null
                 }
             } catch (e) {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 return {
                     "subscriberCount": 0,
-                    "level": 0,
+                    "viewCount": 0,
+                    "videoCount": null,
+                    "level": null,
                 }
             };
         }
         return {
-            "subscriberCount": 0
+            "subscriberCount": null,
+            "viewCount": null,
+            "videoCount": null,
+            "level": null
         }
     } else if (parents.type === "channel") {
         // real parser for channels.
@@ -339,10 +385,13 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     // @ts-ignore
                     let remap: ChannelObject = {};
                     remap["id"] = chan_info["id"];
+                    remap["room_id"] = null;
+                    remap["user_id"] = null;
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
                     remap["publishedAt"] = chan_info["publishedAt"];
                     remap["thumbnail"] = chan_info["thumbnail"];
+                    remap["is_live"] = null;
                     remap["group"] = chan_info["group"];
                     remap["platform"] = "youtube";
                     ytchan_mapped.push(remap);
@@ -362,12 +411,16 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     let remap: ChannelObject = {};
                     remap["id"] = value["id"];
                     remap["room_id"] = value["room_id"];
+                    remap["user_id"] = null;
                     remap["name"] = value["name"];
                     remap["description"] = value["description"];
+                    remap["publishedAt"] = null;
                     remap["thumbnail"] = value["thumbnail"];
                     remap["is_live"] = value["live"];
                     if (hasKey(value, "group")) {
                         remap["group"] = value["group"];
+                    } else {
+                        remap["group"] = null;
                     }
                     remap["platform"] = "bilibili"
                     return remap;
@@ -380,11 +433,15 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     // @ts-ignore
                     let remap: ChannelObject = {};
                     remap["id"] = chan_info["id"];
+                    remap["room_id"] = null;
+                    remap["user_id"] = null;
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
+                    remap["publishedAt"] = null;
                     remap["thumbnail"] = chan_info["thumbnail"];
                     remap["group"] = chan_info["group"];
-                    remap["platform"] = "youtube";
+                    remap["is_live"] = null;
+                    remap["platform"] = "twitcasting";
                     twcast_mapped.push(remap);
                 }
                 return twcast_mapped;
@@ -395,12 +452,15 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     // @ts-ignore
                     let remap: ChannelObject = {};
                     remap["id"] = chan_info["id"];
+                    remap["room_id"] = null;
                     remap["user_id"] = chan_info["user_id"];
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
+                    remap["publishedAt"] = null;
                     remap["thumbnail"] = chan_info["thumbnail"];
                     remap["group"] = chan_info["group"];
-                    remap["platform"] = "youtube";
+                    remap["is_live"] = null;
+                    remap["platform"] = "twitch";
                     twch_mapped.push(remap);
                 }
                 return twch_mapped;
@@ -425,16 +485,20 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 // @ts-ignore
                 let remap: ChannelObject = {};
                 remap["id"] = chan_info["id"];
+                remap["room_id"] = null;
+                remap["user_id"] = null;
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
                 remap["publishedAt"] = chan_info["publishedAt"];
                 remap["thumbnail"] = chan_info["thumbnail"];
+                remap["is_live"] = null;
                 remap["group"] = chan_info["group"];
                 remap["platform"] = "youtube";
                 ytchan_mapped.push(remap);
             }
             combined_channels = _.concat(combined_channels, ytchan_mapped);
-        } else if (platforms_choices.includes("bilibili")) {
+        }
+        if (platforms_choices.includes("bilibili")) {
             let otherbili_chans: BiliBiliChannel[] = await dataSources.youtubeChannels.getChannel(user_ids_limit);
             if (anyNijiGroup([parents.group])) {
                 let nijibili_chans: BiliBiliChannel[] = await dataSources.nijibili.getChannels(user_ids_limit);
@@ -449,45 +513,58 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 let remap: ChannelObject = {};
                 remap["id"] = value["id"];
                 remap["room_id"] = value["room_id"];
+                remap["user_id"] = null;
                 remap["name"] = value["name"];
                 remap["description"] = value["description"];
+                remap["publishedAt"] = null;
                 remap["thumbnail"] = value["thumbnail"];
                 remap["is_live"] = value["live"];
                 if (hasKey(value, "group")) {
                     remap["group"] = value["group"];
+                } else {
+                    remap["group"] = null;
                 }
                 remap["platform"] = "bilibili"
                 return remap;
             });
             combined_channels = _.concat(combined_channels, bilichan_mapped);
-        } else if (parents.platform === "twitcasting") {
+        }
+        if (parents.platform === "twitcasting") {
             let twcast_stats: TwitcastingChannelDocument = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
             let twcast_mapped: ChannelObject[] = [];
             for (let [_, chan_info] of Object.entries(twcast_stats)) {
                 // @ts-ignore
                 let remap: ChannelObject = {};
                 remap["id"] = chan_info["id"];
+                remap["room_id"] = null;
+                remap["user_id"] = null;
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
+                remap["publishedAt"] = null;
                 remap["thumbnail"] = chan_info["thumbnail"];
                 remap["group"] = chan_info["group"];
-                remap["platform"] = "youtube";
+                remap["is_live"] = null;
+                remap["platform"] = "twitcasting";
                 twcast_mapped.push(remap);
             }
             combined_channels = _.concat(combined_channels, twcast_mapped);
-        } else if (parents.platform === "twitch") {
+        } 
+        if (parents.platform === "twitch") {
             let twch_stats: TwitchChannelDocument = await dataSources.twitchChannels.getChannels(user_ids_limit);
             let twch_mapped: ChannelObject[] = [];
             for (let [_, chan_info] of Object.entries(twch_stats)) {
                 // @ts-ignore
                 let remap: ChannelObject = {};
                 remap["id"] = chan_info["id"];
+                remap["room_id"] = null;
                 remap["user_id"] = chan_info["user_id"];
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
+                remap["publishedAt"] = null;
                 remap["thumbnail"] = chan_info["thumbnail"];
                 remap["group"] = chan_info["group"];
-                remap["platform"] = "youtube";
+                remap["is_live"] = null;
+                remap["platform"] = "twitch";
                 twch_mapped.push(remap);
             }
             combined_channels = _.concat(combined_channels, twch_mapped);
@@ -502,6 +579,9 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
         })
         let filtered_results = _.map(combined_channels, (value) => {
             if (hasKey(value, "group")) {
+                if (is_none(value["group"])) {
+                    return value;
+                }
                 if (allowed_groups.includes(value["group"])) {
                     return value;
                 }
@@ -566,6 +646,15 @@ export const resolvers: IResolvers = {
                 settings["group"] = parent["group"];
             }
             let results: ChannelStatistics = await performQueryOnChannel(args, dataSources, settings);
+            if (is_none(results)) {
+                console.error("[GraphQL-VTAPIv2] ERROR: Got non-null type returned for channels.statistics()", parent.platform, parent.id);
+                return {
+                    "subscriberCount": null,
+                    "viewCount": null,
+                    "videoCount": null,
+                    "level": null
+                }
+            }
             // console.log("ChannelDataStatsParent", parent);
             // console.log("ChannelDataStatsParam", args);
             return results;
@@ -582,5 +671,6 @@ export const resolvers: IResolvers = {
             });
             return results[0];
         }
-    }
+    },
+    DateTime: DateTimeScalar
 }
