@@ -18,6 +18,11 @@ const VTAPI_INFORMATION = `A VTubers **API endpoint** for the new [BiliBili sche
 And also include API endpoint for YouTube streams, Twitcasting and Twitch Streams.<br>
 Including Channel Stats.
 
+**DEPRECATION NOTICE** <br>
+The v1 API are going to be deprecated, it's already marked as deprecated in here,<br>
+but the real deprecation date will be on **31st January 2021**.<br>
+Please start using the VTuber API v2 GraphQL here: [/v2/vtuber](/v2/vtuber)
+
 This API are updating automatically via Python appscheduler (Running on another server.):<br>
 \\- **Every 1 minute** for YouTube/Twitch/Twitcasting Live Streams data.<br>
 \\- **Every 2 minutes** for YouTube Upcoming Streams data.<br>

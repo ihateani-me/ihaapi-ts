@@ -19,6 +19,7 @@ twitchroutes.use((req, res, next) => {
  * /twitch/live:
  *  get:
  *      summary: Get Currently Live Twitch Streams
+ *      deprecated: true
  *      description: Fetch a list of live streams from Twitch VTubers, updated every 1 minute.
  *      tags:
  *      - Twitch
@@ -80,6 +81,7 @@ twitchroutes.get("/live", (req, res) => {
  * /twitch/channels:
  *  get:
  *      summary: Get Twitch Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of VTubers Twitch channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Twitch

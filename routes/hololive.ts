@@ -18,6 +18,7 @@ holoroutes.use((req, res, next) => {
  * /live:
  *  get:
  *      summary: Get HoloPro BiliBili Live Schedule
+ *      deprecated: true
  *      description: Fetch a list of live/upcoming streams from BiliBili for HoloPro VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Hololive
@@ -96,6 +97,7 @@ holoroutes.get("/live", (req, res) => {
  * /channels:
  *  get:
  *      summary: Get HoloPro BiliBili Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of HoloPro VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Hololive
