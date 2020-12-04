@@ -499,12 +499,12 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             combined_channels = _.concat(combined_channels, ytchan_mapped);
         }
         if (platforms_choices.includes("bilibili")) {
-            let otherbili_chans: BiliBiliChannel[] = await dataSources.youtubeChannels.getChannel(user_ids_limit);
-            if (anyNijiGroup([parents.group])) {
+            let otherbili_chans: BiliBiliChannel[] = await dataSources.otherbili.getChannel(user_ids_limit);
+            if (anyNijiGroup(groups_choices)) {
                 let nijibili_chans: BiliBiliChannel[] = await dataSources.nijibili.getChannels(user_ids_limit);
                 _.merge(otherbili_chans, nijibili_chans);
             }
-            if (anyHoloProGroup([parents.group])) {
+            if (anyHoloProGroup(groups_choices)) {
                 let holobili_chans: BiliBiliChannel[] = await dataSources.holobili.getChannels(user_ids_limit);
                 _.merge(otherbili_chans, holobili_chans);
             }
@@ -529,7 +529,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             });
             combined_channels = _.concat(combined_channels, bilichan_mapped);
         }
-        if (parents.platform === "twitcasting") {
+        if (platforms_choices.includes("twitcasting")) {
             let twcast_stats: TwitcastingChannelDocument = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
             let twcast_mapped: ChannelObject[] = [];
             for (let [_, chan_info] of Object.entries(twcast_stats)) {
@@ -549,7 +549,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             }
             combined_channels = _.concat(combined_channels, twcast_mapped);
         } 
-        if (parents.platform === "twitch") {
+        if (platforms_choices.includes("twitch")) {
             let twch_stats: TwitchChannelDocument = await dataSources.twitchChannels.getChannels(user_ids_limit);
             let twch_mapped: ChannelObject[] = [];
             for (let [_, chan_info] of Object.entries(twch_stats)) {
