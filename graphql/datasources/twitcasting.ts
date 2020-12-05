@@ -65,11 +65,12 @@ export class TwitcastingChannel extends MongoDataSource<TwitcastingChannelDocume
         if (is_none(user_ids) || user_ids.length < 1) {
             new_data = get_data;
         } else {
-            for (let i = 0; i < user_ids.length; i++) {
-                let user_id = user_ids[i];
-                try {
-                    new_data[user_id] = get_data[user_id];
-                } catch (e) {};
+            for (let [channel_name, channel_data] of Object.entries(get_data)) {
+                if (channel_name !== "_id") {
+                    if (user_ids.includes(channel_data["id"])) {
+                        new_data[channel_name] = channel_data;
+                    }
+                }
             }
         }
         return new_data;
