@@ -19,6 +19,8 @@ class VTBDB {
 
     connect() {
         console.log(`[db] connecting to ${this.db_name}...`);
+        this.dbtype = "???";
+        this.version = "X.XX.XX"
         this.client.connect()
         .then(client => {
             this.db = this.client.db(this.db_name);
