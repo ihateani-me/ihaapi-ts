@@ -58,6 +58,7 @@
     "moment": "^2.29.1",
     "moment-timezone": "^0.5.31",
     "mongodb": "^3.6.2",
+    "nano-memoize": "^1.2.1",
     "string-to-stream": "^3.0.1",
     "typescript": "^4.0.3",
     "xml2js": "^0.4.23"
