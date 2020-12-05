@@ -118,7 +118,7 @@ export const VTAPIv2 = gql`
         "The channel profile picture"
         image: String!
         "The channel statistics (subs, view, total videos)"
-        statistics: ChannelStatistics!
+        statistics: ChannelStatistics! @cacheControl(maxAge: 3600)
         "The channel group/organization"
         group: String
         "Is the channel live or not? (BiliBili Only!)"
@@ -146,7 +146,7 @@ export const VTAPIv2 = gql`
         "The channel ID"
         channel_id: ID!
         "The channel object/information"
-        channel: ChannelObject!
+        channel: ChannelObject! @cacheControl(maxAge: 1800)
         "The stream thumbnail"
         thumbnail: String
         "The stream status"
@@ -206,7 +206,7 @@ export const VTAPIv2 = gql`
             sort_order: SortOrder = asc
             cursor: String
             limit: Int = 25
-        ): LivesResource
+        ): LivesResource @cacheControl(maxAge: 300)
         channels(
             id: [ID],
             groups: [String],
@@ -215,7 +215,7 @@ export const VTAPIv2 = gql`
             sort_order: SortOrder = asc
             cursor: String
             limit: Int = 25
-        ): ChannelsResource
+        ): ChannelsResource @cacheControl(maxAge: 1800)
     }
 `;
 

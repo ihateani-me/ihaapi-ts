@@ -780,7 +780,9 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             return final_results;
         },
-        ended: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+        ended: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LivesResource> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 300, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 30) {
