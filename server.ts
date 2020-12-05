@@ -74,7 +74,7 @@ app.use("/u2", Routes.U2Routes);
 app.use("/nh", Routes.NHRoutes);
 app.use("/sauce", Routes.SauceRoutes);
 
-app.use(APIV2GQL.getMiddleware({path: "/v2/vtuber"}));
+APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
 
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
