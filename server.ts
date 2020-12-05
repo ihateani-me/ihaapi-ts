@@ -5,6 +5,7 @@ import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
+import { gqldocsRoutes } from "./views/gqldocs";
 import express_compression from "compression";
 
 import APIV2GQL from "./graphql";
@@ -73,6 +74,10 @@ app.use("/games", Routes.GamesRoutes);
 app.use("/u2", Routes.U2Routes);
 app.use("/nh", Routes.NHRoutes);
 app.use("/sauce", Routes.SauceRoutes);
+app.get("/v2", (_, res) => {
+    res.render("v2api");
+})
+app.use("/v2/gql-docs", gqldocsRoutes);
 
 APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
 
