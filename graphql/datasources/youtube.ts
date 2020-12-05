@@ -42,7 +42,7 @@ export class YoutubeLive extends MongoDataSource<YoutubeDocument<YoutubeLiveData
                 generate_aggreate[e] = 1;
             }
         }
-        if (channel_ids) {
+        if (Object.keys(generate_aggreate).length > 0) {
             let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
             let main_res = results[0];
             try {
@@ -69,7 +69,7 @@ export class YoutubeChannel extends MongoDataSource<YoutubeDocument<YoutubeChann
                 generate_aggreate[e] = 1;
             }
         }
-        if (channel_ids) {
+        if (Object.keys(generate_aggreate).length > 0) {
             let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
             let main_res = results[0];
             try {
