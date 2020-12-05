@@ -60,9 +60,18 @@ app.get("/changelog", (_, res) => {
     })
 })
 
-app.get("/ugh", (_, res) => {
-    res.send("I'M AWAKEEEEEEEEEEEEE");
-});
+// echoback
+app.head("/echo", (_, res) => {
+    res.header({
+        "Content-Length": 2,
+        "Content-Type": "text/plain; charset=utf-8"
+    })
+    res.end();
+})
+
+app.get("/echo", (_, res) => {
+    res.send("OK");
+})
 
 app.use("/", Routes.HoloRoutes);
 app.use("/nijisanji", Routes.NijiRoutes);
