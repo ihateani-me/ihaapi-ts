@@ -324,17 +324,19 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
         responseType: "arraybuffer"
     });
     console.info(`[nh:simg] finding info cache: ${doujin_id}`)
-    let parsed_info_cache = await REDIS_INSTANCE.get(`nhi${doujin_id}`)
-    if (!is_none(parsed_info_cache)) {
-        console.info(`[nh:simg:${doujin_id}] info cache found`)
+    let parsed_info: nhInfoData = await REDIS_INSTANCE.get(`nhi${doujin_id}`)
+    if (!is_none(parsed_info)) {
+        console.info(`[nh:simg:${doujin_id}] info cache found`);
+    } else {
+        let inf_stat_code: number;
         // @ts-ignore
-        var [parsed_info, inf_stat_code]: [nhInfoData, number] = await nhFetchInfo(doujin_id);
+        [parsed_info, inf_stat_code] = await nhFetchInfo(doujin_id);
         if (inf_stat_code != 200) {
             return [parsed_info, null, inf_stat_code]
         }
     }
 
-    console.info(`[nh:simg:${doujin_id}] getting image set`)
+    console.info(`[nh:simg:${doujin_id}] getting image set`);
     let images = parsed_info["images"];
     try {
         var image_url = images[page - 1];
