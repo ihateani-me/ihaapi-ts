@@ -92,9 +92,13 @@ export const VTAPIv2 = gql`
     Pagination object
     """
     type PageInfo {
+        """Total returned results for this page"""
         total_results: Int!
+        """Total results per page that are specified (with limit)"""
         results_per_page: Int!
+        """Next cursor identifier for pagination"""
         nextCursor: String
+        """Does it have a next page or not."""
         hasNextPage: Boolean!
     }
 
@@ -166,6 +170,8 @@ export const VTAPIv2 = gql`
     and a pagination information to paginate through.
     """
     type LivesResource {
+        """Total video in all page combined"""
+        _total: Int!
         """LiveObject results"""
         items: [LiveObject!]! @cacheControl(maxAge: 60)
         """LiveObject pagination info"""
@@ -173,6 +179,8 @@ export const VTAPIv2 = gql`
     }
 
     type ChannelsResource {
+        """Total channel in all page combined"""
+        _total: Int!
         """ChannelObject results"""
         items: [ChannelObject!]! @cacheControl(maxAge: 1800)
         """Channel pagination info, only used in channels() query"""
@@ -290,11 +298,13 @@ export interface ChannelObjectParams {
 }
 
 export interface LivesResource {
+    _total: number
     items: LiveObject[]
     pageInfo: PageInfo
 }
 
 export interface ChannelsResource {
+    _total: number
     items: ChannelObject[]
     pageInfo: PageInfo
 }
