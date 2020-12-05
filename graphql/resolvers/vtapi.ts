@@ -2,6 +2,7 @@ import _ from "lodash";
 import 'apollo-cache-control';
 
 // Import models
+import { Memoize } from "../../utils/decorators";
 import { get_group } from "../../utils/filters";
 import { IResolvers } from "apollo-server-express";
 import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar, LivesResource, PageInfo, ChannelsResource } from "../schemas";
@@ -30,16 +31,6 @@ function anyNijiGroup(group_choices: string[]) {
     return false;
 }
 
-function base64(data: string) {
-    let buf = Buffer.from(data, "utf-8");
-    return buf.toString("base64");
-}
-
-function unbase64(datab64: string) {
-    let buf = Buffer.from(datab64, "base64");
-    return buf.toString("utf-8");
-}
-
 function anyHoloProGroup(groups_choices: string[]) {
     if (is_none(groups_choices) || groups_choices.length == 0) {
         return true; // force true if no groups defined.
@@ -57,6 +48,26 @@ function anyHoloProGroup(groups_choices: string[]) {
     return false;
 }
 
+class Base64 {
+    /**
+     * Encode a string to base64 formaat
+     * support memoizing for faster access.
+     * @param data data to encode
+     */
+    @Memoize() encode(data: string) {
+        const buf = Buffer.from(data, "utf-8");
+        return buf.toString("base64");
+    }
+
+    /**
+     * Decode back a base64 format string to normal string
+     * @param encoded_data data to decode
+     */
+    @Memoize() decode(encoded_data: string) {
+        const buf = Buffer.from(encoded_data, "base64");
+        return buf.toString("utf-8");
+    }
+}
 
 async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources): Promise<LiveObject[]> {
     let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
@@ -641,9 +652,10 @@ export const VTAPIv2Resolvers: IResolvers = {
             let results: LiveObject[] = await performQueryOnLive(args, "live", dataSources);
             // @ts-ignore
             let final_results: LivesResource = {};
+            const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-live()] Using cursor to filter results...");
-                let unbase64cursor = unbase64(cursor);
+                let unbase64cursor = b64.decode(cursor);
                 console.log(`[GraphQL-VTAPIv2-live()] Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
                 console.log(`[GraphQL-VTAPIv2-live()] Using cursor index: ${findIndex}`);
@@ -658,7 +670,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
@@ -687,7 +699,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
@@ -716,9 +728,10 @@ export const VTAPIv2Resolvers: IResolvers = {
             let results: LiveObject[] = await performQueryOnLive(args, "upcoming", dataSources);
             // @ts-ignore
             let final_results: LivesResource = {};
+            const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-upcoming()] Using cursor to filter results...");
-                let unbase64cursor = unbase64(cursor);
+                let unbase64cursor = b64.decode(cursor);
                 console.log(`[GraphQL-VTAPIv2-upcoming()] Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
                 console.log(`[GraphQL-VTAPIv2-upcoming()] Using cursor index: ${findIndex}`);
@@ -733,7 +746,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
@@ -762,7 +775,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
@@ -793,9 +806,10 @@ export const VTAPIv2Resolvers: IResolvers = {
             let results: LiveObject[] = await performQueryOnLive(args, "past", dataSources);
             // @ts-ignore
             let final_results: LivesResource = {};
+            const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-ended()] Using cursor to filter results...");
-                let unbase64cursor = unbase64(cursor);
+                let unbase64cursor = b64.decode(cursor);
                 console.log(`[GraphQL-VTAPIv2-ended()] Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
                 console.log(`[GraphQL-VTAPIv2-ended()] Using cursor index: ${findIndex}`);
@@ -810,7 +824,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
@@ -839,7 +853,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
@@ -874,9 +888,10 @@ export const VTAPIv2Resolvers: IResolvers = {
             });
             // @ts-ignore
             let final_results: ChannelsResource = {};
+            const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-channels()] Using cursor to filter results...");
-                let unbase64cursor = unbase64(cursor);
+                let unbase64cursor = b64.decode(cursor);
                 console.log(`[GraphQL-VTAPIv2-channels()] Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
                 console.log(`[GraphQL-VTAPIv2-channels()] Using cursor index: ${findIndex}`);
@@ -892,7 +907,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                     try {
                         let next_data: ChannelObject = _.nth(results, max_limit);
                         // @ts-ignore
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
@@ -922,7 +937,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                     try {
                         let next_data: ChannelObject = _.nth(results, max_limit);
                         // @ts-ignore
-                        next_cursor = base64(next_data["id"]);
+                        next_cursor = b64.encode(next_data["id"]);
                         console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
