@@ -1,14 +1,16 @@
 import _ from "lodash";
+import 'apollo-cache-control';
 
 // Import models
 import { get_group } from "../../utils/filters";
 import { IResolvers } from "apollo-server-express";
-import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar } from "../schemas";
+import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar, LivesResource, PageInfo, ChannelsResource } from "../schemas";
 import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "../datasources/youtube";
 import { filter_empty, getValueFromKey, hasKey, is_none, sortObjectsByKey } from "../../utils/swissknife";
 import { BiliBiliChannel, BiliBiliLive } from "../datasources/bilibili";
 import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "../datasources/twitch";
 import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "../datasources/twitcasting";
+import { Buffer } from "buffer";
 
 function anyNijiGroup(group_choices: string[]) {
     if (is_none(group_choices) || group_choices.length == 0) {
@@ -26,6 +28,16 @@ function anyNijiGroup(group_choices: string[]) {
         return true;
     }
     return false;
+}
+
+function base64(data: string) {
+    let buf = Buffer.from(data, "utf-8");
+    return buf.toString("base64");
+}
+
+function unbase64(datab64: string) {
+    let buf = Buffer.from(datab64, "base64");
+    return buf.toString("utf-8");
 }
 
 function anyHoloProGroup(groups_choices: string[]) {
@@ -401,7 +413,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
                     remap["publishedAt"] = chan_info["publishedAt"];
-                    remap["thumbnail"] = chan_info["thumbnail"];
+                    remap["image"] = chan_info["thumbnail"];
                     remap["is_live"] = null;
                     remap["group"] = chan_info["group"];
                     remap["platform"] = "youtube";
@@ -426,7 +438,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     remap["name"] = value["name"];
                     remap["description"] = value["description"];
                     remap["publishedAt"] = null;
-                    remap["thumbnail"] = value["thumbnail"];
+                    remap["image"] = value["thumbnail"];
                     remap["is_live"] = value["live"];
                     if (hasKey(value, "group")) {
                         remap["group"] = value["group"];
@@ -449,7 +461,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
                     remap["publishedAt"] = null;
-                    remap["thumbnail"] = chan_info["thumbnail"];
+                    remap["image"] = chan_info["thumbnail"];
                     remap["group"] = chan_info["group"];
                     remap["is_live"] = null;
                     remap["platform"] = "twitcasting";
@@ -468,7 +480,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
                     remap["publishedAt"] = null;
-                    remap["thumbnail"] = chan_info["thumbnail"];
+                    remap["image"] = chan_info["thumbnail"];
                     remap["group"] = chan_info["group"];
                     remap["is_live"] = null;
                     remap["platform"] = "twitch";
@@ -501,7 +513,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
                 remap["publishedAt"] = chan_info["publishedAt"];
-                remap["thumbnail"] = chan_info["thumbnail"];
+                remap["image"] = chan_info["thumbnail"];
                 remap["is_live"] = null;
                 remap["group"] = chan_info["group"];
                 remap["platform"] = "youtube";
@@ -528,7 +540,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 remap["name"] = value["name"];
                 remap["description"] = value["description"];
                 remap["publishedAt"] = null;
-                remap["thumbnail"] = value["thumbnail"];
+                remap["image"] = value["thumbnail"];
                 remap["is_live"] = value["live"];
                 if (hasKey(value, "group")) {
                     remap["group"] = value["group"];
@@ -552,7 +564,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
                 remap["publishedAt"] = null;
-                remap["thumbnail"] = chan_info["thumbnail"];
+                remap["image"] = chan_info["thumbnail"];
                 remap["group"] = chan_info["group"];
                 remap["is_live"] = null;
                 remap["platform"] = "twitcasting";
@@ -572,7 +584,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
                 remap["publishedAt"] = null;
-                remap["thumbnail"] = chan_info["thumbnail"];
+                remap["image"] = chan_info["thumbnail"];
                 remap["group"] = chan_info["group"];
                 remap["is_live"] = null;
                 remap["platform"] = "twitch";
@@ -618,25 +630,239 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
 // Create main resolvers
 export const VTAPIv2Resolvers: IResolvers = {
     Query: {
-        live: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
+        live: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+            let cursor = getValueFromKey(args, "cursor", "");
+            let limit = getValueFromKey(args, "limit", 25);
+            if (limit >= 30) {
+                limit = 50;
+            }
             console.log("[GraphQL-VTAPIv2] Processing live()");
             console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
-            let results = await performQueryOnLive(args, "live", dataSources);
-            return results;
+            let results: LiveObject[] = await performQueryOnLive(args, "live", dataSources);
+            // @ts-ignore
+            let final_results: LivesResource = {};
+            if (cursor !== "") {
+                console.log("[GraphQL-VTAPIv2-live()] Using cursor to filter results...");
+                let unbase64cursor = unbase64(cursor);
+                console.log(`[GraphQL-VTAPIv2-live()] Finding cursor index: ${unbase64cursor}`);
+                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
+                console.log(`[GraphQL-VTAPIv2-live()] Using cursor index: ${findIndex}`);
+                let limitres = results.length;
+                let max_limit = findIndex + limit;
+                let hasnextpage = true;
+                let next_cursor = null;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                    
+                }
+                results = _.slice(results, findIndex, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            } else {
+                console.log(`[GraphQL-VTAPIv2-live()] Starting cursor from zero.`);
+                let limitres = results.length;
+                let hasnextpage = true;
+                let next_cursor: string = null;
+                let max_limit = limit;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                }
+                results = _.slice(results, 0, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            }
+            return final_results;
         },
-        upcoming: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
+        upcoming: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+            let cursor = getValueFromKey(args, "cursor", "");
+            let limit = getValueFromKey(args, "limit", 25);
+            if (limit >= 30) {
+                limit = 50;
+            }
             console.log("[GraphQL-VTAPIv2] Processing upcoming()");
             console.log("[GraphQL-VTAPIv2-upcoming()] Arguments ->", args);
-            let results = await performQueryOnLive(args, "upcoming", dataSources);
-            return results;
+            let results: LiveObject[] = await performQueryOnLive(args, "upcoming", dataSources);
+            // @ts-ignore
+            let final_results: LivesResource = {};
+            if (cursor !== "") {
+                console.log("[GraphQL-VTAPIv2-upcoming()] Using cursor to filter results...");
+                let unbase64cursor = unbase64(cursor);
+                console.log(`[GraphQL-VTAPIv2-upcoming()] Finding cursor index: ${unbase64cursor}`);
+                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
+                console.log(`[GraphQL-VTAPIv2-upcoming()] Using cursor index: ${findIndex}`);
+                let limitres = results.length;
+                let max_limit = findIndex + limit;
+                let hasnextpage = true;
+                let next_cursor = null;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                    
+                }
+                results = _.slice(results, findIndex, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            } else {
+                console.log(`[GraphQL-VTAPIv2-upcoming()] Starting cursor from zero.`);
+                let limitres = results.length;
+                let hasnextpage = true;
+                let next_cursor: string = null;
+                let max_limit = limit;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                }
+                results = _.slice(results, 0, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            }
+            return final_results;
         },
-        ended: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LiveObject[]> => {
+        ended: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+            let cursor = getValueFromKey(args, "cursor", "");
+            let limit = getValueFromKey(args, "limit", 25);
+            if (limit >= 30) {
+                limit = 50;
+            }
             console.log("[GraphQL-VTAPIv2] Processing ended()");
             console.log("[GraphQL-VTAPIv2-ended()] Arguments ->", args);
-            let results = await performQueryOnLive(args, "past", dataSources);
-            return results;
+            let results: LiveObject[] = await performQueryOnLive(args, "past", dataSources);
+            // @ts-ignore
+            let final_results: LivesResource = {};
+            if (cursor !== "") {
+                console.log("[GraphQL-VTAPIv2-ended()] Using cursor to filter results...");
+                let unbase64cursor = unbase64(cursor);
+                console.log(`[GraphQL-VTAPIv2-ended()] Finding cursor index: ${unbase64cursor}`);
+                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
+                console.log(`[GraphQL-VTAPIv2-ended()] Using cursor index: ${findIndex}`);
+                let limitres = results.length;
+                let max_limit = findIndex + limit;
+                let hasnextpage = true;
+                let next_cursor = null;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                    
+                }
+                results = _.slice(results, findIndex, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };                
+            } else {
+                console.log(`[GraphQL-VTAPIv2-ended()] Starting cursor from zero.`);
+                let limitres = results.length;
+                let hasnextpage = true;
+                let next_cursor: string = null;
+                let max_limit = limit;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                }
+                results = _.slice(results, 0, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            }
+            return final_results;
         },
-        channels: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<ChannelObject[]> => {
+        channels: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<ChannelsResource> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
+            let cursor = getValueFromKey(args, "cursor", "");
+            let limit = getValueFromKey(args, "limit", 25);
+            if (limit >= 30) {
+                limit = 50;
+            }
             console.log("[GraphQL-VTAPIv2] Processing channels()");
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
             let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
@@ -644,11 +870,79 @@ export const VTAPIv2Resolvers: IResolvers = {
                 "type": "channel",
                 "force_single": false
             });
-            return results;
+            // @ts-ignore
+            let final_results: ChannelsResource = {};
+            if (cursor !== "") {
+                console.log("[GraphQL-VTAPIv2-channels()] Using cursor to filter results...");
+                let unbase64cursor = unbase64(cursor);
+                console.log(`[GraphQL-VTAPIv2-channels()] Finding cursor index: ${unbase64cursor}`);
+                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
+                console.log(`[GraphQL-VTAPIv2-channels()] Using cursor index: ${findIndex}`);
+                let limitres = results.length;
+                let max_limit = findIndex + limit;
+                let hasnextpage = true;
+                let next_cursor = null;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: ChannelObject = _.nth(results, max_limit);
+                        // @ts-ignore
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                    
+                }
+                results = _.slice(results, findIndex, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            } else {
+                console.log(`[GraphQL-VTAPIv2-channels()] Starting cursor from zero.`);
+                let limitres = results.length;
+                let hasnextpage = true;
+                let next_cursor: string = null;
+                let max_limit = limit;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: ChannelObject = _.nth(results, max_limit);
+                        // @ts-ignore
+                        next_cursor = base64(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                }
+                results = _.slice(results, 0, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            }
+            return final_results;
         }
     },
     ChannelObject: {
-        statistics: async (parent: ChannelObject, args, { dataSources }, _i): Promise<ChannelStatistics> => {
+        statistics: async (parent: ChannelObject, args, { dataSources }, info): Promise<ChannelStatistics> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 3600, scope: 'PRIVATE'});
             // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
             let settings: ChannelParents = {
                 platform: parent.platform,
@@ -677,8 +971,10 @@ export const VTAPIv2Resolvers: IResolvers = {
         }
     },
     LiveObject: {
-        channel: async (parent: LiveObject, args: ChannelObjectParams, { dataSources }, _i): Promise<ChannelObject> => {
-            console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
+        channel: async (parent: LiveObject, args: ChannelObjectParams, { dataSources }, info): Promise<ChannelObject> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
+            // console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
             let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
                 // @ts-ignore
                 "channel_id": [parent.channel_id],
