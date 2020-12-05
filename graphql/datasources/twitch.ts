@@ -21,9 +21,24 @@ interface TwitchLiveDocument {
 }
 
 export class TwitchLive extends MongoDataSource<TwitchLiveDocument> {
-    async getLive() {
+    async getLive(user_ids: string[] = null) {
         let get_data = await this.collection.find().toArray();
-        return get_data[0]["live"];
+        let live_data = get_data[0]["live"];
+        let new_live_data: TwitchLiveData[] = [];
+        if (is_none(user_ids) || user_ids.length < 1) {
+            for (let i = 0; i < live_data.length; i++) {
+                let elem = live_data[i];
+                new_live_data.push(elem);
+            }
+        } else {
+            for (let i = 0; i < live_data.length; i++) {
+                let elem = live_data[i];
+                if (user_ids.includes(elem["channel"])) {
+                    new_live_data.push(elem);
+                }
+            }
+        }
+        return new_live_data;
     }
 }
 
@@ -51,7 +66,7 @@ export class TwitchChannel extends MongoDataSource<TwitchChannelDocument> {
         try {
             delete get_data["_id"];
         } catch (e) {}
-        if (is_none(user_ids)) {
+        if (is_none(user_ids) || user_ids.length < 1) {
             for (let [channel_name, channel_data] of Object.entries(get_data)) {
                 if (channel_name !==  "_id") {
                     new_data[channel_name] = channel_data;
