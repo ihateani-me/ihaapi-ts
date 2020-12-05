@@ -1,5 +1,5 @@
 import { ApolloServer } from "apollo-server-express";
-import { RedisCache } from "apollo-server-cache-redis";
+import { CustomRedisCache } from "./caches/redis";
 
 import { VTAPIv2 } from "./schemas";
 import { VTAPIv2Resolvers } from "./resolvers";
@@ -14,12 +14,12 @@ const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_HOST = process.env.REDIS_HOST;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT);
 if (is_none(REDIS_PASSWORD)) {
-    var cacheServers = new RedisCache({
+    var cacheServers = new CustomRedisCache({
         host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
         port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT
     })
 } else {
-    var cacheServers = new RedisCache({
+    var cacheServers = new CustomRedisCache({
         host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
         port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT,
         password: REDIS_PASSWORD,
@@ -33,7 +33,7 @@ const server = new ApolloServer({
     tracing: true,
     context: ({ req, res }) => ({
         // passthrough req and res
-        req, res
+        req, res, cacheServers
     }),
     dataSources: () => ({
         holobili: new BiliBili(VTubersDB.db.collection("hololive_data")),

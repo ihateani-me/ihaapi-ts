@@ -1,17 +1,62 @@
-import _ from "lodash";
+import _, { castArray } from "lodash";
 import 'apollo-cache-control';
 
 // Import models
 import { Memoize } from "../../utils/decorators";
 import { get_group } from "../../utils/filters";
+import { RedisDB } from "../../dbconn";
 import { IResolvers } from "apollo-server-express";
-import { LiveObject, ChannelObject, ChannelStatistics, LiveObjectParams, ChannelObjectParams, LiveStatus, PlatformName, DateTimeScalar, LivesResource, PageInfo, ChannelsResource } from "../schemas";
-import { YoutubeLiveData, YoutubeDocument, YoutubeChannelData } from "../datasources/youtube";
-import { filter_empty, getValueFromKey, hasKey, is_none, sortObjectsByKey } from "../../utils/swissknife";
-import { BiliBiliChannel, BiliBiliLive } from "../datasources/bilibili";
-import { TwitchChannelData, TwitchChannelDocument, TwitchLiveData } from "../datasources/twitch";
-import { TwitcastingChannelData, TwitcastingChannelDocument, TwitcastingLive } from "../datasources/twitcasting";
+import {
+    LiveObject,
+    ChannelObject,
+    ChannelStatistics,
+    LiveObjectParams,
+    ChannelObjectParams,
+    LiveStatus,
+    PlatformName,
+    DateTimeScalar,
+    LivesResource,
+    ChannelsResource,
+    SortOrder
+} from "../schemas";
+import {
+    YoutubeLiveData,
+    YoutubeChannelData,
+    YoutubeDocument,
+    BiliBiliLive,
+    BiliBiliChannel,
+    TwitchLiveData,
+    TwitchChannelData,
+    TwitchChannelDocument,
+    TwitcastingLiveData,
+    TwitcastingChannelData,
+    TwitcastingChannelDocument,
+    VTAPIDataSources
+} from "../datasources";
+import { CustomRedisCache } from "../caches/redis";
+import { filter_empty, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
 import { Buffer } from "buffer";
+import express from "express";
+
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PORT = parseInt(process.env.REDIS_PORT);
+const REDIS_INSTANCE = new RedisDB(is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST, isNaN(REDIS_PORT) ? 6379 : REDIS_PORT, REDIS_PASSWORD);
+
+interface ChannelParents {
+    platform?: PlatformName
+    group?: string
+    channel_id?: string[]
+    type: | "stats" | "channel"
+    force_single?: boolean
+}
+
+interface VTAPIContext {
+    req: express.Request
+    res: express.Response
+    cacheServers: CustomRedisCache
+    dataSources: VTAPIDataSources
+}
 
 function anyNijiGroup(group_choices: string[]) {
     if (is_none(group_choices) || group_choices.length == 0) {
@@ -69,50 +114,153 @@ class Base64 {
     }
 }
 
-async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources): Promise<LiveObject[]> {
-    let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
-    let groups_choices: string[] = getValueFromKey(args, "groups", null);
-    let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
-    let orderby: string = getValueFromKey(args, "sort_order", "ascending");
-    orderby = orderby.toLowerCase();
-    let sort_key: string = getValueFromKey(args, "sort_by", "startTime");
-    if (!Array.isArray(allowed_users)) {
-        allowed_users = null;
-    } else if (Array.isArray(allowed_users)) {
-        if (typeof allowed_users[0] !== "string") {
-            allowed_users = null;
+class VTAPIQuery {
+    async sortQueryResults(
+        main_results: any[],
+        groups_filters: string[],
+        key_base: string,
+        order_by: SortOrder,
+        type: | "live" | "upcoming" | "past" | "channel"
+    ): Promise<any[]> {
+        key_base = key_base.toLowerCase()
+        let allowed_groups = [];
+        if (!is_none(groups_filters) && groups_filters.length > 0) {
+            groups_filters.forEach((value) => {
+                let groups_map = get_group(value);
+                if (groups_map) {
+                    allowed_groups = allowed_groups.concat(groups_map);
+                }
+            })
         }
-    }
-    let main_results: LiveObject[] = [];
-    if (platforms_choices.includes("youtube")) {
-        let combinedyt_res: YoutubeDocument<YoutubeLiveData[]> = await dataSources.youtubeLive.getLive(allowed_users);
-        try {
-            delete combinedyt_res["_id"];
-        } catch (e) {};
-        let nijitube_res: YoutubeDocument<YoutubeLiveData[]>;
-        if (anyNijiGroup(groups_choices)) {
-            nijitube_res = await dataSources.nijitubeLive.getLive(allowed_users);
-            try {
-                delete nijitube_res["_id"];
-            } catch (e) {};
-        }
-        _.merge(combinedyt_res, nijitube_res);
-        for (let [channel_id, channel_video] of Object.entries(combinedyt_res)) {
-            if (channel_id === "_id") {
-                continue;
+        let filtered_results = _.map(main_results, (value) => {
+            if (type !== "channel" && value["status"] !== type) {
+                return null;
             }
-            let mapped_yt = _.map(channel_video, (value) => {
+            if (allowed_groups.length == 0) {
+                return value;
+            }
+            if (hasKey(value, "group")) {
+                if (is_none(value["group"])) {
+                    // just add that have missing group for now.
+                    return value;
+                }
+                if (allowed_groups.includes(value["group"])) {
+                    return value;
+                }
+            } else {
+                return value;
+            }
+            return null;
+        });
+        filtered_results = filter_empty(filtered_results);
+        filtered_results = sortObjectsByKey(filtered_results, key_base);
+        if (order_by === "desc" || order_by === "descending") {
+            filtered_results = filtered_results.reverse();
+        }
+        return filtered_results;
+    }
+
+    @Memoize()
+    async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<LiveObject[]> {
+        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+        let groups_choices: string[] = getValueFromKey(args, "groups", null);
+        let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
+        if (!Array.isArray(allowed_users)) {
+            allowed_users = null;
+        } else if (Array.isArray(allowed_users)) {
+            if (typeof allowed_users[0] !== "string") {
+                allowed_users = null;
+            }
+        }
+        let main_results: LiveObject[] = [];
+        if (platforms_choices.includes("youtube")) {
+            let combinedyt_res: YoutubeDocument<YoutubeLiveData[]> = await dataSources.youtubeLive.getLive(allowed_users);
+            try {
+                delete combinedyt_res["_id"];
+            } catch (e) {};
+            let nijitube_res: YoutubeDocument<YoutubeLiveData[]>;
+            if (anyNijiGroup(groups_choices)) {
+                nijitube_res = await dataSources.nijitubeLive.getLive(allowed_users);
+                try {
+                    delete nijitube_res["_id"];
+                } catch (e) {};
+            }
+            _.merge(combinedyt_res, nijitube_res);
+            for (let [channel_id, channel_video] of Object.entries(combinedyt_res)) {
+                if (channel_id === "_id") {
+                    continue;
+                }
+                let mapped_yt = _.map(channel_video, (value) => {
+                    // @ts-ignore
+                    let remap: LiveObject = {}
+                    remap["id"] = value["id"];
+                    remap["room_id"] = null;
+                    remap["title"] = value["title"];
+                    remap["startTime"] = value["startTime"];
+                    remap["endTime"] = value["endTime"];
+                    // @ts-ignore
+                    remap["status"] = value["status"];
+                    remap["channel_id"] = channel_id;
+                    remap["thumbnail"] = value["thumbnail"];
+                    if (hasKey(value, "viewers")) {
+                        remap["viewers"] = value["viewers"];
+                        if (hasKey(value, "peakViewers")) {
+                            remap["peakViewers"] = value["peakViewers"];
+                        } else {
+                            remap["peakViewers"] = null;
+                        }
+                    } else {
+                        remap["viewers"] = null;
+                        if (hasKey(value, "peakViewers")) {
+                            remap["peakViewers"] = value["peakViewers"];
+                        } else {
+                            remap["peakViewers"] = null;
+                        }
+                    }
+                    remap["group"] = value["group"];
+                    remap["platform"] = "youtube";
+                    return remap;
+                });
+                main_results = _.concat(main_results, mapped_yt);
+            }
+        }
+        if (platforms_choices.includes("bilibili") && type !== "past") {
+            let combined_map: BiliBiliLive[] = [];
+            if (type === "upcoming") {
+                let upcome_other: BiliBiliLive[] = await dataSources.otherbili.getUpcoming(allowed_users);
+                combined_map = _.concat(combined_map, upcome_other);
+                if (anyHoloProGroup(groups_choices)) {
+                    let holobili: BiliBiliLive[] = await dataSources.holobili.getUpcoming(allowed_users);
+                    combined_map = _.concat(combined_map, holobili);
+                }
+                if (anyNijiGroup(groups_choices)) {
+                    let nijibili: BiliBiliLive[] = await dataSources.nijibili.getUpcoming(allowed_users);
+                    combined_map = _.concat(combined_map, nijibili);
+                }
+            } else if (type === "live") {
+                if (anyHoloProGroup(groups_choices)) {
+                    let holobili: BiliBiliLive[] = await dataSources.holobili.getLive(allowed_users);
+                    combined_map = _.concat(combined_map, holobili);
+                }
+                if (anyNijiGroup(groups_choices)) {
+                    let nijibili: BiliBiliLive[] = await dataSources.nijibili.getLive(allowed_users);
+                    combined_map = _.concat(combined_map, nijibili);
+                }
+            }
+    
+            let mapped_bili = _.map(combined_map, (value) => {
                 // @ts-ignore
-                let remap: LiveObject = {}
+                let remap: LiveObject = {};
                 remap["id"] = value["id"];
-                remap["room_id"] = null;
+                remap["room_id"] = value["room_id"];
                 remap["title"] = value["title"];
                 remap["startTime"] = value["startTime"];
-                remap["endTime"] = value["endTime"];
-                // @ts-ignore
-                remap["status"] = value["status"];
-                remap["channel_id"] = channel_id;
-                remap["thumbnail"] = value["thumbnail"];
+                remap["channel_id"] = value["channel"];
+                if (hasKey(value, "thumbnail")) {
+                    remap["thumbnail"] = value["thumbnail"];
+                } else {
+                    remap["thumbnail"] = null;
+                }
                 if (hasKey(value, "viewers")) {
                     remap["viewers"] = value["viewers"];
                     if (hasKey(value, "peakViewers")) {
@@ -128,276 +276,71 @@ async function performQueryOnLive(args: LiveObjectParams, type: LiveStatus, data
                         remap["peakViewers"] = null;
                     }
                 }
-                remap["group"] = value["group"];
-                remap["platform"] = "youtube";
+                remap["status"] = type;
+                if (hasKey(value, "group")) {
+                    remap["group"] = value["group"];
+                }
+                remap["platform"] = "bilibili";
                 return remap;
             });
-            main_results = _.concat(main_results, mapped_yt);
+            main_results = _.concat(main_results, mapped_bili);
         }
-    }
-    if (platforms_choices.includes("bilibili") && type !== "past") {
-        let combined_map: BiliBiliLive[] = [];
-        if (type === "upcoming") {
-            let upcome_other: BiliBiliLive[] = await dataSources.otherbili.getUpcoming(allowed_users);
-            combined_map = _.concat(combined_map, upcome_other);
-            if (anyHoloProGroup(groups_choices)) {
-                let holobili: BiliBiliLive[] = await dataSources.holobili.getUpcoming(allowed_users);
-                combined_map = _.concat(combined_map, holobili);
-            }
-            if (anyNijiGroup(groups_choices)) {
-                let nijibili: BiliBiliLive[] = await dataSources.nijibili.getUpcoming(allowed_users);
-                combined_map = _.concat(combined_map, nijibili);
-            }
-        } else if (type === "live") {
-            if (anyHoloProGroup(groups_choices)) {
-                let holobili: BiliBiliLive[] = await dataSources.holobili.getLive(allowed_users);
-                combined_map = _.concat(combined_map, holobili);
-            }
-            if (anyNijiGroup(groups_choices)) {
-                let nijibili: BiliBiliLive[] = await dataSources.nijibili.getLive(allowed_users);
-                combined_map = _.concat(combined_map, nijibili);
-            }
-        }
-
-        let mapped_bili = _.map(combined_map, (value) => {
-            // @ts-ignore
-            let remap: LiveObject = {};
-            remap["id"] = value["id"];
-            remap["room_id"] = value["room_id"];
-            remap["title"] = value["title"];
-            remap["startTime"] = value["startTime"];
-            remap["channel_id"] = value["channel"];
-            if (hasKey(value, "thumbnail")) {
+        if (platforms_choices.includes("twitch") && type === "live") {
+            let twitch_live: TwitchLiveData[] = await dataSources.twitchLive.getLive(allowed_users);
+            let mapped_twitch = _.map(twitch_live, (value) => {
+                // @ts-ignore
+                let remap: LiveObject = {};
+                remap["id"] = value["id"];
+                remap["title"] = value["title"];
+                remap["startTime"] = value["startTime"];
+                remap["endTime"] = null;
+                remap["channel_id"] = value["channel"];
                 remap["thumbnail"] = value["thumbnail"];
-            } else {
-                remap["thumbnail"] = null;
-            }
-            if (hasKey(value, "viewers")) {
                 remap["viewers"] = value["viewers"];
-                if (hasKey(value, "peakViewers")) {
-                    remap["peakViewers"] = value["peakViewers"];
+                remap["peakViewers"] = value["peakViewers"];
+                remap["status"] = "live";
+                if (hasKey(value, "group")) {
+                    remap["group"] = value["group"];
                 } else {
-                    remap["peakViewers"] = null;
+                    remap["group"] = null;
                 }
-            } else {
-                remap["viewers"] = null;
-                if (hasKey(value, "peakViewers")) {
-                    remap["peakViewers"] = value["peakViewers"];
+                remap["platform"] = "twitch";
+                return remap;
+            });
+            main_results = _.concat(main_results, mapped_twitch);
+        }
+        if (platforms_choices.includes("twitcasting") && type === "live") {
+            let twcast_live: TwitcastingLiveData[] = await dataSources.twitcastingLive.getLive(allowed_users);
+            let mapped_twcast = _.map(twcast_live, (value) => {
+                // @ts-ignore
+                let remap: LiveObject = {};
+                remap["id"] = value["id"];
+                remap["title"] = value["title"];
+                remap["startTime"] = value["startTime"];
+                remap["channel_id"] = value["channel"];
+                if (hasKey(value, "thumbnail")) {
+                    remap["thumbnail"] = value["thumbnail"];
                 } else {
-                    remap["peakViewers"] = null;
+                    remap["thumbnail"] = null;
                 }
-            }
-            remap["status"] = type;
-            if (hasKey(value, "group")) {
-                remap["group"] = value["group"];
-            }
-            remap["platform"] = "bilibili";
-            return remap;
-        });
-        main_results = _.concat(main_results, mapped_bili);
-    }
-    if (platforms_choices.includes("twitch") && type === "live") {
-        let twitch_live: TwitchLiveData[] = await dataSources.twitchLive.getLive(allowed_users);
-        let mapped_twitch = _.map(twitch_live, (value) => {
-            // @ts-ignore
-            let remap: LiveObject = {};
-            remap["id"] = value["id"];
-            remap["title"] = value["title"];
-            remap["startTime"] = value["startTime"];
-            remap["endTime"] = null;
-            remap["channel_id"] = value["channel"];
-            remap["thumbnail"] = value["thumbnail"];
-            remap["viewers"] = value["viewers"];
-            remap["peakViewers"] = value["peakViewers"];
-            remap["status"] = "live";
-            if (hasKey(value, "group")) {
-                remap["group"] = value["group"];
-            } else {
-                remap["group"] = null;
-            }
-            remap["platform"] = "twitch";
-            return remap;
-        });
-        main_results = _.concat(main_results, mapped_twitch);
-    }
-    if (platforms_choices.includes("twitcasting") && type === "live") {
-        let twcast_live: TwitcastingLive[] = await dataSources.twitcastingLive.getLive(allowed_users);
-        let mapped_twcast = _.map(twcast_live, (value) => {
-            // @ts-ignore
-            let remap: LiveObject = {};
-            remap["id"] = value["id"];
-            remap["title"] = value["title"];
-            remap["startTime"] = value["startTime"];
-            remap["channel_id"] = value["channel"];
-            if (hasKey(value, "thumbnail")) {
-                remap["thumbnail"] = value["thumbnail"];
-            } else {
-                remap["thumbnail"] = null;
-            }
-            remap["viewers"] = value["viewers"];
-            remap["peakViewers"] = value["peakViewers"];
-            remap["status"] = "live";
-            if (hasKey(value, "group")) {
-                remap["group"] = value["group"];
-            } else {
-                remap["group"] = null;
-            }
-            remap["platform"] = "twitch";
-            return remap;
-        });
-        main_results = _.concat(main_results, mapped_twcast);
-    }
-    let allowed_groups = [];
-    if (groups_choices) {
-        groups_choices.forEach((value) => {
-            let groups_map = get_group(value);
-            if (groups_map) {
-                allowed_groups = allowed_groups.concat(groups_map);
-            }
-        })
-    }
-    let filtered_results = _.map(main_results, (value) => {
-        if (value["status"] !== type) {
-            return null;
+                remap["viewers"] = value["viewers"];
+                remap["peakViewers"] = value["peakViewers"];
+                remap["status"] = "live";
+                if (hasKey(value, "group")) {
+                    remap["group"] = value["group"];
+                } else {
+                    remap["group"] = null;
+                }
+                remap["platform"] = "twitch";
+                return remap;
+            });
+            main_results = _.concat(main_results, mapped_twcast);
         }
-        if (allowed_groups.length == 0) {
-            return value;
-        }
-        if (hasKey(value, "group")) {
-            if (is_none(value["group"])) {
-                // just add that have missing group for now.
-                return value;
-            }
-            if (allowed_groups.includes(value["group"])) {
-                return value;
-            }
-        } else {
-            return value;
-        }
-        return null;
-    });
-    filtered_results = filter_empty(filtered_results);
-    filtered_results = sortObjectsByKey(filtered_results, sort_key);
-    if (orderby === "desc" || orderby === "descending") {
-        filtered_results = filtered_results.reverse();
+        return main_results;
     }
-    return filtered_results;
-}
 
-interface ChannelParents {
-    platform?: PlatformName
-    group?: string
-    channel_id?: string[]
-    type: | "stats" | "channel"
-    force_single?: boolean
-}
-
-async function performQueryOnChannel(args: ChannelObjectParams, dataSources, parents: ChannelParents): Promise<any> {
-    if (parents.type === "stats") {
-        if (parents.platform === "youtube") {
-            if (parents.group) {
-                if (anyNijiGroup([parents.group])) {
-                    var yt_stats = await dataSources.nijitubeChannels.getChannelStats(parents.channel_id);
-                } else {
-                    var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
-                }
-            } else {
-                var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
-            }
-            try {
-                let yt_stats_channel: ChannelStatistics = yt_stats[parents.channel_id[0]];
-                yt_stats_channel["level"] = null;
-                return yt_stats_channel
-            } catch (e) {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "viewCount": 0,
-                    "videoCount": 0,
-                    "level": null
-                }
-            };
-        } else if (parents.platform === "bilibili") {
-            var bili_stats: any[];
-            if (parents.group) {
-                if (anyNijiGroup([parents.group])) {
-                    bili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
-                } else if (anyHoloProGroup([parents.group])) {
-                    bili_stats = await dataSources.holobili.getChannels(parents.channel_id);
-                } else {
-                    bili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
-                }
-            } else {
-                let nijibili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
-                let holobili_stats = await dataSources.holobili.getChannels(parents.channel_id);
-                let otherbili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
-                bili_stats = _.concat(nijibili_stats, holobili_stats, otherbili_stats);
-            }
-            for (let i = 0; i < bili_stats.length; i++) {
-                let bili_elem_stats: BiliBiliChannel = bili_stats[i];
-                if (bili_elem_stats["id"] === parents.channel_id[0]) {
-                    return {
-                        "subscriberCount": bili_elem_stats["subscriberCount"],
-                        "viewCount": bili_elem_stats["viewCount"],
-                        "videoCount": bili_elem_stats["videoCount"],
-                        "level": null
-                    }
-                }
-            }
-            console.error("[performQueryOnChannel] Failed to perform parents statistics on bilibili ID: ", parents.channel_id[0]);
-            return {
-                "subscriberCount": 0,
-                "viewCount": 0,
-                "videoCount": 0,
-                "level": null
-            }
-        } else if (parents.platform === "twitcasting") {
-            let twcast_stats = await dataSources.twitcastingChannels.getChannels(parents.channel_id);
-            try {
-                let twcast_user_stats: TwitcastingChannelData = twcast_stats[parents.channel_id[0]];
-                return {
-                    "subscriberCount": twcast_user_stats["followerCount"],
-                    "level": twcast_user_stats["level"],
-                    "viewCount": null,
-                    "videoCount": null
-                }
-            } catch (e) {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "level": 0,
-                    "viewCount": null,
-                    "videoCount": null
-                }
-            };
-        } else if (parents.platform === "twitch") {
-            let twch_stats = await dataSources.twitchChannels.getChannels(parents.channel_id);
-            try {
-                let twch_user_stats: TwitchChannelData = twch_stats[parents.channel_id[0]];
-                return {
-                    "subscriberCount": twch_user_stats["followerCount"],
-                    "viewCount": twch_user_stats["viewCount"],
-                    "videoCount": null,
-                    "level": null
-                }
-            } catch (e) {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "viewCount": 0,
-                    "videoCount": null,
-                    "level": null,
-                }
-            };
-        }
-        return {
-            "subscriberCount": null,
-            "viewCount": null,
-            "videoCount": null,
-            "level": null
-        }
-    } else if (parents.type === "channel") {
-        // real parser for channels.
+    @Memoize()
+    async performQueryOnChannel(args: ChannelObjectParams, dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelObject[]> {
         let user_ids_limit: string[] = getValueFromKey(parents, "channel_id", null) || getValueFromKey(args, "id", null);
         if (!Array.isArray(user_ids_limit)) {
             user_ids_limit = null;
@@ -503,9 +446,6 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
 
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
         let groups_choices: string[] = getValueFromKey(args, "groups", null);
-        let orderby: string = getValueFromKey(args, "sort_order", "ascending");
-        orderby = orderby.toLowerCase();
-        let sort_key: string = getValueFromKey(args, "sort_by", "id");
 
         let combined_channels: ChannelObject[] = [];
         if (platforms_choices.includes("youtube")) {
@@ -603,55 +543,243 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
             }
             combined_channels = _.concat(combined_channels, twch_mapped);
         }
+        return combined_channels;
+    }
 
-        let allowed_groups = [];
-        if (groups_choices) {
-            groups_choices.forEach((value) => {
-                let groups_map = get_group(value);
-                if (groups_map) {
-                    allowed_groups = allowed_groups.concat(groups_map);
-                }
-            })
-        }
-        let filtered_results = _.map(combined_channels, (value) => {
-            if (hasKey(value, "group")) {
-                if (is_none(value["group"])) {
-                    return value;
-                }
-                if (allowed_groups.length == 0) {
-                    return value;
-                }
-                if (allowed_groups.includes(value["group"])) {
-                    return value;
+    @Memoize()
+    async performQueryOnChannelStats(dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelStatistics> {
+        if (parents.platform === "youtube") {
+            if (parents.group) {
+                if (anyNijiGroup([parents.group])) {
+                    var yt_stats = await dataSources.nijitubeChannels.getChannelStats(parents.channel_id);
+                } else {
+                    var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
                 }
             } else {
-                return value;
+                var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
             }
-            return null;
-        });
-        filtered_results = filter_empty(filtered_results);
-        filtered_results = sortObjectsByKey(filtered_results, sort_key);
-        if (orderby === "desc" || orderby === "descending") {
-            filtered_results = filtered_results.reverse();
+            try {
+                let yt_stats_channel: ChannelStatistics = yt_stats[parents.channel_id[0]];
+                yt_stats_channel["level"] = null;
+                return yt_stats_channel
+            } catch (e) {
+                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                return {
+                    "subscriberCount": 0,
+                    "viewCount": 0,
+                    "videoCount": 0,
+                    "level": null
+                }
+            };
+        } else if (parents.platform === "bilibili") {
+            var bili_stats: any[];
+            if (parents.group) {
+                if (anyNijiGroup([parents.group])) {
+                    bili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
+                } else if (anyHoloProGroup([parents.group])) {
+                    bili_stats = await dataSources.holobili.getChannels(parents.channel_id);
+                } else {
+                    bili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
+                }
+            } else {
+                let nijibili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
+                let holobili_stats = await dataSources.holobili.getChannels(parents.channel_id);
+                let otherbili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
+                bili_stats = _.concat(nijibili_stats, holobili_stats, otherbili_stats);
+            }
+            for (let i = 0; i < bili_stats.length; i++) {
+                let bili_elem_stats: BiliBiliChannel = bili_stats[i];
+                if (bili_elem_stats["id"] === parents.channel_id[0]) {
+                    return {
+                        "subscriberCount": bili_elem_stats["subscriberCount"],
+                        "viewCount": bili_elem_stats["viewCount"],
+                        "videoCount": bili_elem_stats["videoCount"],
+                        "level": null
+                    }
+                }
+            }
+            console.error("[performQueryOnChannel] Failed to perform parents statistics on bilibili ID: ", parents.channel_id[0]);
+            return {
+                "subscriberCount": 0,
+                "viewCount": 0,
+                "videoCount": 0,
+                "level": null
+            }
+        } else if (parents.platform === "twitcasting") {
+            let twcast_stats = await dataSources.twitcastingChannels.getChannels(parents.channel_id);
+            try {
+                let twcast_user_stats: TwitcastingChannelData = twcast_stats[parents.channel_id[0]];
+                return {
+                    "subscriberCount": twcast_user_stats["followerCount"],
+                    "level": twcast_user_stats["level"],
+                    "viewCount": null,
+                    "videoCount": null
+                }
+            } catch (e) {
+                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                return {
+                    "subscriberCount": 0,
+                    "level": 0,
+                    "viewCount": null,
+                    "videoCount": null
+                }
+            };
+        } else if (parents.platform === "twitch") {
+            let twch_stats = await dataSources.twitchChannels.getChannels(parents.channel_id);
+            try {
+                let twch_user_stats: TwitchChannelData = twch_stats[parents.channel_id[0]];
+                return {
+                    "subscriberCount": twch_user_stats["followerCount"],
+                    "viewCount": twch_user_stats["viewCount"],
+                    "videoCount": null,
+                    "level": null
+                }
+            } catch (e) {
+                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                return {
+                    "subscriberCount": 0,
+                    "viewCount": 0,
+                    "videoCount": null,
+                    "level": null,
+                }
+            };
         }
-        return filtered_results;
+        return null;
     }
 }
+
+const VTPrefix = "vtapi-gqlcache";
+function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
+    let groups_filters: string[] = getValueFromKey(args, "groups", []);
+    let channels_filters: string[] = getValueFromKey(args, "channel_id", []);
+    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+    let final_name = `${VTPrefix}-${type}`;
+    if (groups_filters.length < 1) {
+        final_name += "-nogroups";
+    } else {
+        final_name += `-groups_${groups_filters.join("_")}`;
+    }
+    if (channels_filters.length < 1) {
+        final_name += "-nospecifics";
+    } else {
+        final_name += `-channels_${channels_filters.join("_")}`;
+    }
+    if (platforms.length < 1) {
+        // not possible to get but okay.
+        final_name += "-noplatforms";
+    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting")) {
+        final_name += "-allplatforms";
+    } else {
+        final_name += "-platforms_";
+        if (platforms.includes("youtube")) {
+            final_name += "yt_";
+        }
+        if (platforms.includes("bilibili")) {
+            final_name += "b2_";
+        }
+        if (platforms.includes("twitch")) {
+            final_name += "twch_"
+        }
+        if (platforms.includes("twitcasting")) {
+            final_name += "twcast_";
+        }
+        final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
+    }
+    return final_name;
+}
+
+function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | "stats" | "singlech", parent: ChannelObject = null) {
+    let final_name = `${VTPrefix}-${type}`;
+    if (type === "stats") {
+        final_name += `-platforms_${parent.platform}-ch_${parent.id}`;
+        return final_name;
+    }
+    if (type === "singlech") {
+        // @ts-ignore
+        final_name += `-platforms_${parent.platform}-ch_${parent.channel_id}`;
+        return final_name;
+    }
+    let groups_filters: string[] = getValueFromKey(args, "groups", []);
+    let channels_filters: string[] = getValueFromKey(args, "id", []);
+    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+    if (groups_filters.length < 1) {
+        final_name += "-nogroups";
+    } else {
+        final_name += `-groups_${groups_filters.join("_")}`;
+    }
+    if (channels_filters.length < 1) {
+        final_name += "-nospecifics";
+    } else {
+        final_name += `-channels_${channels_filters.join("_")}`;
+    }
+    if (platforms.length < 1) {
+        // not possible to get but okay.
+        final_name += "-noplatforms";
+    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting")) {
+        final_name += "-allplatforms";
+    } else {
+        final_name += "-platforms_";
+        if (platforms.includes("youtube")) {
+            final_name += "yt_";
+        }
+        if (platforms.includes("bilibili")) {
+            final_name += "b2_";
+        }
+        if (platforms.includes("twitch")) {
+            final_name += "twch_"
+        }
+        if (platforms.includes("twitcasting")) {
+            final_name += "twcast_";
+        }
+        final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
+    }
+    return final_name;
+}
+
+// Initialize query class
+const VTQuery = new VTAPIQuery();
 
 // Create main resolvers
 export const VTAPIv2Resolvers: IResolvers = {
     Query: {
-        live: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+        live: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 30) {
+            if (limit >= 50) {
                 limit = 50;
             }
             console.log("[GraphQL-VTAPIv2] Processing live()");
             console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
-            let results: LiveObject[] = await performQueryOnLive(args, "live", dataSources);
+            console.log("[GraphQL-VTAPIv2-live()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForLive(args, "live");
+            // @ts-ignore
+            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results) && !no_cache) {
+                console.log(`[GraphQL-VTAPIv2-live()] Cache hit! --> ${cache_name}`);
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                console.log("[GraphQL-VTAPIv2-live()] Missing cache, requesting manually...");
+                console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
+                results = await VTQuery.performQueryOnLive(args, "live", ctx.dataSources);
+                console.log(`[GraphQL-VTAPIv2-live()] Saving cache with name ${cache_name}, TTL 20s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 20, results);
+                    ctx.res.set("Cache-Control", "private, max-age=20");
+                }
+                ctx.res.set("Cache-Control")
+            }
+            results = await VTQuery.sortQueryResults(
+                results,
+                getValueFromKey(args, "groups", null),
+                getValueFromKey(args, "sort_by", "startTime"),
+                getValueFromKey(args, "sort_order", "asc"),
+                "live"
+            )
             // @ts-ignore
             let final_results: LivesResource = {};
+            let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-live()] Using cursor to filter results...");
@@ -715,19 +843,49 @@ export const VTAPIv2Resolvers: IResolvers = {
                     hasNextPage: hasnextpage
                 };
             }
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
+            final_results["_total"] = total_results;
             return final_results;
         },
-        upcoming: async (_s, args: LiveObjectParams, { dataSources }, _i): Promise<LivesResource> => {
+        upcoming: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 30) {
+            if (limit >= 50) {
                 limit = 50;
             }
             console.log("[GraphQL-VTAPIv2] Processing upcoming()");
-            console.log("[GraphQL-VTAPIv2-upcoming()] Arguments ->", args);
-            let results: LiveObject[] = await performQueryOnLive(args, "upcoming", dataSources);
+            console.log("[GraphQL-VTAPIv2-upcoming()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForLive(args, "upcoming");
+            // @ts-ignore
+            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results) && !no_cache) {
+                console.log(`[GraphQL-VTAPIv2-upcoming()] Cache hit! --> ${cache_name}`); 
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                console.log("[GraphQL-VTAPIv2-upcoming()] Missing cache, requesting manually...");
+                console.log("[GraphQL-VTAPIv2-upcoming()] Arguments ->", args);
+                results = await VTQuery.performQueryOnLive(args, "upcoming", ctx.dataSources);
+                console.log(`[GraphQL-VTAPIv2-upcoming()] Saving cache with name ${cache_name}, TTL 20s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 20, results);
+                    ctx.res.set("Cache-Control", "private, max-age=20");
+                }
+            }
+            results = await VTQuery.sortQueryResults(
+                results,
+                getValueFromKey(args, "groups", null),
+                getValueFromKey(args, "sort_by", "startTime"),
+                getValueFromKey(args, "sort_order", "asc"),
+                "upcoming"
+            )
             // @ts-ignore
             let final_results: LivesResource = {};
+            let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-upcoming()] Using cursor to filter results...");
@@ -791,21 +949,47 @@ export const VTAPIv2Resolvers: IResolvers = {
                     hasNextPage: hasnextpage
                 };
             }
+            final_results["_total"] = total_results;
             return final_results;
         },
-        ended: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<LivesResource> => {
+        ended: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 300, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 30) {
+            if (limit >= 50) {
                 limit = 50;
             }
             console.log("[GraphQL-VTAPIv2] Processing ended()");
-            console.log("[GraphQL-VTAPIv2-ended()] Arguments ->", args);
-            let results: LiveObject[] = await performQueryOnLive(args, "past", dataSources);
+            console.log("[GraphQL-VTAPIv2-ended()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForLive(args, "past");
+            // @ts-ignore
+            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results) && !no_cache) {
+                console.log(`[GraphQL-VTAPIv2-ended()] Cache hit! --> ${cache_name}`);
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                console.log("[GraphQL-VTAPIv2-ended()] Missing cache, requesting manually...");
+                console.log("[GraphQL-VTAPIv2-ended()] Arguments ->", args);
+                results = await VTQuery.performQueryOnLive(args, "past", ctx.dataSources);
+                console.log(`[GraphQL-VTAPIv2-ended()] Saving cache with name ${cache_name}, TTL 300s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 300, results);
+                    ctx.res.set("Cache-Control", "private, max-age=300");
+                }
+            }
+            results = await VTQuery.sortQueryResults(
+                results,
+                getValueFromKey(args, "groups", null),
+                getValueFromKey(args, "sort_by", "startTime"),
+                getValueFromKey(args, "sort_order", "asc"),
+                "past"
+            )
             // @ts-ignore
             let final_results: LivesResource = {};
+            let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-ended()] Using cursor to filter results...");
@@ -869,25 +1053,52 @@ export const VTAPIv2Resolvers: IResolvers = {
                     hasNextPage: hasnextpage
                 };
             }
+            final_results["_total"] = total_results;
             return final_results;
         },
-        channels: async (_s, args: LiveObjectParams, { dataSources }, info): Promise<ChannelsResource> => {
+        channels: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<ChannelsResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 30) {
+            if (limit >= 50) {
                 limit = 50;
             }
             console.log("[GraphQL-VTAPIv2] Processing channels()");
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
-            let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
-                "channel_id": args.channel_id,
-                "type": "channel",
-                "force_single": false
-            });
+            console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForChannels(args, "channel");
+            // @ts-ignore
+            let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results) && !no_cache) {
+                console.log(`[GraphQL-VTAPIv2-channels()] Cache hit! --> ${cache_name}`);
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
+                console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
+                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
+                    "channel_id": args.channel_id,
+                    "type": "channel",
+                    "force_single": false
+                });
+                console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    ctx.res.set("Cache-Control", "private, max-age=1800");
+                }
+            }
+            results = await VTQuery.sortQueryResults(
+                results,
+                getValueFromKey(args, "groups", null),
+                getValueFromKey(args, "sort_by", "startTime"),
+                getValueFromKey(args, "sort_order", "asc"),
+                "channel"
+            )
             // @ts-ignore
             let final_results: ChannelsResource = {};
+            let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
                 console.log("[GraphQL-VTAPIv2-channels()] Using cursor to filter results...");
@@ -953,11 +1164,12 @@ export const VTAPIv2Resolvers: IResolvers = {
                     hasNextPage: hasnextpage
                 };
             }
+            final_results["_total"] = total_results;
             return final_results;
         }
     },
     ChannelObject: {
-        statistics: async (parent: ChannelObject, args, { dataSources }, info): Promise<ChannelStatistics> => {
+        statistics: async (parent: ChannelObject, _a, ctx: VTAPIContext, info): Promise<ChannelStatistics> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 3600, scope: 'PRIVATE'});
             // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
@@ -972,7 +1184,22 @@ export const VTAPIv2Resolvers: IResolvers = {
             if (hasKey(parent, "group")) {
                 settings["group"] = parent["group"];
             }
-            let results: ChannelStatistics = await performQueryOnChannel(args, dataSources, settings);
+            // console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForChannels({}, "stats", parent);
+            // @ts-ignore
+            let [results, ttl]: [ChannelStatistics, number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (is_none(results)) {
+                // console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
+                // console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
+                results = await VTQuery.performQueryOnChannelStats(ctx.dataSources, settings);
+                // console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                if (!no_cache && !is_none(results)) {
+                    // dont cache for reason.
+                    ttl = 1800
+                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                }
+            }
             if (is_none(results)) {
                 console.error("[GraphQL-VTAPIv2] ERROR: Got non-null type returned for channels.statistics()", parent.platform, parent.id);
                 return {
@@ -982,24 +1209,41 @@ export const VTAPIv2Resolvers: IResolvers = {
                     "level": null
                 }
             }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             // console.log("ChannelDataStatsParent", parent);
             // console.log("ChannelDataStatsParam", args);
             return results;
         }
     },
     LiveObject: {
-        channel: async (parent: LiveObject, args: ChannelObjectParams, { dataSources }, info): Promise<ChannelObject> => {
+        channel: async (parent: LiveObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelObject> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             // console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
-            let results: ChannelObject[] = await performQueryOnChannel(args, dataSources, {
-                // @ts-ignore
-                "channel_id": [parent.channel_id],
-                "force_single": true,
-                "type": "channel",
-                "group": parent.group,
-                "platform": parent.platform
-            });
+            // console.log("[GraphQL-VTAPIv2-LiveObject.channel()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            // @ts-ignore
+            let cache_name = getCacheNameForChannels({}, "singlech", parent);
+            // @ts-ignore
+            let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (is_none(results)) {
+                // console.log("[GraphQL-VTAPIv2-LiveObject.channel()] Missing cache, requesting manually...");
+                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
+                    // @ts-ignore
+                    "channel_id": [parent.channel_id],
+                    "force_single": true,
+                    "type": "channel",
+                    "group": parent.group,
+                    "platform": parent.platform
+                });
+                // console.log(`[GraphQL-VTAPIv2-LiveObject.channel()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    ttl = 1800
+                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                }
+            }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return results[0];
         }
     },
