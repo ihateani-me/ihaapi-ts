@@ -36,6 +36,9 @@ export const VTAPIv2 = gql`
 
     scalar DateTime
 
+    """
+    The Platform the stream was running on, its self-explanatory
+    """
     enum PlatformName {
         youtube
         bilibili
@@ -43,54 +46,137 @@ export const VTAPIv2 = gql`
         twitcasting
     }
 
+    """
+    The stream status
+    """
     enum LiveStatus {
+        "Currently live stream"
         live
+        "Upcoming stream"
         upcoming
+        "Past stream with maximum retainability of 6 hours"
         past
     }
 
+    """
+    Sort order for the returned data, default are ascending/asc
+    The sort order use sort_by key parameters
+    """
     enum SortOrder {
+        "Ascending Order"
         ascending
+        "Descending Order"
         descending
+        "Ascending Order (shorthand)"
         asc
+        "Descending Order (shorthand)"
         desc
     }
 
+    """
+    Statistics for a channel
+    Not all stats are available so please do test it channel query
+    """
     type ChannelStatistics @cacheControl(maxAge: 3600) {
+        "Subscriber/Follower amount"
         subscriberCount: Int
+        "Total channel views"
         viewCount: Int
+        "Uploaded/Archive amount that are public"
         videoCount: Int
+        "User Level (Twitcasting only!)"
         level: Int
     }
 
+    """
+    Pagination object
+    """
+    type PageInfo {
+        total_results: Int!
+        results_per_page: Int!
+        nextCursor: String
+        hasNextPage: Boolean!
+    }
+
+    """
+    The channel object, this include most of the information of a channel
+    Please refer to the old API documentation to see what's used or not
+    """
     type ChannelObject @cacheControl(maxAge: 1800) {
+        "Channel ID or Username (For Twitch)"
         id: ID!
+        "Channel User ID (Twitch Only!)"
         user_id: String
+        "Channel Room ID (BiliBili Only!)"
         room_id: String
+        "The channel name"
         name: String!
+        "The channel description"
         description: String!
+        "The channel publication time in DateTime format"
         publishedAt: DateTime
-        thumbnail: String!
+        "The channel profile picture"
+        image: String!
+        "The channel statistics (subs, view, total videos)"
         statistics: ChannelStatistics!
+        "The channel group/organization"
         group: String
+        "Is the channel live or not? (BiliBili Only!)"
         is_live: Boolean
+        "The channel data platform"
         platform: PlatformName!
     }
 
+    """
+    The Live/Upcoming/Ended Video Object
+    Not all platform have the value of key you're searching
+    You can refer to the old API Docs to cross-check
+    """
     type LiveObject {
+        "The stream ID, it usually use the provided Video ID"
         id: ID!
+        "Room ID that are being used (BiliBili Only!)"
         room_id: Int
+        "The stream title"
         title: String!
+        "The stream start time or planned start time"
         startTime: Int!
+        "The stream end time"
         endTime: Int
+        "The channel ID"
         channel_id: ID!
+        "The channel object/information"
         channel: ChannelObject!
+        "The stream thumbnail"
         thumbnail: String
+        "The stream status"
         status: LiveStatus!
+        "Total current viewers (for BiliBili, it's popularity)"
         viewers: Int
+        "The peak viewers for the stream"
         peakViewers: Int
+        "The channel group/organization"
         group: String
+        "The stream platform being used"
         platform: PlatformName!
+    }
+
+    """
+    Live/Upcoming/Ended resources that includes array of LiveObject
+    and a pagination information to paginate through.
+    """
+    type LivesResource {
+        """LiveObject results"""
+        items: [LiveObject!]! @cacheControl(maxAge: 60)
+        """LiveObject pagination info"""
+        pageInfo: PageInfo
+    }
+
+    type ChannelsResource {
+        """ChannelObject results"""
+        items: [ChannelObject!]! @cacheControl(maxAge: 1800)
+        """Channel pagination info, only used in channels() query"""
+        pageInfo: PageInfo!
     }
 
     type Query {
@@ -100,28 +186,36 @@ export const VTAPIv2 = gql`
             platforms: [PlatformName],
             sort_by: String = "startTime"
             sort_order: SortOrder = asc
-        ): [LiveObject!]!
+            cursor: String
+            limit: Int = 25
+        ): LivesResource
         upcoming(
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
             sort_by: String = "startTime"
             sort_order: SortOrder = asc
-        ): [LiveObject!]!
+            cursor: String
+            limit: Int = 25
+        ): LivesResource
         ended(
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
             sort_by: String = "endTime"
             sort_order: SortOrder = asc
-        ): [LiveObject!]! @cacheControl(maxAge: 60)
+            cursor: String
+            limit: Int = 25
+        ): LivesResource
         channels(
             id: [ID],
             groups: [String],
             platforms: [PlatformName],
             sort_by: String = "id"
             sort_order: SortOrder = asc
-        ): [ChannelObject!]! @cacheControl(maxAge: 1800)
+            cursor: String
+            limit: Int = 25
+        ): ChannelsResource
     }
 `;
 
@@ -131,6 +225,12 @@ export type LiveStatus = | "live" | "upcoming" | "past"
 export type PlatformName = | "youtube" | "bilibili" | "twitch" | "twitcasting";
 
 // Return-type
+export interface PageInfo {
+    total_results: number
+    results_per_page: number
+    nextCursor?: string
+    hasNextPage: boolean
+}
 
 export interface ChannelStatistics {
     subscriberCount: number
@@ -146,11 +246,12 @@ export interface ChannelObject {
     name: string
     description: string
     publishedAt?: string
-    thumbnail: string
+    image: string
     statistics: ChannelStatistics
     group?: string
     is_live?: boolean
     platform: PlatformName
+    pageInfo: PageInfo
 }
 
 export interface LiveObject {
@@ -167,6 +268,7 @@ export interface LiveObject {
     peakViewers?: number
     group: string
     platform?: PlatformName
+    pageInfo: PageInfo
 }
 
 // Request-type params/args
@@ -185,4 +287,14 @@ export interface ChannelObjectParams {
     platforms?: PlatformName[],
     sort_by?: string
     sort_order?: SortOrder
+}
+
+export interface LivesResource {
+    items: LiveObject[]
+    pageInfo: PageInfo
+}
+
+export interface ChannelsResource {
+    items: ChannelObject[]
+    pageInfo: PageInfo
 }
