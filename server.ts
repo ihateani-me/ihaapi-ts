@@ -5,6 +5,7 @@ import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
+import express_compression from "compression";
 
 import APIV2GQL from "./graphql";
 
@@ -17,6 +18,8 @@ const app_version = packageJson["version"];
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
 app.set("views", __dirname + "/views");
+
+app.use(express_compression());
 
 app.get("/", (_, res) => {
     let current_jst = moment().tz("Asia/Tokyo");
