@@ -31,6 +31,10 @@ const server = new ApolloServer({
     resolvers: VTAPIv2Resolvers,
     cache: cacheServers,
     tracing: true,
+    context: ({ req, res }) => ({
+        // passthrough req and res
+        req, res
+    }),
     dataSources: () => ({
         holobili: new BiliBili(VTubersDB.db.collection("hololive_data")),
         nijibili: new BiliBili(VTubersDB.db.collection("nijisanji_data")),
