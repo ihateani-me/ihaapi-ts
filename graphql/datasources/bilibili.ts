@@ -42,7 +42,7 @@ export class BiliBili extends MongoDataSource<BiliBiliDocument> {
         let raw_results = await this.collection.aggregate([{"$project": {"channels": 1}}]).toArray();
         let results = raw_results[0];
         let proper_results: BiliBiliChannel[] = [];
-        if (!is_none(user_id) || user_id.length > 0) {
+        if (!is_none(user_id) && user_id.length > 0) {
             for (let i = 0; i < results["channels"].length; i++) {
                 const element = results["channels"][i];
                 if (user_id.includes(element["id"])) {
@@ -59,7 +59,7 @@ export class BiliBili extends MongoDataSource<BiliBiliDocument> {
         let raw_results = await this.collection.aggregate([{"$project": {"live": 1}}]).toArray();
         let results = raw_results[0];
         let proper_results: BiliBiliLive[] = [];
-        if (!is_none(user_id) || user_id.length > 0) {
+        if (!is_none(user_id) && user_id.length > 0) {
             for (let i = 0; i < results["live"].length; i++) {
                 const element = results["live"][i];
                 if (user_id.includes(element["id"])) {
@@ -76,7 +76,7 @@ export class BiliBili extends MongoDataSource<BiliBiliDocument> {
         let raw_results = await this.collection.aggregate([{"$project": {"upcoming": 1}}]).toArray();
         let results = raw_results[0]
         let proper_results: BiliBiliLive[] = [];
-        if (!is_none(user_id) || user_id.length > 0) {
+        if (!is_none(user_id) && user_id.length > 0) {
             for (let i = 0; i < results["upcoming"].length; i++) {
                 const element = results["upcoming"][i];
                 if (user_id.includes(element["id"])) {
