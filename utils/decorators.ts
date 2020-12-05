@@ -1,4 +1,3 @@
-import { valueFromAST } from "graphql";
 import nanomemoize from "nano-memoize";
 
 function mapFunction(name: string, fn: () => any) {
