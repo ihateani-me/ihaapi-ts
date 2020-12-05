@@ -479,7 +479,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                     remap["user_id"] = chan_info["user_id"];
                     remap["name"] = chan_info["name"];
                     remap["description"] = chan_info["description"];
-                    remap["publishedAt"] = null;
+                    remap["publishedAt"] = chan_info["publishedAt"];
                     remap["image"] = chan_info["thumbnail"];
                     remap["group"] = chan_info["group"];
                     remap["is_live"] = null;
@@ -583,7 +583,7 @@ async function performQueryOnChannel(args: ChannelObjectParams, dataSources, par
                 remap["user_id"] = chan_info["user_id"];
                 remap["name"] = chan_info["name"];
                 remap["description"] = chan_info["description"];
-                remap["publishedAt"] = null;
+                remap["publishedAt"] = chan_info["publishedAt"];
                 remap["image"] = chan_info["thumbnail"];
                 remap["group"] = chan_info["group"];
                 remap["is_live"] = null;
