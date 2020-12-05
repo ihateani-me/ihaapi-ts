@@ -1,7 +1,7 @@
-import { ApolloServer, gql } from "apollo-server-express";
+import { ApolloServer } from "apollo-server-express";
 import { RedisCache } from "apollo-server-cache-redis";
-import { VTAPIv2 } from "./schemas";
 
+import { VTAPIv2 } from "./schemas";
 import { VTAPIv2Resolvers } from "./resolvers";
 import { is_none } from "../utils/swissknife";
 import { NijiTubeDB, VTubersDB } from "../dbconn";
@@ -30,7 +30,7 @@ const server = new ApolloServer({
     typeDefs: VTAPIv2,
     resolvers: VTAPIv2Resolvers,
     cache: cacheServers,
-    // tracing: true,
+    tracing: true,
     dataSources: () => ({
         holobili: new BiliBili(VTubersDB.db.collection("hololive_data")),
         nijibili: new BiliBili(VTubersDB.db.collection("nijisanji_data")),
