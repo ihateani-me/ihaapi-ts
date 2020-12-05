@@ -5,7 +5,7 @@ import { is_none } from "../../utils/swissknife";
 
 export const DateTimeScalar = new GraphQLScalarType({
     name: "DateTime",
-    description: "Date time custom scalar type",
+    description: "A datetime string format, using ISO 8601 format.",
     parseValue(value) {
         if (is_none(value)) {
             return null;
@@ -30,10 +30,9 @@ export const DateTimeScalar = new GraphQLScalarType({
 
 
 export const VTAPIv2 = gql`
-    directive @deprecated(
-        reason: String = "No longer supported"
-    ) on FIELD_DEFINITION | ENUM_VALUE
-
+    """
+    A datetime string format, using ISO 8601 format.
+    """
     scalar DateTime
 
     """
@@ -92,13 +91,13 @@ export const VTAPIv2 = gql`
     Pagination object
     """
     type PageInfo {
-        """Total returned results for this page"""
+        "Total returned results for this page"
         total_results: Int!
-        """Total results per page that are specified (with limit)"""
+        "Total results per page that are specified (with limit)"
         results_per_page: Int!
-        """Next cursor identifier for pagination"""
+        "Next cursor identifier for pagination"
         nextCursor: String
-        """Does it have a next page or not."""
+        "Does it have a next page or not."
         hasNextPage: Boolean!
     }
 
@@ -170,20 +169,24 @@ export const VTAPIv2 = gql`
     and a pagination information to paginate through.
     """
     type LivesResource {
-        """Total video in all page combined"""
+        "Total video in all page combined"
         _total: Int!
-        """LiveObject results"""
+        "LiveObject results"
         items: [LiveObject!]! @cacheControl(maxAge: 60)
-        """LiveObject pagination info"""
+        "LiveObject pagination info"
         pageInfo: PageInfo
     }
 
+    """
+    Channels resources that includes array of ChannelObject
+    and a pagination information to paginate through.
+    """
     type ChannelsResource {
-        """Total channel in all page combined"""
+        "Total channel in all page combined"
         _total: Int!
-        """ChannelObject results"""
+        "ChannelObject results"
         items: [ChannelObject!]! @cacheControl(maxAge: 1800)
-        """Channel pagination info, only used in channels() query"""
+        "Channel pagination info, only used in channels() query"
         pageInfo: PageInfo!
     }
 
