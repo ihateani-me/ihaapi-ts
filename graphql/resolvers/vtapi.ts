@@ -38,11 +38,6 @@ import { filter_empty, getValueFromKey, hasKey, is_none, map_bool, sortObjectsBy
 import { Buffer } from "buffer";
 import express from "express";
 
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PORT = parseInt(process.env.REDIS_PORT);
-const REDIS_INSTANCE = new RedisDB(is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST, isNaN(REDIS_PORT) ? 6379 : REDIS_PORT, REDIS_PASSWORD);
-
 interface ChannelParents {
     platform?: PlatformName
     group?: string
