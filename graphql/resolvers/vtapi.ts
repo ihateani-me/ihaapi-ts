@@ -1,4 +1,4 @@
-import _, { castArray } from "lodash";
+import _ from "lodash";
 import 'apollo-cache-control';
 
 // Import models
@@ -68,6 +68,7 @@ function anyNijiGroup(group_choices: string[]) {
         group_choices.includes("nijisanjikr") ||
         group_choices.includes("nijisanjiid") ||
         group_choices.includes("nijisanjiin") ||
+        group_choices.includes("nijisanjien") ||
         group_choices.includes("nijisanjiworld") ||
         group_choices.includes("virtuareal")
     ) {
@@ -331,7 +332,7 @@ class VTAPIQuery {
                 } else {
                     remap["group"] = null;
                 }
-                remap["platform"] = "twitch";
+                remap["platform"] = "twitcasting";
                 return remap;
             });
             main_results = _.concat(main_results, mapped_twcast);
@@ -1242,6 +1243,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ttl = 1800
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                 }
+            }
+            if (results.length < 1) {
+                console.error("[GraphQL-VTAPIv2-LiveObject.channel()] Failed to fetch", parent.platform, parent.channel_id, parent.group);
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return results[0];
