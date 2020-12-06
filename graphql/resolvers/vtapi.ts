@@ -371,12 +371,20 @@ class VTAPIQuery {
                 return ytchan_mapped;
             } else if (parents.platform === "bilibili") {
                 var bili_channel: BiliBiliChannel[];
-                if (anyNijiGroup([parents.group])) {
-                    bili_channel = await dataSources.nijibili.getChannels(user_ids_limit);
-                } else if (anyHoloProGroup([parents.group])) {
-                    bili_channel = await dataSources.holobili.getChannels(user_ids_limit);
+                if (!is_none(parents.group)) {
+                    if (anyNijiGroup([parents.group])) {
+                        bili_channel = await dataSources.nijibili.getChannels(user_ids_limit);
+                    } else if (anyHoloProGroup([parents.group])) {
+                        bili_channel = await dataSources.holobili.getChannels(user_ids_limit);
+                    } else {
+                        bili_channel = await dataSources.otherbili.getChannels(user_ids_limit);
+                    }
                 } else {
-                    bili_channel = await dataSources.otherbili.getChannels(user_ids_limit);
+                    bili_channel = [];
+                    let nijichannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
+                    let holochannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
+                    let otherchannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
+                    bili_channel = _.concat(bili_channel, nijichannel_s, holochannel_s, otherchannel_s);
                 }
                 let bilichan_mapped: ChannelObject[] = _.map(bili_channel, (value) => {
                     // @ts-ignore
