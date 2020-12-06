@@ -8,7 +8,7 @@ import { AssetsRoute } from "./assets";
 import { gqldocsRoutes } from "./views/gqldocs";
 import express_compression from "compression";
 
-import APIV2GQL from "./graphql";
+import { server_vtuberapi, server_saucefinder } from "./graphql";
 
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
@@ -126,7 +126,8 @@ app.get("/v2", (_, res) => {
 })
 app.use("/v2/gql-docs", gqldocsRoutes);
 
-APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
+server_vtuberapi.applyMiddleware({ app, path: "/v2/vtuber" });
+server_saucefinder.applyMiddleware({ app, path: "/v2/sauce" });
 
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
@@ -137,5 +138,6 @@ const listener = app.listen(4200, () => {
     console.log("🚀 VTB API is now up and running!");
     // @ts-ignore
     console.log("http://127.0.0.1:" + listener.address().port + "\n");
-    console.log(`Access GraphQL V2 API here: http://127.0.0.1:4200${APIV2GQL.graphqlPath}`);
+    console.log(`Access VTuber GraphQL V2 API here: http://127.0.0.1:4200${server_vtuberapi.graphqlPath}`);
+    console.log(`Access Sauce GraphQL V2 API here: http://127.0.0.1:4200${server_saucefinder.graphqlPath}`);
 });
