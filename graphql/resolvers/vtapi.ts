@@ -4,7 +4,6 @@ import 'apollo-cache-control';
 // Import models
 import { Memoize } from "../../utils/decorators";
 import { get_group } from "../../utils/filters";
-import { RedisDB } from "../../dbconn";
 import { IResolvers } from "apollo-server-express";
 import {
     LiveObject,
