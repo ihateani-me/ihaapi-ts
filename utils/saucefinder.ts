@@ -13,7 +13,7 @@ function padZeros(num: number, size: number): string {
     return s;
 }
 
-interface SauceFinderResult {
+export interface SauceFinderResult {
     title: string
     source: string
     confidence: number
@@ -49,7 +49,7 @@ export class SauceNAO {
             throw new Error("Please change the SAUCENAO_API_KEY in your .env to start using SauceNAO module.");
         }
         this.minsim = getValueFromKey(settings, "minsim", 57.5);
-        this.numres = getValueFromKey(settings, "minsim", 6);
+        this.numres = getValueFromKey(settings, "numres", 6);
         this.db_index = getValueFromKey(settings, "db_index", 999);
         this.dbmask = getValueFromKey(settings, "dbmask_enable");
         this.dbmaski = getValueFromKey(settings, "dbmask_disable");
@@ -774,6 +774,10 @@ export class SauceNAO {
         return finalized_parsed_data;
     }
 
+    async generateResults(results: object): Promise<SauceFinderResult[]> {
+        return (await this.buildResults(results));
+    }
+
     async getSauce(data: any): Promise<SauceFinderResult[]> {
         console.info("[SauceNAO] Finding sauce...");
         var collected_params = [];
@@ -998,6 +1002,10 @@ export class IQDB {
         return finalized_parsed_data;
     }
 
+    async generateResults(results: string): Promise<SauceFinderResult[]> {
+        return (await this.buildResults(results));
+    }
+
     async getSauce(url: string): Promise<SauceFinderResult[]> {
         console.info("[IQDB] Searching sauce...");
         let build_url = `https://iqdb.org/index.xml?url=${encodeURIComponent(url)}`;
@@ -1167,6 +1175,10 @@ export class ASCII2D {
         finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
         console.info(`[ASCII2D] Finalized Result: ${finalized_parsed_data.length}`);
         return finalized_parsed_data;
+    }
+
+    async generateResults(results: string): Promise<SauceFinderResult[]> {
+        return (await this.buildResults(results));
     }
 
     async getSauce(url: string): Promise<SauceFinderResult[]> {

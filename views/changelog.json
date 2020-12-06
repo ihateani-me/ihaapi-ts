@@ -59,5 +59,8 @@
         "Released v2 VTuber API",
         "Start migrating to GraphQL",
         "DEPRECATION: v1 API of VTuber endpoint will be moved to GraphQL."
+    ],
+    "2.1.0": [
+        "Migraate Sauce API to GraphQL"
     ]
 }

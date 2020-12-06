@@ -39,6 +39,11 @@ const OTHERAPI_INFORMATION = `This API are already available before migration to
 It mainly consists of **Games API** that include HowLongToBeat and Steam, **Sauce Finder API** that use SauceNAO, IQDB, and ASCII2D as available backend,<br>
 **nHentai API** that also include an Image proxier to bypass government block, and finally an **U2 API** that fetch torrents from a website called U2 DMHY (Mainly Japanese Anime torrents)
 
+**DEPRECATION NOTICE** <br>
+Sauce API will be deprecated in favor of GraphQL version of it.<br>
+Date of deprecation: **31st January 2021**<br>
+Please start using GraphQL v2 API here: [/v2/sauce](/v2/sauce)
+
 The API for this are experimental and subject to change, there's already some changes between this and the original one.<br>
 I'm still planning to add more stuff, but that's for later day.<br>
 If you have more suggestion what I should add, you could contact me at **Discord: _N4O#8868_**<br>
@@ -451,7 +456,7 @@ module.exports = {
         {"name": "Twitcasting", "description": "Twitcasting Stream Endpoint"},
         {"name": "Twitch", "description": "Twitch Stream Endpoint"},
         {"name": "games_api", "x-displayName": "Games API", "description": "An API wrapper anything related to games."},
-        {"name": "sauce_api", "x-displayName": "Sauce Finder API", "description": "An API wrapper for SauceNAO, IQDB, and ASCII2D."},
+        {"name": "sauce_api", "x-displayName": "Sauce Finder API [DEPRECATION]", "description": "An API wrapper for SauceNAO, IQDB, and ASCII2D. [ON IT'S WAY TO DEPRECATION]"},
         {"name": "nh_nsfw", "x-displayName": "nH [NSFW]", "description": "An API wrapper for nH (you know what it is)."},
         {"name": "u2_api", "x-displayName": "U2 API", "description": "An API wrapper for U2 RSS and Offers."},
         {

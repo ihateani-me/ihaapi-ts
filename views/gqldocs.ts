@@ -21,4 +21,12 @@ gqldocsRoutes.get("/vtuber", (_, res) => {
     })
 })
 
+gqldocsRoutes.get("/sauce", (_, res) => {
+    res.render("gqldocs_template", {
+        API_NAME: "Sauce API",
+        API_DESCRIPTION: "Find your image sauce using SauceNAO, IQDB, or ASCII2D with one single API.",
+        GRAPHQL_ENDPOINT: "/v2/sauce"
+    })
+})
+
 export { gqldocsRoutes };
