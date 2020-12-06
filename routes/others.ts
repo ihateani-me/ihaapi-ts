@@ -17,6 +17,7 @@ othersroutes.use((req, res, next) => {
  * /other/upcoming:
  *  get:
  *      summary: Get Others VTuber BiliBili Upcoming Schedule
+ *      deprecated: true
  *      description: Fetch a list of upcoming streams from BiliBili for Other VTubers, updated every 4 minutes.
  *      tags:
  *      - Others
@@ -86,6 +87,7 @@ othersroutes.get("/upcoming", (req, res) => {
  * /other/channels:
  *  get:
  *      summary: Get Other VTubers BiliBili Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of Others VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Others
@@ -179,6 +181,7 @@ othersroutes.get("/channels", (req, res) => {
  * /other/youtube/live:
  *  get:
  *      summary: Get Other VTubers YouTube Live Schedule
+ *      deprecated: true
  *      description: |
  *          Fetch a list of live/upcoming streams from YouTube for Other VTubers, updated every 1 minute for live data and 2 minutes for upcoming data.
  *       
@@ -295,6 +298,7 @@ othersroutes.get("/youtube/live", (req, res) => {
  * /other/youtube/channels:
  *  get:
  *      summary: Get Other VTubers YouTube Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of Others VTubers YouTube channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Others

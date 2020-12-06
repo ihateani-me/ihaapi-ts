@@ -4,13 +4,22 @@ import { is_none, filter_empty, hasKey, sortObjectsByKey } from "./swissknife";
 import { YouTubeData, BilibiliData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
 import moment = require('moment-timezone');
 
-const GROUPS_MAPPINGS = {
-    "nijisanji": ["nijisanjijp", "nijisanjikr", "nijisanjiid", "nijisanjien"],
+export const GROUPS_MAPPINGS = {
+    "holopro": ["hololive", "hololiveid", "hololivecn", "hololiveen", "hololivejp", "holostars"],
+    "hololive": ["hololive", "hololiveid", "hololivecn", "hololiveen", "hololivejp"],
+    "hololivejp": ["hololive", "hololivejp"],
+    "hololiveid": ["hololiveid"],
+    "hololivecn": ["hololivecn"],
+    "hololiveen": ["hololiveen"],
+    "holostars": ["holostars"],
+    "nijisanji": ["nijisanji", "nijisanjijp", "nijisanjikr", "nijisanjiid", "nijisanjien", "nijisanjiin", "virtuareal"],
     "nijisanjikr": ["nijisanjikr"],
-    "nijisanjijp": ["nijisanjijp"],
+    "nijisanjijp": ["nijisanjijp", "nijisanji"],
+    "nijisanjiin": ["nijisanjiin"],
     "nijisanjien": ["nijisanjien"],
     "nijisanjiid": ["nijisanjiid"],
-    "nijisanjiworld": ["nijisanjikr", "nijisanjiid", "nijisanjien"],
+    "nijisanjiworld": ["nijisanjikr", "nijisanjiid", "nijisanjien", "nijisanjiin"],
+    "virtuareal": ["virtuareal"],
     "vtuberesports": ["irisbg", "cattleyarg", "lupinusvg"],
     "lupinusvg": ["lupinusvg"],
     "irisblackgames": ["irisbg"],
@@ -20,7 +29,7 @@ const GROUPS_MAPPINGS = {
     "vapart": ["vapart"],
     "honeystrap": ["honeystrap"],
     "sugarlyric": ["sugarlyric"],
-    "others": ["entum", "solotuber", "solovtuber", "paryiproject", "vic", "dotlive", "vgaming"],
+    "others": ["entum", "solotuber", "solovtuber", "paryiproject", "vic", "dotlive", "vgaming", "vshojo", "upd8"],
     "mahapanca": ["mahapanca"],
     "vivid": ["vivid"],
     "noripro": ["noripro"],
@@ -34,9 +43,10 @@ const GROUPS_MAPPINGS = {
     "solo": ["solotuber", "solovtuber"],
     "solotuber": ["solotuber"],
     "solovtuber": ["solovtuber"],
-    "entum": ["entum"]
+    "entum": ["entum"],
+    "vshojo": ["vshojo"]
 }
-const GROUPS_KEY = [
+export const GROUPS_KEY = [
     "vtuberesports",
     "nanashi",
     "others",
@@ -47,6 +57,7 @@ const GROUPS_KEY = [
     "hanayori",
     "kizunaai",
     "nijisanji",
+    "holopro"
 ]
 
 
@@ -62,7 +73,7 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArra
     let filtered_upcoming: YouTubeData[] = [];
     let filtered_ended: YouTubeData[] = [];
     const DEFAULT_FIELDS_KEY = [
-        "id", "title", "status", "startTime", "thumbnail", "endTime", "viewers", "channel", "group", "platform"
+        "id", "title", "status", "startTime", "thumbnail", "endTime", "viewers", "peakViewers", "channel", "channel_id", "group", "platform"
     ];
 
     var groups = args.group;

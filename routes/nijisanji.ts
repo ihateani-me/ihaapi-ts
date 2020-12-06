@@ -18,6 +18,7 @@ nijiroutes.use((req, res, next) => {
  * /nijisanji/live:
  *  get:
  *      summary: Get Nijisanji/VirtuaReal BiliBili Live Schedule
+ *      deprecated: true
  *      description: Fetch a list of live/upcoming streams from BiliBili for Nijisanji/VirtuaReal VTubers, updated every 2 minutes for live data and 4 minutes for upcoming data.
  *      tags:
  *      - Nijisanji
@@ -89,6 +90,7 @@ nijiroutes.get("/live", (req, res) => {
  * /nijisanji/channels:
  *  get:
  *      summary: Get Nijisanji/VirtuaReal BiliBili Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of Nijisanji/VirtuaReal VTubers BiliBili channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji
@@ -182,6 +184,7 @@ nijiroutes.get("/channels", (req, res) => {
  * /nijisanji/youtube/live:
  *  get:
  *      summary: Get Nijisanji YouTube Live Schedule
+ *      deprecated: true
  *      description: |
  *          Fetch a list of live/upcoming streams from Youtube for Nijisanji VTubers, updated every 1 minute for live data and 2 minutes for upcoming data.
  *       
@@ -289,6 +292,7 @@ nijiroutes.get("/youtube/live", (req, res) => {
  * /nijisanji/youtube/channels:
  *  get:
  *      summary: Get Nijisanji YouTube Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of Nijisanji VTubers YouTube channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Nijisanji

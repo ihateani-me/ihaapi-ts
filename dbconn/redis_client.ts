@@ -65,9 +65,16 @@ export class RedisDB {
         return value;
     }
 
-    async get(key: string): Promise<any> {
-        var res = await this.client.get(key);
-        return this.toOriginal(res);
+    async get(key: string, return_ttl: boolean = false): Promise<any> {
+        let res = await this.client.get(key);
+        res = this.toOriginal(res);
+        if (return_ttl && !is_none(res)) {
+            let ttl_left = await this.client.ttl(key);
+            return [res, ttl_left];
+        } else if (return_ttl && is_none(res)) {
+            return [res, 0]
+        }
+        return res;
     }
 
     async set(key: string, value: any): Promise<boolean> {

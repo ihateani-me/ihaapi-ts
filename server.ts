@@ -1,10 +1,15 @@
 require('dotenv').config();
-import * as express from "express";
+import express from "express";
 import * as cons from "consolidate";
 import { VTubersDB } from "./dbconn";
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
+import { gqldocsRoutes } from "./views/gqldocs";
+import express_compression from "compression";
+
+import APIV2GQL from "./graphql";
+
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
 
@@ -14,6 +19,8 @@ const app_version = packageJson["version"];
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
 app.set("views", __dirname + "/views");
+
+app.use(express_compression());
 
 app.get("/", (_, res) => {
     let current_jst = moment().tz("Asia/Tokyo");
@@ -53,28 +60,82 @@ app.get("/changelog", (_, res) => {
     })
 })
 
-app.get("/ugh", (_, res) => {
-    res.send("I'M AWAKEEEEEEEEEEEEE");
-});
+// echoback
+app.head("/echo", (_, res) => {
+    res.header({
+        "Content-Length": 2,
+        "Content-Type": "text/plain; charset=utf-8"
+    })
+    res.end();
+})
 
-app.use("/", Routes.HoloRoutes);
-app.use("/nijisanji", Routes.NijiRoutes);
-app.use("/other", Routes.OthersRoutes);
-app.use("/twitch", Routes.TwitchRoutes);
-app.use("/twitcasting", Routes.TwitcastingRoutes);
-app.use("/museid", Routes.MuseIDRoutes);
-app.use("/games", Routes.GamesRoutes);
-app.use("/u2", Routes.U2Routes);
-app.use("/nh", Routes.NHRoutes);
-app.use("/sauce", Routes.SauceRoutes);
+app.get("/echo", (_, res) => {
+    res.send("OK");
+})
+
+// Redirect all old links with v1 prefix.
+app.use((req, res, next) => {
+    const v1_redirect = [
+        "nijisanji",
+        "other",
+        "twitch",
+        "twitcasting",
+        "museid",
+        "games",
+        "nh",
+        "sauce",
+        // Hololive url
+        "live",
+        "channels"
+    ];
+    let split_req_path = req.path.split("/").slice(1);
+    if (!req.path.startsWith("/v1") && v1_redirect.includes(split_req_path[0])) {
+        let parsequery = req.query;
+        let parsed_params = [];
+        if (parsequery) {
+            for (let [qk, qv] of Object.entries(parsequery)) {
+                parsed_params.push(`${qk}=${qv}`);
+            }
+        }
+        let build_final_url = `/v1${req.path}`;
+        if (parsed_params.length > 0) {
+            build_final_url += `?${parsed_params.join("&")}`;
+        }
+        res.redirect(302, build_final_url);
+    } else {
+        next();
+    }
+})
+
+const v1API = express.Router();
+
+v1API.use("/", Routes.HoloRoutes);
+v1API.use("/nijisanji", Routes.NijiRoutes);
+v1API.use("/other", Routes.OthersRoutes);
+v1API.use("/twitch", Routes.TwitchRoutes);
+v1API.use("/twitcasting", Routes.TwitcastingRoutes);
+v1API.use("/museid", Routes.MuseIDRoutes);
+v1API.use("/games", Routes.GamesRoutes);
+v1API.use("/u2", Routes.U2Routes);
+v1API.use("/nh", Routes.NHRoutes);
+v1API.use("/sauce", Routes.SauceRoutes);
+// Use new v1 prefix.
+app.use("/v1", v1API);
+app.get("/v2", (_, res) => {
+    res.render("v2api");
+})
+app.use("/v2/gql-docs", gqldocsRoutes);
+
+APIV2GQL.applyMiddleware({ app, path: "/v2/vtuber" });
 
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
     res.status(404).json({"time": current_utc, "status": 404, "message": `path '${req.path}' not found.`});
 })
 
-const listener = app.listen(process.env.PORT, () => {
-    console.log("VTB API is now up and running!");
+const listener = app.listen(4200, () => {
+    console.log("🚀 VTB API is now up and running!");
     // @ts-ignore
     console.log("http://127.0.0.1:" + listener.address().port + "\n");
+    console.log(`Access GraphQL V2 API here: http://127.0.0.1:4200${APIV2GQL.graphqlPath}`);
 });

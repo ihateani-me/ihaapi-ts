@@ -54,5 +54,10 @@
     "1.0.0": [
         "Finally released v1 of the API",
         "This introduces a ton of new API publicly and it's now using JS as it's backend."
+    ],
+    "2.0.0": [
+        "Released v2 VTuber API",
+        "Start migrating to GraphQL",
+        "DEPRECATION: v1 API of VTuber endpoint will be moved to GraphQL."
     ]
 }

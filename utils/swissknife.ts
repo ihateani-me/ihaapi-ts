@@ -16,10 +16,10 @@ export function is_none(key: any): boolean {
 
 /**
  * Filter out data that provided and remove all empty string from Array.
- * @param { string[] } data - Data that need to be filtered.
- * @returns { string[] } Data that has been filtered.
+ * @param { any[] } data - Data that need to be filtered.
+ * @returns { any[] } Data that has been filtered.
  */
-export function filter_empty(data: string[]): string[] {
+export function filter_empty(data: any[]): any[] {
     let filtered: string[] = [];
     if (is_none(data)) {
         return [];
@@ -116,9 +116,14 @@ export function sortObjectsByKey(results: any, key_base: string) {
         return results;
     }
     var data_sort = [];
+    var cant_be_sorted = [];
     let results_sorted = [];
     results.forEach((res, index) => {
-        data_sort.push([index.toString(), res[key_base]]);
+        if (!hasKey(res, key_base)) {
+            cant_be_sorted.push(res);    
+        } else {
+            data_sort.push([index.toString(), res[key_base]]);    
+        }
     });
     data_sort.sort((a, b) => {
         return a[1] - b[1];
@@ -128,7 +133,8 @@ export function sortObjectsByKey(results: any, key_base: string) {
         index_res = parseInt(index_res);
         results_sorted.push(results[index_res]);
     });
-    return results_sorted;
+    let finalized_results = results_sorted.concat(cant_be_sorted);
+    return finalized_results;
 }
 
 /**

@@ -19,6 +19,7 @@ twitcastroutes.use((req, res, next) => {
  * /twitcasting/live:
  *  get:
  *      summary: Get Currently Live Twitcasting Streams
+ *      deprecated: true
  *      description: Fetch a list of live streams from Twitcasting VTubers, updated every 1 minute.
  *      tags:
  *      - Twitcasting
@@ -79,6 +80,7 @@ twitcastroutes.get("/live", (req, res) => {
  * /twitcasting/channels:
  *  get:
  *      summary: Get Twitcasting Channel Info/Stats
+ *      deprecated: true
  *      description: Fetch a list of VTubers Twitcasting channels info/statistics, updated every 6 hours.
  *      tags:
  *      - Twitcasting

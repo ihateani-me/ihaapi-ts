@@ -4,7 +4,7 @@ const server_url = process.env.MONGODB_URI;
 
 class VTBDB {
     private client: MongoClient;
-    private db: Db
+    db: Db
     db_name: string;
     is_connected: boolean;
     version: string;
@@ -19,6 +19,8 @@ class VTBDB {
 
     connect() {
         console.log(`[db] connecting to ${this.db_name}...`);
+        this.dbtype = "???";
+        this.version = "X.XX.XX"
         this.client.connect()
         .then(client => {
             this.db = this.client.db(this.db_name);
@@ -52,6 +54,16 @@ class VTBDB {
             var callback_func = collection.find().toArray();
         }
         return callback_func;
+    }
+
+    getCollection(collection_name: string) {
+        while (!this.is_connected) {
+            if (this.is_connected) {
+                break;
+            }
+            // let timer_id = setTimeout(() => console.log("Waiting a little bit more before running function..."), 1000);
+        }
+        return this.db.collection(collection_name);
     }
     
     async update_collection(collection_name: string, collection_data: any) {
