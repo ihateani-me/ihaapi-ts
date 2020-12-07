@@ -107,7 +107,7 @@ sauceroutes.get("/saucenao", (req, res) => {
         console.info("[Sauce:sn:get] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:sn:get] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -203,7 +203,7 @@ sauceroutes.get("/iqdb", (req, res) => {
         console.info("[Sauce:iqdb:get] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:iqdb:get] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -299,7 +299,7 @@ sauceroutes.get("/ascii2d", (req, res) => {
         console.info("[Sauce:ascii2d:get] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:ascii2d:get] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -443,7 +443,7 @@ sauceroutes.get("/multi", (req, res) => {
         ).then((multi_result) => {
             console.info("[Sauce:multi:get] Finished finding that tasty sauce, mapping results...");
             let proper_multi_results = {};
-            proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`"
+            proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`"
             multi_result.forEach(([sf_result, ident]) => {
                 proper_multi_results[ident] = sf_result;
             })
@@ -551,7 +551,7 @@ sauceroutes.post("/saucenao", (req, res) => {
         console.info("[Sauce:sn:post] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:sn:post] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -646,7 +646,7 @@ sauceroutes.post("/iqdb", (req, res) => {
         console.info("[Sauce:iqdb:post] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:iqdb:post] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -741,7 +741,7 @@ sauceroutes.post("/ascii2d", (req, res) => {
         console.info("[Sauce:ascii2d:post] Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
             console.info(`[Sauce:ascii2d:post] Found ${sauce_results.length} matching sauce...`);
-            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`", results: sauce_results, status_code: 200});
+            res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
         })
@@ -879,7 +879,7 @@ sauceroutes.post("/multi", (req, res) => {
         ).then((multi_result) => {
             console.info("[Sauce:multi:post] Finished finding that tasty sauce, mapping results...");
             let proper_multi_results = {};
-            proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/sauce`"
+            proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`"
             multi_result.forEach(([sf_result, ident]) => {
                 proper_multi_results[ident] = sf_result;
             })

@@ -21,7 +21,7 @@ Including Channel Stats.
 **DEPRECATION NOTICE** <br>
 The v1 API are going to be deprecated, it's already marked as deprecated in here,<br>
 but the real deprecation date will be on **31st January 2021**.<br>
-Please start using the VTuber API v2 GraphQL here: [/v2/vtuber](/v2/vtuber)
+Please start using the VTuber API v2 GraphQL here: [/v2/graphql](/v2/graphql)
 
 This API are updating automatically via Python appscheduler (Running on another server.):<br>
 \\- **Every 1 minute** for YouTube/Twitch/Twitcasting Live Streams data.<br>
@@ -42,7 +42,7 @@ It mainly consists of **Games API** that include HowLongToBeat and Steam, **Sauc
 **DEPRECATION NOTICE** <br>
 Sauce API will be deprecated in favor of GraphQL version of it.<br>
 Date of deprecation: **31st January 2021**<br>
-Please start using GraphQL v2 API here: [/v2/sauce](/v2/sauce)
+Please start using GraphQL v2 API here: [/v2/graphql](/v2/graphql)
 
 The API for this are experimental and subject to change, there's already some changes between this and the original one.<br>
 I'm still planning to add more stuff, but that's for later day.<br>

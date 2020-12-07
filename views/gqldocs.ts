@@ -9,23 +9,11 @@ gqldocsRoutes.use((_, res, next) => {
     next()
 });
 
-gqldocsRoutes.get("/", (req, res) => {
-    res.render("gqldocs_home");
-})
-
-gqldocsRoutes.get("/vtuber", (_, res) => {
+gqldocsRoutes.get("/", (_, res) => {
     res.render("gqldocs_template", {
-        API_NAME: "VTuber API",
-        API_DESCRIPTION: "An endpoint focused on VTubers streaming status and channel statistics.",
-        GRAPHQL_ENDPOINT: "/v2/vtuber"
-    })
-})
-
-gqldocsRoutes.get("/sauce", (_, res) => {
-    res.render("gqldocs_template", {
-        API_NAME: "Sauce API",
-        API_DESCRIPTION: "Find your image sauce using SauceNAO, IQDB, or ASCII2D with one single API.",
-        GRAPHQL_ENDPOINT: "/v2/sauce"
+        API_NAME: "GraphQL v2 API",
+        API_DESCRIPTION: "A version 2 of ihateani.me API using GraphQL",
+        GRAPHQL_ENDPOINT: "/v2/graphql"
     })
 })
 

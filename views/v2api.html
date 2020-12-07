@@ -116,23 +116,17 @@
         <img src="/assets/favicon.png" width="250" height="250">
         <h3>ihateani.me API v2</h3>
         <div class="btn-row">
-            <button id="vtapi-gql" class="pulse">
-                <span class="iconify" data-icon="logos-graphql" data-inline="false"></span><br>VTuber API
+            <button id="v2api-gql" class="pulse">
+                <span class="iconify" data-icon="logos-graphql" data-inline="false"></span><br>Playground
             </button>
-            <button id="sfapi-gql" class="pulse">
-                <span class="iconify" data-icon="logos-graphql" data-inline="false"></span><br>Sauce API
+            <button id="api-gqldocs" class="pulse">
+                <span class="iconify" data-icon="clarity:book-solid" data-inline="false"></span><br>See Docs
             </button>
         </div>
-        <button id="api-gqldocs" class="pulse">
-            <span class="iconify" data-icon="clarity:book-solid" data-inline="false"></span><br>See Docs
-        </button>
     </div>
     <script type="text/javascript">
-        document.getElementById("vtapi-gql").onclick = function () {
-            location.href = "/v2/vtuber";
-        }
-        document.getElementById("sfapi-gql").onclick = function () {
-            location.href = "/v2/sauce";
+        document.getElementById("v2api-gql").onclick = function () {
+            location.href = "/v2/graphql";
         }
         document.getElementById("api-gqldocs").onclick = function () {
             location.href = "/v2/gql-docs";
