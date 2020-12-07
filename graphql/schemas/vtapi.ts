@@ -189,45 +189,6 @@ export const VTAPIv2 = gql`
         "Channel pagination info, only used in channels() query"
         pageInfo: PageInfo!
     }
-
-    type Query {
-        live(
-            channel_id: [ID],
-            groups: [String],
-            platforms: [PlatformName],
-            sort_by: String = "startTime"
-            sort_order: SortOrder = asc
-            cursor: String
-            limit: Int = 25
-        ): LivesResource
-        upcoming(
-            channel_id: [ID],
-            groups: [String],
-            platforms: [PlatformName],
-            sort_by: String = "startTime"
-            sort_order: SortOrder = asc
-            cursor: String
-            limit: Int = 25
-        ): LivesResource
-        ended(
-            channel_id: [ID],
-            groups: [String],
-            platforms: [PlatformName],
-            sort_by: String = "endTime"
-            sort_order: SortOrder = asc
-            cursor: String
-            limit: Int = 25
-        ): LivesResource @cacheControl(maxAge: 300)
-        channels(
-            id: [ID],
-            groups: [String],
-            platforms: [PlatformName],
-            sort_by: String = "id"
-            sort_order: SortOrder = asc
-            cursor: String
-            limit: Int = 25
-        ): ChannelsResource @cacheControl(maxAge: 1800)
-    }
 `;
 
 // "Enum"

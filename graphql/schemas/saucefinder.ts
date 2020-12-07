@@ -55,24 +55,6 @@ export const SauceAPIGQL = gql`
         "Collection or a list of closest-matching sauce"
         items: [SauceObject!]
     }
-
-    type Query {
-        saucenao(
-            url: String!
-            minsim: Float = 57.5
-            limit: Int = 6
-            db_index: Int = 999
-        ): SauceResource!
-        iqdb(
-            url: String!
-            minsim: Float = 50.0
-            limit: Int = 6
-        ): SauceResource!
-        ascii2d(
-            url: String!
-            limit: Int = 2
-        ): SauceResource!
-    }
 `;
 
 export interface SauceObject {
