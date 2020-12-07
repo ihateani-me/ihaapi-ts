@@ -62,5 +62,8 @@
     ],
     "2.1.0": [
         "Migraate Sauce API to GraphQL"
+    ],
+    "2.1.1": [
+        "Merge both new VTuber API and Sauce API into one single endpoint."
     ]
 }
