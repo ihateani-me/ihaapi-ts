@@ -6,8 +6,8 @@ export * from "./saucefinder";
 export const v2Definitions = gql`
 
     """
-    Query through our VTuber API Database, including live, upcoming, and past live streams
-    You could check what's avaiable by querying the channels()
+    Query through our VTuber API Database, including live, upcoming, and past live streams.
+    You could check what's avaiable by querying the channels().
     This endpoint have VTuber from Youtube, BiliBili, Twitch, and Twitcasting.
     """
     type VTuberQuery {
@@ -31,7 +31,7 @@ export const v2Definitions = gql`
             cursor: String
             limit: Int = 25
         ): LivesResource
-        "Get past livestream up-to 6 hours (before deletion from database)"
+        "Get past live of Youtube livestream up-to 24 hours (before deletion from database)"
         ended(
             channel_id: [ID],
             groups: [String],
@@ -39,6 +39,7 @@ export const v2Definitions = gql`
             sort_by: String = "endTime"
             sort_order: SortOrder = asc
             cursor: String
+            max_lookback: Int = 6
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 300)
         "Get a list of channel information including statistics"
@@ -54,7 +55,7 @@ export const v2Definitions = gql`
     }
 
     """
-    Query through our Sauce Finder API, with support from SauceNAO, IQDB, and ASCII2D
+    Query through our Sauce Finder API, with support from SauceNAO, IQDB, and ASCII2D.
     This is a drop-in replacement for the old API at: /v1/sauce
     """
     type SauceQuery {

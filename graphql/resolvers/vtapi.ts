@@ -33,9 +33,10 @@ import {
     VTAPIDataSources
 } from "../datasources";
 import { CustomRedisCache } from "../caches/redis";
-import { filter_empty, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
+import { fallbackNaN, filter_empty, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
 import { Buffer } from "buffer";
 import express from "express";
+import moment from "moment-timezone";
 
 interface ChannelParents {
     platform?: PlatformName
@@ -110,13 +111,19 @@ class Base64 {
 }
 
 class VTAPIQuery {
-    async sortQueryResults(
+    async filterAndSortQueryResults(
         main_results: any[],
-        groups_filters: string[],
-        key_base: string,
-        order_by: SortOrder,
+        args: LiveObjectParams,
         type: | "live" | "upcoming" | "past" | "channel"
     ): Promise<any[]> {
+        let groups_filters =  getValueFromKey(args, "groups", null);
+        let key_base =  getValueFromKey(args, "sort_by", "startTime");
+        let order_by = getValueFromKey(args, "sort_order", "asc");
+        let lookback_hours = fallbackNaN(parseInt, getValueFromKey(args, "max_lookback", 6), 6);
+        if (lookback_hours > 24) {
+            // limit to 24 hours
+            lookback_hours = 6;
+        }
         key_base = key_base.toLowerCase()
         let allowed_groups = [];
         if (!is_none(groups_filters) && groups_filters.length > 0) {
@@ -147,6 +154,20 @@ class VTAPIQuery {
             }
             return null;
         });
+        // filter past stream with lookback
+        if (type === "past") {
+            let current_time = moment.tz("UTC").unix() - (lookback_hours * 60 * 60);
+            filtered_results = _.map(filtered_results, (value) => {
+                if (is_none(value)) {
+                    return null;
+                }
+                if (current_time >= value["endTime"]) {
+                    return null;
+                } else {
+                    return value;
+                }
+            })
+        }
         filtered_results = filter_empty(filtered_results);
         filtered_results = sortObjectsByKey(filtered_results, key_base);
         if (order_by === "desc" || order_by === "descending") {
@@ -773,11 +794,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 }
                 ctx.res.set("Cache-Control")
             }
-            results = await VTQuery.sortQueryResults(
+            results = await VTQuery.filterAndSortQueryResults(
                 results,
-                getValueFromKey(args, "groups", null),
-                getValueFromKey(args, "sort_by", "startTime"),
-                getValueFromKey(args, "sort_order", "asc"),
+                args,
                 "live"
             )
             // @ts-ignore
@@ -879,11 +898,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
-            results = await VTQuery.sortQueryResults(
+            results = await VTQuery.filterAndSortQueryResults(
                 results,
-                getValueFromKey(args, "groups", null),
-                getValueFromKey(args, "sort_by", "startTime"),
-                getValueFromKey(args, "sort_order", "asc"),
+                args,
                 "upcoming"
             )
             // @ts-ignore
@@ -983,11 +1000,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=300");
                 }
             }
-            results = await VTQuery.sortQueryResults(
+            results = await VTQuery.filterAndSortQueryResults(
                 results,
-                getValueFromKey(args, "groups", null),
-                getValueFromKey(args, "sort_by", "startTime"),
-                getValueFromKey(args, "sort_order", "asc"),
+                args,
                 "past"
             )
             // @ts-ignore
@@ -1059,7 +1074,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             final_results["_total"] = total_results;
             return final_results;
         },
-        channels: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<ChannelsResource> => {
+        channels: async (_s, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelsResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
@@ -1081,7 +1096,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
                 console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
                 results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
-                    "channel_id": args.channel_id,
+                    "channel_id": args.id,
                     "type": "channel",
                     "force_single": false
                 });
@@ -1092,11 +1107,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
-            results = await VTQuery.sortQueryResults(
+            results = await VTQuery.filterAndSortQueryResults(
                 results,
-                getValueFromKey(args, "groups", null),
-                getValueFromKey(args, "sort_by", "startTime"),
-                getValueFromKey(args, "sort_order", "asc"),
+                args,
                 "channel"
             )
             // @ts-ignore

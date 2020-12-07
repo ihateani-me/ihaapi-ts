@@ -245,12 +245,14 @@ export interface LiveObject {
 
 // Request-type params/args
 export interface LiveObjectParams {
-    channel_id?: string[],
-    status?: LiveStatus[],
-    groups?: string[],
-    platforms?: PlatformName[],
+    channel_id?: string[]
+    status?: LiveStatus[]
+    groups?: string[]
+    platforms?: PlatformName[]
+    max_lookback?: number
     sort_by?: string
     sort_order?: SortOrder
+    cursor?: string
 }
 
 export interface ChannelObjectParams {
@@ -259,6 +261,7 @@ export interface ChannelObjectParams {
     platforms?: PlatformName[],
     sort_by?: string
     sort_order?: SortOrder
+    cursor?: string
 }
 
 export interface LivesResource {
