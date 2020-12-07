@@ -33,6 +33,7 @@ const vtuberapi_settings: ApolloServerExpressConfig = {
     resolvers: VTAPIv2Resolvers,
     cache: cacheServers,
     tracing: true,
+    introspection: true,
     context: ({ req, res }) => ({
         // passthrough req and res
         req, res, cacheServers
@@ -57,6 +58,7 @@ const sauceapi_settings: ApolloServerExpressConfig = {
     resolvers: SauceGQLResoler,
     cache: cacheServers,
     tracing: true,
+    introspection: true,
     context: ({ req, res }) => ({
         req, res, cacheServers
     }),
