@@ -117,7 +117,7 @@ async function nhParseJson(res_data: object, page_ident = null): Promise<nhInfoD
     let image_set = res_data["images"];
     let cover_image_ext = image_set["cover"]["t"];
 
-    parsed_data["cover"] = `https://api.ihateani.me/nh/t/${media_id}/cover.${getValueFromKey(exts_map, cover_image_ext, "jpg")}`;
+    parsed_data["cover"] = `https://api.ihateani.me/v1/nh/t/${media_id}/cover.${getValueFromKey(exts_map, cover_image_ext, "jpg")}`;
 
     // Parse tags
     let tags = res_data["tags"];
@@ -139,7 +139,7 @@ async function nhParseJson(res_data: object, page_ident = null): Promise<nhInfoD
     for (let i = 0; i < images.length; i++) {
         let elem_img = images[i];
         let img_ext = getValueFromKey(elem_img, elem_img["t"], "jpg");
-        let img_url = `https://api.ihateani.me/nh/i/${media_id}/${i + 1}.${img_ext}`;
+        let img_url = `https://api.ihateani.me/v1/nh/i/${media_id}/${i + 1}.${img_ext}`;
         let img_px = [elem_img["w"], elem_img["h"]];
         img_list.push(img_url);
         size_list.push(img_px);
@@ -350,9 +350,9 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
     }
 
     if (image_url.includes("nh/i")) {
-        image_url = image_url.replace("https://api.ihateani.me/nh/i/", "https://i.nhentai.net/galleries/");
+        image_url = image_url.replace("https://api.ihateani.me/v1/nh/i/", "https://i.nhentai.net/galleries/");
     } else if (image_url.includes("nh/t")) {
-        image_url = image_url.replace("https://api.ihateani.me/nh/t/", "https://t.nhentai.net/galleries/");
+        image_url = image_url.replace("https://api.ihateani.me/v1/nh/t/", "https://t.nhentai.net/galleries/");
     }
 
     console.info(`[nh:simg:${doujin_id}] getting image cache...`);
