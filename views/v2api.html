@@ -108,13 +108,34 @@
             padding: 1em 2em;
         }
 
+        .title {
+            margin: 0.7em;
+        }
+
+        .route {
+            background: #212121;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .post-route {
+            background: #3DCE70;
+            padding: 1px 4px;
+            color: #000;
+            margin-right: 10px;
+        }
+
     </style>
   </head>
   <script src="https://code.iconify.design/1/1.0.7/iconify.min.js"></script>
   <body>
     <div id="root">
         <img src="/assets/favicon.png" width="250" height="250">
-        <h3>ihateani.me API v2</h3>
+        <h3 class="title" style="margin: 0.75em;">ihateani.me API v2</h3>
+        <codeblock class="route">
+            <span class="post-route">POST</span>
+            /v2/graphql
+        </codeblock>
         <div class="btn-row">
             <button id="v2api-gql" class="pulse">
                 <span class="iconify" data-icon="logos-graphql" data-inline="false"></span><br>Playground
