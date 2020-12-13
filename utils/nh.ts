@@ -5,8 +5,9 @@ import { getValueFromKey, is_none, removeKeyFromObjects, sortObjectsByKey } from
 import getMimeType = require('mime-type-check');
 import { basename } from 'path';
 
-interface nhInfoData {
+export interface nhInfoData {
     id: string
+    media_id?: string
     title: string
     original_title?: {
         japanase?: string
@@ -76,6 +77,7 @@ async function nhRequest(url: string, session: AxiosInstance): Promise<[any, num
 async function nhParseJson(res_data: object, page_ident = null): Promise<nhInfoData> {
     let parsed_data = {
         "id": "",
+        "media_id": "",
         "title": "",
         "original_title": { "japanese": "", "other": "" },
         "cover": "",
@@ -110,6 +112,7 @@ async function nhParseJson(res_data: object, page_ident = null): Promise<nhInfoD
     let titles = res_data["title"];
 
     parsed_data["id"] = res_data["id"];
+    parsed_data["media_id"] = media_id;
     parsed_data["title"] = getValueFromKey(titles, "pretty", getValueFromKey(titles, "english", ""));
     parsed_data["original_title"]["japanese"] = getValueFromKey(titles, "japanese", "");
     parsed_data["original_title"]["other"] = getValueFromKey(titles, "english", "");
