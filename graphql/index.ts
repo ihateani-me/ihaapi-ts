@@ -1,7 +1,7 @@
 import { ApolloServer } from "apollo-server-express";
 import { CustomRedisCache } from "./caches/redis";
 
-import { SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
+import { nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
 import { v2Resolvers } from "./resolvers";
 import { is_none } from "../utils/swissknife";
 import { NijiTubeDB, VTubersDB } from "../dbconn";
@@ -28,7 +28,7 @@ if (is_none(REDIS_PASSWORD)) {
 }
 
 export const GQLAPIv2Server = new ApolloServer({
-    typeDefs: [VTAPIv2, SauceAPIGQL, v2Definitions],
+    typeDefs: [VTAPIv2, SauceAPIGQL, nHGQLSchemas, v2Definitions],
     resolvers: v2Resolvers,
     cache: cacheServers,
     tracing: true,

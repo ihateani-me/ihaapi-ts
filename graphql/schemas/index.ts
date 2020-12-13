@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export * from "./vtapi";
 export * from "./saucefinder";
+export * from "./nh";
 
 export const v2Definitions = gql`
 
@@ -79,8 +80,26 @@ export const v2Definitions = gql`
         ): SauceResource!
     }
 
+    """
+    Query through nHentai API with easy to use wrapper.
+    This is a drop in replacement for /v1/nh, except the Image route.
+    """
+    type nHentaiQuery {
+        info(
+            doujin_id: ID!
+        ): nhInfoResult!
+        search(
+            query: String!
+            page: Int = 1
+        ): nhSearchResult!
+        latest(
+            page: Int = 1
+        ): nhSearchResult!
+    }
+
     type Query {
         vtuber: VTuberQuery!
         sauce: SauceQuery!
+        nhentai: nHentaiQuery!
     }
 `;
