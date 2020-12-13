@@ -61,9 +61,12 @@
         "DEPRECATION: v1 API of VTuber endpoint will be moved to GraphQL."
     ],
     "2.1.0": [
-        "Migraate Sauce API to GraphQL"
+        "Migrate Sauce API to GraphQL"
     ],
     "2.1.1": [
         "Merge both new VTuber API and Sauce API into one single endpoint."
+    ],
+    "2.2.0": [
+        "Migrate nhentai API to GraphQL"
     ]
 }
