@@ -144,7 +144,11 @@ nhroutes.get("/image/:doujin_id/:page_num", (req, res) => {
  * /nh/info/{doujin_id}:
  *  get:
  *      summary: Get nH Doujin Information
- *      description: This will display some information and URL to a proxied image.
+ *      deprecated: true
+ *      description: |
+ *          This will display some information and URL to a proxied image.
+ *
+ *          Will be deprecated at 31st January 2021, new API: [`/v2/graphql`](/v2/graphql)
  *      tags:
  *      - nh_nsfw
  *      parameters:
@@ -336,8 +340,16 @@ nhroutes.get("/info/:doujin_id", (req, res) => {
     let doujin_id = req.params.doujin_id;
     nhFetchInfo(doujin_id).then(([final_data, stat_code]) => {
         if (typeof final_data === "string") {
-            res.status(stat_code).json(final_data);
+            res.status(stat_code).json(
+                {
+                    "message": "Got unknown answer from API",
+                    "error": final_data,
+                    "notice": "this API will be deprecated in favor of v2 API here: /v2/graphql",
+                    "status_code": stat_code
+                }
+            );
         } else {
+            final_data["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
             res.json(final_data);
         }
     }).catch((err) => {
@@ -351,7 +363,11 @@ nhroutes.get("/info/:doujin_id", (req, res) => {
  * /nh/latest:
  *  get:
  *      summary: Get 25 Latest Doujin
- *      description: This will display information of latest 25 doujin.
+ *      deprecated: true
+ *      description: |
+ *          This will display information of latest 25 doujin.
+  * 
+ *          Will be deprecated at 31st January 2021, new API: [`/v2/graphql`](/v2/graphql)
  *      tags:
  *      - nh_nsfw
  *      parameters:
@@ -567,8 +583,10 @@ nhroutes.get("/latest", (req, res) => {
 
     nhLatestDoujin(page_num).then(([doujin_results, stat_code]) => {
         if (stat_code != 200) {
+            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
             res.status(stat_code).json(doujin_results);
         } else {
+            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
             res.json(doujin_results);
         }
     }).catch((err) => {
@@ -582,6 +600,7 @@ nhroutes.get("/latest", (req, res) => {
  * /nh/search:
  *  get:
  *      summary: Search Doujin on nH
+ *      deprecated: true
  *      description: |
  *          This will try to fetch doujin information with provided query search.<br>
  *          This search support nH tag searching like for example if you want to specify to certain things you can do:<br>
@@ -596,6 +615,8 @@ nhroutes.get("/latest", (req, res) => {
  *          - tag
  * 
  *          You could also use it multiple times to filter it more.
+ * 
+ *          Will be deprecated at 31st January 2021, new API: [`/v2/graphql`](/v2/graphql)
  *      tags:
  *      - nh_nsfw
  *      parameters:
@@ -828,6 +849,7 @@ nhroutes.get("/search", (req, res) => {
         // @ts-ignore
         search_query = decodeURIComponent(search_query);
         nhSearchDoujin(search_query, page_num).then(([doujin_results, stat_code]) => {
+            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
             if (stat_code != 200) {
                 res.status(stat_code).json(doujin_results);
             } else {
