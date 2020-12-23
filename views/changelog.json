@@ -68,5 +68,8 @@
     ],
     "2.2.0": [
         "Migrate nhentai API to GraphQL"
+    ],
+    "2.3.0": [
+        "Migrated old schematics in favor of new schematics of VTuber API"
     ]
 }
