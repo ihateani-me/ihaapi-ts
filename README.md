@@ -16,7 +16,7 @@ Don't.
 I made it for myself so you need to change some files, especially `dbconn/index.ts`<br>
 Where I put 2 const because my brain decided to use 2 different DB and not one single db.
 
-The database can be hosted anywhere, the backend part could be found here: [ihateani-me/vtb-schedule/server](https://github.com/ihateani-me/vtb-schedule/tree/master/server)
+The database can be hosted anywhere, the backend part could be found here: [ihateani-me/vtscheduler-ts](https://github.com/ihateani-me/vtscheduler-ts)
 
 `routes/museid.ts` could be deleted since it was specifically made for ONE discord server.
 
