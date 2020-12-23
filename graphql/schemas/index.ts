@@ -43,6 +43,16 @@ export const v2Definitions = gql`
             max_lookback: Int = 6
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 300)
+        "Get uploaded video to Youtube, Twitcasting, Twitch, etc."
+        videos(
+            channel_id: [ID],
+            groups: [String],
+            platforms: [PlatformName],
+            sort_by: String = ""
+            sort_order: SortOrder = asc
+            cursor: String
+            limit: Int = 25
+        ): LivesResource @cacheControl(maxAge: 1800)
         "Get a list of channel information including statistics"
         channels(
             id: [ID],

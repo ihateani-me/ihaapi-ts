@@ -41,7 +41,7 @@ export class YoutubeLive extends MongoDataSource<YTVideoDocs> {
         let lookbackMax = moment.tz("UTC").unix() - (24 * 3600);
         let fetchFormat = {
             "status": {"$eq": status},
-            "$or": [{"endTime": {"$gte": lookbackMax}}, {"endTime": {"$type": "null"}}],
+            "$or": [{"timedata.endTime": {"$gte": lookbackMax}}, {"timedata.endTime": {"$type": "null"}}],
         };
         if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
             fetchFormat["channel_id"] = {"$in": channel_ids};

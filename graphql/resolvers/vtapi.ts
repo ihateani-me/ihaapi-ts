@@ -43,6 +43,16 @@ interface VTAPIContext {
     dataSources: VTAPIDataSources
 }
 
+function calcDuration(realDuration: number, startTime?: number, endTime?: number) {
+    if (typeof realDuration === "number" && !isNaN(realDuration)) {
+        return realDuration;
+    }
+    if (typeof startTime === "number" && typeof endTime === "number") {
+        return endTime - startTime;
+    }
+    return null;
+}
+
 class Base64 {
     /**
      * Encode a string to base64 formaat
@@ -68,7 +78,7 @@ class VTAPIQuery {
     async filterAndSortQueryResults(
         main_results: any[],
         args: LiveObjectParams,
-        type: | "live" | "upcoming" | "past" | "channel"
+        type: | "live" | "upcoming" | "past" | "channel" | "video"
     ): Promise<any[]> {
         let key_base =  getValueFromKey(args, "sort_by", "startTime");
         let order_by: SortOrder = getValueFromKey(args, "sort_order", "asc");
@@ -136,15 +146,22 @@ class VTAPIQuery {
         if (platforms_choices.includes("youtube")) {
             let youtubeLiveFetch = await dataSources.youtubeLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
             let ytMapped = youtubeLiveFetch.map((res) => {
+                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
                 let remap: LiveObject = {
                     "id": res["id"],
                     "title": res["title"],
                     // @ts-ignore
                     "status": res["status"],
-                    "startTime": res["startTime"],
-                    "endTime": res["endTime"],
+                    "timeData": {
+                        "startTime": res["timedata"]["startTime"],
+                        "endTime": res["timedata"]["endTime"],
+                        "publishedAt": res["timedata"]["publishedAt"],
+                        "scheduledStartTime": res["timedata"]["scheduledStartTime"],
+                        "duration": duration,
+                        "lateBy": res["timedata"]["lateTime"],
+                    },
                     "channel_id": res["channel_id"],
-                    "viewers": res["viewers"],
+                    "viewers": type === "video" ? null : res["viewers"], // force null 
                     "peakViewers": res["peakViewers"],
                     "thumbnail": res["thumbnail"],
                     "group": res["group"],
@@ -157,14 +174,18 @@ class VTAPIQuery {
         if (platforms_choices.includes("bilibili")) {
             let b2LiveFetch = await dataSources.biliLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
             let b2Mapped = b2LiveFetch.map((res) => {
+                let duration = calcDuration(NaN, res["startTime"], res["endTime"]);
                 let remap: LiveObject = {
                     "id": res["id"],
                     "room_id": res["room_id"],
                     "title": res["title"],
                     // @ts-ignore
                     "status": res["status"],
-                    "startTime": res["startTime"],
-                    "endTime": res["endTime"],
+                    "timeData": {
+                        "startTime": res["startTime"],
+                        "endTime": res["endTime"],
+                        "duration": duration,
+                    },
                     "channel_id": res["channel_id"],
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
@@ -179,13 +200,18 @@ class VTAPIQuery {
         if (platforms_choices.includes("twitcasting") && ["live", "past"].includes(type)) {
             let twcastLiveFetch = await dataSources.twitcastingLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
             let twMapped = twcastLiveFetch.map((res) => {
+                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
                 let remap: LiveObject = {
                     "id": res["id"],
                     "title": res["title"],
                     // @ts-ignore
                     "status": res["status"],
-                    "startTime": res["startTime"],
-                    "endTime": res["endTime"],
+                    "timeData": {
+                        "startTime": res["timedata"]["startTime"],
+                        "endTime": res["timedata"]["endTime"],
+                        "publishedAt": res["timedata"]["publishedAt"],
+                        "duration": duration,
+                    },
                     "channel_id": res["channel_id"],
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
@@ -200,13 +226,18 @@ class VTAPIQuery {
         if (platforms_choices.includes("twitch") && ["live", "past"].includes(type)) {
             let ttvLiveFetch = await dataSources.twitchLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
             let ttvMapped = ttvLiveFetch.map((res) => {
+                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
                 let remap: LiveObject = {
                     "id": res["id"],
                     "title": res["title"],
                     // @ts-ignore
                     "status": res["status"],
-                    "startTime": res["startTime"],
-                    "endTime": res["endTime"],
+                    "timeData": {
+                        "startTime": res["timedata"]["startTime"],
+                        "endTime": res["timedata"]["endTime"],
+                        "publishedAt": res["timedata"]["publishedAt"],
+                        "duration": duration,
+                    },
                     "channel_id": res["channel_id"],
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
@@ -801,6 +832,108 @@ export const VTAPIv2Resolvers: IResolvers = {
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
                     } catch (e) {
                         console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                }
+                results = _.slice(results, 0, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };
+            }
+            final_results["_total"] = total_results;
+            return final_results;
+        },
+        videos: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
+            let cursor = getValueFromKey(args, "cursor", "");
+            let limit = getValueFromKey(args, "limit", 25);
+            if (limit >= 50) {
+                limit = 50;
+            }
+            console.log("[GraphQL-VTAPIv2] Processing videos()");
+            console.log("[GraphQL-VTAPIv2-videos()] Checking for cache...");
+            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let cache_name = getCacheNameForLive(args, "video");
+            // @ts-ignore
+            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results) && !no_cache) {
+                console.log(`[GraphQL-VTAPIv2-videos()] Cache hit! --> ${cache_name}`);
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                console.log("[GraphQL-VTAPIv2-videos()] Missing cache, requesting manually...");
+                console.log("[GraphQL-VTAPIv2-videos()] Arguments ->", args);
+                results = await VTQuery.performQueryOnLive(args, "video", ctx.dataSources);
+                console.log(`[GraphQL-VTAPIv2-videos()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                if (!no_cache && results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    ctx.res.set("Cache-Control", "private, max-age=1800");
+                }
+            }
+            results = await VTQuery.filterAndSortQueryResults(
+                results,
+                args,
+                "video"
+            )
+            // @ts-ignore
+            let final_results: LivesResource = {};
+            let total_results = results.length;
+            const b64 = new Base64();
+            if (cursor !== "") {
+                console.log("[GraphQL-VTAPIv2-videos()] Using cursor to filter results...");
+                let unbase64cursor = b64.decode(cursor);
+                console.log(`[GraphQL-VTAPIv2-videos()] Finding cursor index: ${unbase64cursor}`);
+                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
+                console.log(`[GraphQL-VTAPIv2-videos()] Using cursor index: ${findIndex}`);
+                let limitres = results.length;
+                let max_limit = findIndex + limit;
+                let hasnextpage = true;
+                let next_cursor = null;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = b64.encode(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                        hasnextpage = false;
+                    }
+                    
+                }
+                results = _.slice(results, findIndex, max_limit);
+                final_results["items"] = results;
+                final_results["pageInfo"] = {
+                    total_results: results.length,
+                    results_per_page: limit,
+                    nextCursor: next_cursor,
+                    hasNextPage: hasnextpage
+                };                
+            } else {
+                console.log(`[GraphQL-VTAPIv2-videos()] Starting cursor from zero.`);
+                let limitres = results.length;
+                let hasnextpage = true;
+                let next_cursor: string = null;
+                let max_limit = limit;
+                if (max_limit > limitres) {
+                    max_limit = limitres;
+                    hasnextpage = false;
+                    console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                } else {
+                    try {
+                        let next_data: LiveObject = _.nth(results, max_limit);
+                        next_cursor = b64.encode(next_data["id"]);
+                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: ${next_cursor}`);
+                    } catch (e) {
+                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }

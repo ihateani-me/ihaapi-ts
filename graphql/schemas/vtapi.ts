@@ -73,6 +73,24 @@ export const VTAPIv2 = gql`
     }
 
     """
+    A time data for a video, if it's a number it's a UNIX timestamp in seconds
+    """
+    type VideoTime {
+        "The stream real start time (UNIX timestamp, seconds)"
+        startTime: Int
+        "The stream end time (UNIX timestamp, seconds)"
+        endTime: Int
+        "The stream scheduled start time (UNIX timestamp, seconds)"
+        scheduledStartTime: Int
+        "The video publication date in DateTime format"
+        publishedAt: DateTime
+        "How late the stream is between scheduled and real start time (in seconds)"
+        lateBy: Int
+        "Duration of the stream (in seconds)"
+        duration: Int
+    }
+
+    """
     Statistics for a channel
     Not all stats are available so please do test it channel query
     """
@@ -142,10 +160,8 @@ export const VTAPIv2 = gql`
         room_id: Int
         "The stream title"
         title: String!
-        "The stream start time or planned start time"
-        startTime: Int!
-        "The stream end time"
-        endTime: Int
+        "The stream time data (start/end/etc)"
+        timeData: VideoTime!
         "The channel ID"
         channel_id: ID!
         "The channel object/information"
@@ -193,7 +209,7 @@ export const VTAPIv2 = gql`
 
 // "Enum"
 export type SortOrder = | "ascending" | "descending" | "asc" | "desc";
-export type LiveStatus = | "live" | "upcoming" | "past"
+export type LiveStatus = | "live" | "upcoming" | "past" | "video";
 export type PlatformName = | "youtube" | "bilibili" | "twitch" | "twitcasting";
 
 // Return-type
@@ -209,6 +225,15 @@ export interface ChannelStatistics {
     viewCount?: number
     videoCount?: number
     level?: number
+}
+
+export interface VideoTime {
+    startTime?: number
+    endTime?: number
+    scheduledStartTime?: number
+    publishedAt?: string
+    lateBy?: number
+    duration?: number
 }
 
 export interface ChannelObject {
@@ -230,8 +255,7 @@ export interface LiveObject {
     id: string
     room_id?: number
     title: string
-    startTime: number
-    endTime?: number
+    timeData: VideoTime
     channel_id: string | number
     channel?: ChannelObject
     thumbnail?: string
@@ -240,7 +264,7 @@ export interface LiveObject {
     peakViewers?: number
     group: string
     platform?: PlatformName
-    pageInfo: PageInfo
+    pageInfo?: PageInfo
 }
 
 // Request-type params/args
