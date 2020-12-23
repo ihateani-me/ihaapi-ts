@@ -4,9 +4,9 @@ import cheerio = require("cheerio");
 import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import stringToStream from "string-to-stream";
-import { VTBDB } from "../dbconn/mongo_client";
+import { MongoConnection } from "../dbconn/mongo_client";
 
-const U2_DATABASE = new VTBDB("u2db");
+const U2_DATABASE = new MongoConnection("u2db");
 // Used for Offers, the one thing needed are nexusphp_u2
 
 function default_settings() {

@@ -1,6 +1,8 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb'
-import { ObjectID } from "mongodb";
+import moment from "moment-timezone";
+import { B2ChannelDoc, B2ChannelProps, B2VideoDoc, B2VideoProps } from '../../dbconn/models';
 import { is_none } from '../../utils/swissknife';
+import { ChannelStatistics } from '../schemas/vtapi';
 
 export interface BiliBiliLive {
     id: string
@@ -30,62 +32,66 @@ export interface BiliBiliChannel {
     platform: string
 }
 
-interface BiliBiliDocument {
-    _id: ObjectID
-    live: BiliBiliLive[]
-    upcoming: BiliBiliLive[]
-    channels: BiliBiliChannel[]
+interface BiliBiliDocument<T> {
+    [channel_name: string]: T
 }
 
-export class BiliBili extends MongoDataSource<BiliBiliDocument> {
-    async getChannels(user_id: string[]) {
-        let raw_results = await this.collection.aggregate([{"$project": {"channels": 1}}]).toArray();
-        let results = raw_results[0];
-        let proper_results: BiliBiliChannel[] = [];
-        if (!is_none(user_id) && user_id.length > 0) {
-            for (let i = 0; i < results["channels"].length; i++) {
-                const element = results["channels"][i];
-                if (user_id.includes(element["id"])) {
-                    proper_results.push(element);
-                }
-            }
-        } else {
-            proper_results = results["channels"];
+export class BiliBiliLive extends MongoDataSource<B2VideoDoc> {
+    async getLive(status: string, channel_ids: string[] = null, groups: string[] = null) {
+        let lookbackMax = moment.tz("UTC").unix() - (24 * 3600);
+        let fetchFormat = {
+            "status": {"$eq": status},
+            "$or": [{"endTime": {"$gte": lookbackMax}}, {"endTime": {"$type": "null"}}],
+        };
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["channel_id"] = {"$in": channel_ids};
         }
-        return proper_results;
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
+        }
+        // @ts-ignore
+        const livesData: B2VideoProps[] = await this.model.find(fetchFormat);
+        return livesData;
+    }
+}
+
+export class BiliBiliChannel extends MongoDataSource<B2ChannelDoc> {
+    async getChannels(channel_ids: string[] = null, groups: string[] = null) {
+        let fetchFormat = {};
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["id"] = {"$in": channel_ids};
+        }
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
+        }
+        // @ts-ignore
+        const channelsData: B2ChannelProps[] = await this.model.find(fetchFormat);
+        return channelsData;
     }
 
-    async getLive(user_id: string[]) {
-        let raw_results = await this.collection.aggregate([{"$project": {"live": 1}}]).toArray();
-        let results = raw_results[0];
-        let proper_results: BiliBiliLive[] = [];
-        if (!is_none(user_id) && user_id.length > 0) {
-            for (let i = 0; i < results["live"].length; i++) {
-                const element = results["live"][i];
-                if (user_id.includes(element["id"])) {
-                    proper_results.push(element);
+    async getChannelStats(channel_ids: string[]) {
+        let raw_results = await this.model.aggregate([
+            {
+                "$match": {
+                    "id": {"$in": channel_ids}
+                },
+                "$project": {
+                    "id": 1,
+                    "subscriberCount": 1,
+                    "videoCount": 1,
+                    "viewCount": 1
                 }
             }
-        } else {
-            proper_results = results["live"];
-        }
-        return proper_results;
-    }
-
-    async getUpcoming(user_id: string[]) {
-        let raw_results = await this.collection.aggregate([{"$project": {"upcoming": 1}}]).toArray();
-        let results = raw_results[0]
-        let proper_results: BiliBiliLive[] = [];
-        if (!is_none(user_id) && user_id.length > 0) {
-            for (let i = 0; i < results["upcoming"].length; i++) {
-                const element = results["upcoming"][i];
-                if (user_id.includes(element["id"])) {
-                    proper_results.push(element);
-                }
+        ])
+        let mapping: BiliBiliDocument<ChannelStatistics> = {}
+        raw_results.forEach((channel_data) => {
+            mapping[channel_data["id"]] = {
+                "subscriberCount": channel_data["subscriberCount"],
+                "videoCount": channel_data["videoCount"],
+                "viewCount": channel_data["viewCount"],
+                "level": null,
             }
-        } else {
-            proper_results = results["upcoming"];
-        }
-        return proper_results;
+        })
+        return mapping;
     }
 }

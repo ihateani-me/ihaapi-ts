@@ -1,6 +1,6 @@
 {
   "name": "ihaapi-ts",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "A maybe-pretty-fast API endpoint mainly made for VTuber stuff.",
   "main": "server.js",
   "scripts": {
@@ -36,6 +36,7 @@
     "@graphql-tools/graphql-file-loader": "^6.2.6",
     "@graphql-tools/load": "^6.2.5",
     "@types/compression": "^1.7.0",
+    "@types/mongoose": "^5.10.3",
     "@types/node": "^14.14.3",
     "apollo-datasource-mongodb": "^0.2.8",
     "apollo-datasource-rest": "^0.9.5",
@@ -60,8 +61,10 @@
     "moment": "^2.29.1",
     "moment-timezone": "^0.5.31",
     "mongodb": "^3.6.2",
+    "mongoose": "^5.11.8",
     "nano-memoize": "^1.2.1",
     "string-to-stream": "^3.0.1",
+    "ts-mongoose": "0.0.24",
     "typescript": "^4.0.3",
     "xml2js": "^0.4.23"
   },

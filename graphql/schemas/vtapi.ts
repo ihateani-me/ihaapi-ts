@@ -219,11 +219,11 @@ export interface ChannelObject {
     description: string
     publishedAt?: string
     image: string
-    statistics: ChannelStatistics
+    statistics?: ChannelStatistics
     group?: string
     is_live?: boolean
     platform: PlatformName
-    pageInfo: PageInfo
+    pageInfo?: PageInfo
 }
 
 export interface LiveObject {

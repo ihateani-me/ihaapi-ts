@@ -1,8 +1,9 @@
 import * as express from "express";
-import { VTubersDB } from "../dbconn";
-import { channel_filters } from "../utils/filters";
-import { sortObjectsByKey } from "../utils/swissknife";
+import { VTDB } from "../dbconn";
+import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
+import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
 import { ChannelArray, LiveMap, TwitchChannel, TwitchData } from "../utils/models";
+import _ from "lodash";
 const twitchroutes = express.Router()
 
 twitchroutes.use((req, res, next) => {
@@ -46,21 +47,20 @@ twitchroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 twitchroutes.get("/live", (req, res) => {
+    let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[Twitch] Fetching Database...");
-        VTubersDB.open_collection("twitch_data")
-            .then(data_docs => {
-                console.log("[Twitch] Parsing Database...");
-                let vtb_res: LiveMap<TwitchData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
+        VTDB.fetchVideos("twitch", fetchedGroups)
+            .then(([live, _u, ended]) => {
                 let final_mappings: LiveMap<TwitchData[]> = {};
                 console.log("[Twitch] Filtering Database...");
-                // @ts-ignore
-                final_mappings["live"] = sortObjectsByKey(vtb_res["live"], "startTime");
+                final_mappings["live"] = sortObjectsByKey(live, "startTime");
+                final_mappings["ended"] = sortObjectsByKey(ended, "endTime");
                 final_mappings["cached"] = true;
                 console.log("[Twitch] Sending...");
                 res.json(final_mappings)
@@ -147,19 +147,17 @@ twitchroutes.get("/live", (req, res) => {
  */
 twitchroutes.get("/channels", (req, res) => {
     let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[TwitchChannel] Fetching Database...");
-        VTubersDB.open_collection("twitch_channels")
+        VTDB.fetchChannels("twitch", fetchedGroups)
             .then(data_docs => {
-                console.log("[TwitchChannel] Parsing Database...");
-                let vtb_res: ChannelArray<TwitchChannel> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[TwitchChannel] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[TwitchChannel] Sending...");
                 res.json(final_mappings)
             })

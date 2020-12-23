@@ -1,8 +1,93 @@
+import { group } from "console";
+import moment from "moment-timezone";
 import { MongoClient, Db } from "mongodb";
 import { capitalizeIt } from "../utils/swissknife";
+import { TWCastChannelProps, TWCastVideoProps, TwitcastingChannel, TwitcastingVideo } from "./models/twitcasting";
+import { TTVChannelProps, TTVVideoProps, TwitchChannel, TwitchVideo } from "./models/twitch";
+import { YoutubeChannel, YoutubeVideo, YTChannelProps, YTVideoProps } from "./models/youtube";
 const server_url = process.env.MONGODB_URI;
 
-class VTBDB {
+const ONE_HOUR = 36E2;
+
+function removeUnnecessaryKeys(data: any[]): any[] {
+    let remapped = data.map((res) => {
+        try {
+            delete res["_id"];
+        } catch (e) {};
+        try {
+            delete res["__v"];
+        } catch (e) {};
+        return res;
+    });
+    return remapped;
+}
+
+export class VTDB {
+    static async fetchVideos(source: string, groups?: string[], channelIds?: string[]) {
+        let lookbackMax = moment.tz("UTC").unix() - (24 * ONE_HOUR);
+        let requestFormat = {
+            "status": {"$in": ["live", "upcoming", "past"]},
+            "$or": [{"endTime": {"$gte": lookbackMax}}, {"endTime": {"$type": "null"}}],
+        }
+        if (Array.isArray(group) && group.length > 0) {
+            requestFormat["group"] = {"$in": groups};
+        }
+        if (Array.isArray(channelIds) && channelIds.length > 0) {
+            requestFormat["id"] = {"$in": channelIds};
+        }
+        if (source === "youtube") {
+            // @ts-ignore
+            let yt_res: YTVideoProps[] = await YoutubeVideo.find(requestFormat);
+            let live_data: YTVideoProps[] = removeUnnecessaryKeys(yt_res.filter(res => res.status === "live"));
+            let upcoming_data: YTVideoProps[] = removeUnnecessaryKeys(yt_res.filter(res => res.status === "upcoming"));
+            let past_data: YTVideoProps[] = removeUnnecessaryKeys(yt_res.filter(res => res.status === "past"));
+            return [live_data, upcoming_data, past_data];
+        } else if (source === "bilibili") {
+            return [[], [], []];
+        } else if (source === "twitch") {
+            // @ts-ignore
+            let ttv_res: TTVVideoProps[] = await TwitchVideo.find(requestFormat);
+            let live_data: TTVVideoProps[] = removeUnnecessaryKeys(ttv_res.filter(res => res.status === "live"));
+            let upcoming_data: TTVVideoProps[] = removeUnnecessaryKeys(ttv_res.filter(res => res.status === "upcoming"));
+            let past_data: TTVVideoProps[] = removeUnnecessaryKeys(ttv_res.filter(res => res.status === "past"));
+            return [live_data, upcoming_data, past_data];
+        } else if (source === "twitcasting") {
+            // @ts-ignore
+            let tw_res: TWCastVideoProps[] = await TwitcastingVideo.find(requestFormat);
+            let live_data: TWCastVideoProps[] = removeUnnecessaryKeys(tw_res.filter(res => res.status === "live"));
+            let upcoming_data: TWCastVideoProps[] = removeUnnecessaryKeys(tw_res.filter(res => res.status === "upcoming"));
+            let past_data: TWCastVideoProps[] = removeUnnecessaryKeys(tw_res.filter(res => res.status === "past"));
+            return [live_data, upcoming_data, past_data];
+        }
+    }
+
+    static async fetchChannels(source: string, groups?: string[], channelIds?: string[]) {
+        let requestFormat = {}
+        if (Array.isArray(group) && group.length > 0) {
+            requestFormat["group"] = {"$in": groups};
+        }
+        if (Array.isArray(channelIds) && channelIds.length > 0) {
+            requestFormat["id"] = {"$in": channelIds};
+        }
+        if (source === "youtube") {
+            // @ts-ignore
+            let yt_res: YTChannelProps[] = await YoutubeChannel.find(requestFormat)
+            return yt_res;
+        } else if (source === "bilibili") {
+            return [];
+        } else if (source === "twitch") {
+            // @ts-ignore
+            let ttv_res: TTVChannelProps[] = await TwitchChannel.find(requestFormat)
+            return ttv_res;
+        } else if (source === "twitcasting") {
+            // @ts-ignore
+            let tw_res: TWCastChannelProps[] = await TwitcastingChannel.find(requestFormat)
+            return tw_res;
+        }
+    }
+}
+
+export class MongoConnection {
     private client: MongoClient;
     db: Db
     db_name: string;
@@ -80,5 +165,3 @@ class VTBDB {
         await callback_func;
     }
 }
-
-export { VTBDB };

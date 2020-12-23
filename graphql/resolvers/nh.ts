@@ -10,7 +10,6 @@ import {
     nhPageInfo,
     nhSearchResult,
     nhTitle,
-    nhTag,
     nhTags,
     nhInfoParams,
     nhSearchParams,

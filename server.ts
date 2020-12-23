@@ -1,7 +1,7 @@
 require('dotenv').config();
 import express from "express";
 import * as cons from "consolidate";
-import { VTubersDB } from "./dbconn";
+import mongoose from 'mongoose';
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
@@ -9,9 +9,38 @@ import { gqldocsRoutes } from "./views/gqldocs";
 import express_compression from "compression";
 
 import { GQLAPIv2Server } from "./graphql";
+import { capitalizeIt } from "./utils/swissknife";
 
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
+
+let mongouri = process.env.MONGODB_URI;
+if (mongouri.endsWith("/")) {
+    mongouri = mongouri.slice(0, -1);
+}
+
+let MONGO_VERSIONING = {
+    "type": "Unknown",
+    "version": "X.XX.XX",
+};
+
+console.info("Connecting to database...");
+mongoose.connect(`${mongouri}/${process.env.MONGODB_DBNAME}`, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
+console.info("Connected.");
+
+mongoose.connection.on("open", () => {
+    let admin = mongoose.connection.db.admin();
+    admin.serverInfo((err, info) => {
+        MONGO_VERSIONING["version"] = info.version;
+        let modules = info.modules;
+        if (modules.length > 0) {
+            MONGO_VERSIONING["type"] = modules[0];
+            MONGO_VERSIONING["type"] = capitalizeIt(MONGO_VERSIONING["type"]);
+        } else {
+            MONGO_VERSIONING["type"] = "Community";
+        }
+    })
+})
 
 const app = express();
 const app_version = packageJson["version"];
@@ -31,8 +60,8 @@ app.get("/", (_, res) => {
     } catch (e) {}
     res.render("home", {
         API_VERSION: app_version,
-        MONGO_DBTYPE: VTubersDB.dbtype,
-        MONGO_DBVERSION: VTubersDB.version,
+        MONGO_DBTYPE: MONGO_VERSIONING["type"],
+        MONGO_DBVERSION: MONGO_VERSIONING["version"],
         MOMENT_TEMPLATE_TIME: current_jst_fmt,
         EXPRESS_JS_VERSION: express_js_version
     })

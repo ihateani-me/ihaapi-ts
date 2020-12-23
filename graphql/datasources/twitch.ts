@@ -1,6 +1,8 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb'
-import { ObjectId } from 'mongodb'
+import moment from "moment-timezone";
+import { TTVChannelDocs, TTVChannelProps, TTVVideoDocs, TTVVideoProps } from '../../dbconn/models';
 import { is_none } from '../../utils/swissknife';
+import { ChannelStatistics } from '../schemas/vtapi';
 
 export interface TwitchLiveData {
     id: string
@@ -15,30 +17,22 @@ export interface TwitchLiveData {
     platform: string
 }
 
-interface TwitchLiveDocument {
-    _id: ObjectId
-    live: TwitchLiveData[]
-}
-
-export class TwitchLive extends MongoDataSource<TwitchLiveDocument> {
-    async getLive(user_ids: string[] = null) {
-        let get_data = await this.collection.find().toArray();
-        let live_data = get_data[0]["live"];
-        let new_live_data: TwitchLiveData[] = [];
-        if (is_none(user_ids) || user_ids.length < 1) {
-            for (let i = 0; i < live_data.length; i++) {
-                let elem = live_data[i];
-                new_live_data.push(elem);
-            }
-        } else {
-            for (let i = 0; i < live_data.length; i++) {
-                let elem = live_data[i];
-                if (user_ids.includes(elem["channel"])) {
-                    new_live_data.push(elem);
-                }
-            }
+export class TwitchLive extends MongoDataSource<TTVVideoDocs> {
+    async getLive(status: string, channel_ids: string[] = null, groups: string[] = null) {
+        let lookbackMax = moment.tz("UTC").unix() - (24 * 3600);
+        let fetchFormat = {
+            "status": {"$eq": status},
+            "$or": [{"endTime": {"$gte": lookbackMax}}, {"endTime": {"$type": "null"}}],
+        };
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["channel_id"] = {"$in": channel_ids};
         }
-        return new_live_data;
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
+        }
+        // @ts-ignore
+        const livesData: TTVVideoProps[] = await this.model.find(fetchFormat);
+        return livesData;
     }
 }
 
@@ -55,32 +49,47 @@ export interface TwitchChannelData {
     platform: string
 }
 
-export interface TwitchChannelDocument {
-    [channel_name: string]: TwitchChannelData
+export interface TwitchChannelDocument<T> {
+    [channel_name: string]: T
 }
 
-export class TwitchChannel extends MongoDataSource<TwitchChannelDocument> {
-    async getChannels(user_ids: string[] = null) {
-        let get_data = (await this.collection.find().toArray())[0];
-        let new_data: TwitchChannelDocument = {};
-        try {
-            delete get_data["_id"];
-        } catch (e) {}
-        if (is_none(user_ids) || user_ids.length < 1) {
-            for (let [channel_name, channel_data] of Object.entries(get_data)) {
-                if (channel_name !==  "_id") {
-                    new_data[channel_name] = channel_data;
-                }
-            }
-        } else {
-            for (let [channel_name, channel_data] of Object.entries(get_data)) {
-                if (channel_name !== "_id") {
-                    if (user_ids.includes(channel_data["id"])) {
-                        new_data[channel_name] = channel_data;
-                    }
-                }
-            }
+export class TwitchChannel extends MongoDataSource<TTVChannelDocs> {
+    async getChannels(channel_ids: string[] = null, groups: string[] = null) {
+        let fetchFormat = {};
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["id"] = {"$in": channel_ids};
         }
-        return new_data;
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
+        }
+        // @ts-ignore
+        const channelsData: TTVChannelProps[] = await this.model.find(fetchFormat);
+        return channelsData;
+    }
+
+    async getChannelStats(channel_ids: string[]) {
+        let raw_results = await this.model.aggregate([
+            {
+                "$match": {
+                    "id": {"$in": channel_ids}
+                },
+                "$project": {
+                    "id": 1,
+                    "followerCount": 1,
+                    "videoCount": 1,
+                    "viewCount": 1
+                }
+            }
+        ])
+        let mapping: TwitchChannelDocument<ChannelStatistics> = {}
+        raw_results.forEach((channel_data) => {
+            mapping[channel_data["id"]] = {
+                "subscriberCount": channel_data["followerCount"],
+                "videoCount": channel_data["videoCount"],
+                "viewCount": channel_data["viewCount"],
+                "level": null,
+            }
+        })
+        return mapping;
     }
 }

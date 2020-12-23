@@ -1,8 +1,9 @@
 import * as express from "express";
-import { VTubersDB } from "../dbconn";
-import { channel_filters } from "../utils/filters";
-import { sortObjectsByKey } from "../utils/swissknife";
+import { VTDB } from "../dbconn";
+import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
+import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
 import { ChannelArray, LiveMap, TwitcastingChannel, TwitcastingData } from "../utils/models";
+import _ from "lodash";
 const twitcastroutes = express.Router()
 
 twitcastroutes.use((req, res, next) => {
@@ -46,21 +47,20 @@ twitcastroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 twitcastroutes.get("/live", (req, res) => {
+    let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[Twitcasting] Fetching Database...");
-        VTubersDB.open_collection("twitcasting_data")
-            .then(data_docs => {
-                console.log("[Twitcasting] Parsing Database...");
-                let vtb_res: LiveMap<TwitcastingData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
+        VTDB.fetchVideos("twitcasting", fetchedGroups)
+            .then(([live, _u, ended]) => {
                 let final_mappings: LiveMap<TwitcastingData[]> = {};
                 console.log("[Twitcasting] Filtering Database...");
-                // @ts-ignore
-                final_mappings["live"] = sortObjectsByKey(vtb_res["live"], "startTime");
+                final_mappings["live"] = sortObjectsByKey(live, "startTime");
+                final_mappings["ended"] = sortObjectsByKey(ended, "endTime");
                 final_mappings["cached"] = true;
                 console.log("[Twitcasting] Sending...");
                 res.json(final_mappings)
@@ -144,19 +144,17 @@ twitcastroutes.get("/live", (req, res) => {
  */
 twitcastroutes.get("/channels", (req, res) => {
     let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[TwitcastingChannel] Fetching Database...");
-        VTubersDB.open_collection("twitcasting_channels")
+        VTDB.fetchChannels("twitcasting", fetchedGroups)
             .then(data_docs => {
-                console.log("[TwitcastingChannel] Parsing Database...");
-                let vtb_res: ChannelArray<TwitcastingChannel> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[TwitcastingChannel] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[TwitcastingChannel] Sending...");
                 res.json(final_mappings)
             })

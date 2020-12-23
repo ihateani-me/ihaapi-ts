@@ -1,7 +1,9 @@
 import * as express from "express";
-import { VTubersDB } from "../dbconn";
-import { parse_youtube_live_args, bilibili_use_uuids, channel_filters } from "../utils/filters";
+import _ from "lodash";
+import { VTDB } from "../dbconn";
+import { parse_youtube_live_args, bilibili_use_uuids, channel_filters, get_group, GROUPS_MAPPINGS } from "../utils/filters";
 import { LiveMap, BilibiliData, YTLiveArray, YouTubeData, BiliBiliChannel, ChannelMap, ChannelArray, YouTubeChannel } from "../utils/models";
+import { filter_empty, getValueFromKey } from "../utils/swissknife";
 const othersroutes = express.Router()
 
 othersroutes.use((req, res, next) => {
@@ -52,21 +54,24 @@ othersroutes.get("/upcoming", (req, res) => {
     res.header({
         "Cache-Control": "public, max-age=60, immutable"
     });
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let hologroups: any[] = get_group("holopro");
+    let nijigroups: any[] = get_group("nijisanji");
+    let disallowed: any[] = _.concat(hologroups, nijigroups);
+    allgroups = allgroups.filter(group => !disallowed.includes(group));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[OthersBili] Fetching Database...");
-        VTubersDB.open_collection("otherbili_data")
-            .then(data_docs => {
-                console.log("[OthersBili] Parsing Database...");
-                let vtb_res: LiveMap<BilibiliData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
+        VTDB.fetchVideos("bilibili", fetchedGroups)
+            .then(([_l, upcoming, _p]) => {
                 let final_mappings: LiveMap<BilibiliData[]> = {};
                 console.log("[OthersBili] Filtering Database...");
                 // @ts-ignore
-                final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, vtb_res["upcoming"]);
+                final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, upcoming);
                 final_mappings["cached"] = true;
                 console.log("[OthersBili] Sending...");
                 res.json(final_mappings)
@@ -149,19 +154,22 @@ othersroutes.get("/upcoming", (req, res) => {
  */
 othersroutes.get("/channels", (req, res) => {
     let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let hologroups: any[] = get_group("holopro");
+    let nijigroups: any[] = get_group("nijisanji");
+    let disallowed: any[] = _.concat(hologroups, nijigroups);
+    allgroups = allgroups.filter(group => !disallowed.includes(group));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[OtherBili_Channels] Fetching Database...");
-        VTubersDB.open_collection("otherbili_data")
+        VTDB.fetchChannels("bilibili", fetchedGroups)
             .then(data_docs => {
-                console.log("[OtherBili_Channels] Parsing Database...");
-                let vtb_res: ChannelMap<BiliBiliChannel[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[OtherBili_Channels] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res["channels"]);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[OtherBili_Channels] Sending...");
                 res.json(final_mappings)
             })
@@ -265,19 +273,25 @@ othersroutes.get("/channels", (req, res) => {
  */
 othersroutes.get("/youtube/live", (req, res) => {
     let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let hologroups: any[] = get_group("holopro");
+    let nijigroups: any[] = get_group("nijisanji");
+    let disallowed: any[] = _.concat(hologroups, nijigroups);
+    allgroups = allgroups.filter(group => !disallowed.includes(group));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[OthersYT] Fetching Database...");
-        VTubersDB.open_collection("yt_other_livedata")
-            .then(data_docs => {
+        VTDB.fetchChannels("youtube", fetchedGroups)
+            .then(([live, upcoming, ended]) => {
                 console.log("[OthersYT] Parsing Database...");
-                let vtb_res: YTLiveArray<YouTubeData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
+                let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
                 console.log("[OthersYT] Filtering Database...")
-                let final_mappings = parse_youtube_live_args(user_query, vtb_res);
+                // @ts-ignore
+                let final_mappings = parse_youtube_live_args(user_query, data_docs);
                 final_mappings["cached"] = true;
                 console.log("[OthersYT] Sending...");
                 res.json(final_mappings)
@@ -383,19 +397,22 @@ othersroutes.get("/youtube/live", (req, res) => {
  */
 othersroutes.get("/youtube/channels", (req, res) => {
     let user_query = req.query;
+    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
+    let hologroups: any[] = get_group("holopro");
+    let nijigroups: any[] = get_group("nijisanji");
+    let disallowed: any[] = _.concat(hologroups, nijigroups);
+    allgroups = allgroups.filter(group => !disallowed.includes(group));
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = allgroups;
+    }
     try {
         console.log("[OthersYT_Channels] Fetching Database...");
-        VTubersDB.open_collection("yt_other_channels")
+        VTDB.fetchChannels("youtube", fetchedGroups)
             .then(data_docs => {
-                console.log("[OthersYT_Channels] Parsing Database...");
-                let vtb_res: ChannelArray<YouTubeChannel> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[OthersYT_Channels] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[OthersYT_Channels] Sending...");
                 res.json(final_mappings)
             })

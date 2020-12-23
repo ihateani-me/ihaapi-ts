@@ -19,17 +19,7 @@ import {
     SortOrder
 } from "../schemas";
 import {
-    YoutubeLiveData,
-    YoutubeChannelData,
     YoutubeDocument,
-    BiliBiliLive,
-    BiliBiliChannel,
-    TwitchLiveData,
-    TwitchChannelData,
-    TwitchChannelDocument,
-    TwitcastingLiveData,
-    TwitcastingChannelData,
-    TwitcastingChannelDocument,
     VTAPIDataSources
 } from "../datasources";
 import { CustomRedisCache } from "../caches/redis";
@@ -51,42 +41,6 @@ interface VTAPIContext {
     res: express.Response
     cacheServers: CustomRedisCache
     dataSources: VTAPIDataSources
-}
-
-function anyNijiGroup(group_choices: string[]) {
-    if (is_none(group_choices) || group_choices.length == 0) {
-        return true; // force true if no groups defined.
-    }
-    if (
-        group_choices.includes("nijisanji") ||
-        group_choices.includes("nijisanjijp") ||
-        group_choices.includes("nijisanjikr") ||
-        group_choices.includes("nijisanjiid") ||
-        group_choices.includes("nijisanjiin") ||
-        group_choices.includes("nijisanjien") ||
-        group_choices.includes("nijisanjiworld") ||
-        group_choices.includes("virtuareal")
-    ) {
-        return true;
-    }
-    return false;
-}
-
-function anyHoloProGroup(groups_choices: string[]) {
-    if (is_none(groups_choices) || groups_choices.length == 0) {
-        return true; // force true if no groups defined.
-    }
-    if (
-        groups_choices.includes("holopro") ||
-        groups_choices.includes("hololive") ||
-        groups_choices.includes("hololivejp") ||
-        groups_choices.includes("hololiveen") ||
-        groups_choices.includes("hololiveid") ||
-        groups_choices.includes("holostars")
-    ) {
-        return true;
-    }
-    return false;
 }
 
 class Base64 {
@@ -116,43 +70,19 @@ class VTAPIQuery {
         args: LiveObjectParams,
         type: | "live" | "upcoming" | "past" | "channel"
     ): Promise<any[]> {
-        let groups_filters =  getValueFromKey(args, "groups", null);
         let key_base =  getValueFromKey(args, "sort_by", "startTime");
-        let order_by = getValueFromKey(args, "sort_order", "asc");
+        let order_by: SortOrder = getValueFromKey(args, "sort_order", "asc");
         let lookback_hours = fallbackNaN(parseInt, getValueFromKey(args, "max_lookback", 6), 6);
         if (lookback_hours > 24) {
             // limit to 24 hours
             lookback_hours = 6;
         }
-        key_base = key_base.toLowerCase()
-        let allowed_groups = [];
-        if (!is_none(groups_filters) && groups_filters.length > 0) {
-            groups_filters.forEach((value) => {
-                let groups_map = get_group(value);
-                if (groups_map) {
-                    allowed_groups = allowed_groups.concat(groups_map);
-                }
-            })
-        }
+        key_base = key_base.toLowerCase();
         let filtered_results = _.map(main_results, (value) => {
             if (type !== "channel" && value["status"] !== type) {
                 return null;
             }
-            if (allowed_groups.length == 0) {
-                return value;
-            }
-            if (hasKey(value, "group")) {
-                if (is_none(value["group"])) {
-                    // just add that have missing group for now.
-                    return value;
-                }
-                if (allowed_groups.includes(value["group"])) {
-                    return value;
-                }
-            } else {
-                return value;
-            }
-            return null;
+            return value;
         });
         // filter past stream with lookback
         if (type === "past") {
@@ -176,6 +106,20 @@ class VTAPIQuery {
         return filtered_results;
     }
 
+    private remapGroupsData(groups: any[]) {
+        if (is_none(groups)) {
+            return null;
+        }
+        let allowedGroups = groups.map((group) => {
+            let map: any[] = get_group(group);
+            if (is_none(map)) {
+                return [];
+            }
+            return map;
+        });
+        return _.uniq(_.flattenDeep(allowedGroups));
+    }
+
     @Memoize()
     async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<LiveObject[]> {
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
@@ -190,167 +134,89 @@ class VTAPIQuery {
         }
         let main_results: LiveObject[] = [];
         if (platforms_choices.includes("youtube")) {
-            let combinedyt_res: YoutubeDocument<YoutubeLiveData[]> = await dataSources.youtubeLive.getLive(allowed_users);
-            try {
-                delete combinedyt_res["_id"];
-            } catch (e) {};
-            let nijitube_res: YoutubeDocument<YoutubeLiveData[]>;
-            if (anyNijiGroup(groups_choices)) {
-                nijitube_res = await dataSources.nijitubeLive.getLive(allowed_users);
-                try {
-                    delete nijitube_res["_id"];
-                } catch (e) {};
-            }
-            _.merge(combinedyt_res, nijitube_res);
-            for (let [channel_id, channel_video] of Object.entries(combinedyt_res)) {
-                if (channel_id === "_id") {
-                    continue;
-                }
-                let mapped_yt = _.map(channel_video, (value) => {
+            let youtubeLiveFetch = await dataSources.youtubeLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
+            let ytMapped = youtubeLiveFetch.map((res) => {
+                let remap: LiveObject = {
+                    "id": res["id"],
+                    "title": res["title"],
                     // @ts-ignore
-                    let remap: LiveObject = {}
-                    remap["id"] = value["id"];
-                    remap["room_id"] = null;
-                    remap["title"] = value["title"];
-                    remap["startTime"] = value["startTime"];
-                    remap["endTime"] = value["endTime"];
+                    "status": res["status"],
+                    "startTime": res["startTime"],
+                    "endTime": res["endTime"],
+                    "channel_id": res["channel_id"],
+                    "viewers": res["viewers"],
+                    "peakViewers": res["peakViewers"],
+                    "thumbnail": res["thumbnail"],
+                    "group": res["group"],
+                    "platform": "youtube"
+                };
+                return remap;
+            })
+            main_results = _.concat(main_results, ytMapped);
+        }
+        if (platforms_choices.includes("bilibili")) {
+            let b2LiveFetch = await dataSources.biliLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
+            let b2Mapped = b2LiveFetch.map((res) => {
+                let remap: LiveObject = {
+                    "id": res["id"],
+                    "room_id": res["room_id"],
+                    "title": res["title"],
                     // @ts-ignore
-                    remap["status"] = value["status"];
-                    remap["channel_id"] = channel_id;
-                    remap["thumbnail"] = value["thumbnail"];
-                    if (hasKey(value, "viewers")) {
-                        remap["viewers"] = value["viewers"];
-                        if (hasKey(value, "peakViewers")) {
-                            remap["peakViewers"] = value["peakViewers"];
-                        } else {
-                            remap["peakViewers"] = null;
-                        }
-                    } else {
-                        remap["viewers"] = null;
-                        if (hasKey(value, "peakViewers")) {
-                            remap["peakViewers"] = value["peakViewers"];
-                        } else {
-                            remap["peakViewers"] = null;
-                        }
-                    }
-                    remap["group"] = value["group"];
-                    remap["platform"] = "youtube";
-                    return remap;
-                });
-                main_results = _.concat(main_results, mapped_yt);
-            }
-        }
-        if (platforms_choices.includes("bilibili") && type !== "past") {
-            let combined_map: BiliBiliLive[] = [];
-            if (type === "upcoming") {
-                let upcome_other: BiliBiliLive[] = await dataSources.otherbili.getUpcoming(allowed_users);
-                combined_map = _.concat(combined_map, upcome_other);
-                if (anyHoloProGroup(groups_choices)) {
-                    let holobili: BiliBiliLive[] = await dataSources.holobili.getUpcoming(allowed_users);
-                    combined_map = _.concat(combined_map, holobili);
+                    "status": res["status"],
+                    "startTime": res["startTime"],
+                    "endTime": res["endTime"],
+                    "channel_id": res["channel_id"],
+                    "viewers": res["viewers"],
+                    "peakViewers": res["peakViewers"],
+                    "thumbnail": res["thumbnail"],
+                    "group": res["group"],
+                    "platform": "bilibili"
                 }
-                if (anyNijiGroup(groups_choices)) {
-                    let nijibili: BiliBiliLive[] = await dataSources.nijibili.getUpcoming(allowed_users);
-                    combined_map = _.concat(combined_map, nijibili);
-                }
-            } else if (type === "live") {
-                if (anyHoloProGroup(groups_choices)) {
-                    let holobili: BiliBiliLive[] = await dataSources.holobili.getLive(allowed_users);
-                    combined_map = _.concat(combined_map, holobili);
-                }
-                if (anyNijiGroup(groups_choices)) {
-                    let nijibili: BiliBiliLive[] = await dataSources.nijibili.getLive(allowed_users);
-                    combined_map = _.concat(combined_map, nijibili);
-                }
-            }
-    
-            let mapped_bili = _.map(combined_map, (value) => {
-                // @ts-ignore
-                let remap: LiveObject = {};
-                remap["id"] = value["id"];
-                remap["room_id"] = value["room_id"];
-                remap["title"] = value["title"];
-                remap["startTime"] = value["startTime"];
-                remap["channel_id"] = value["channel"];
-                if (hasKey(value, "thumbnail")) {
-                    remap["thumbnail"] = value["thumbnail"];
-                } else {
-                    remap["thumbnail"] = null;
-                }
-                if (hasKey(value, "viewers")) {
-                    remap["viewers"] = value["viewers"];
-                    if (hasKey(value, "peakViewers")) {
-                        remap["peakViewers"] = value["peakViewers"];
-                    } else {
-                        remap["peakViewers"] = null;
-                    }
-                } else {
-                    remap["viewers"] = null;
-                    if (hasKey(value, "peakViewers")) {
-                        remap["peakViewers"] = value["peakViewers"];
-                    } else {
-                        remap["peakViewers"] = null;
-                    }
-                }
-                remap["status"] = type;
-                if (hasKey(value, "group")) {
-                    remap["group"] = value["group"];
-                }
-                remap["platform"] = "bilibili";
                 return remap;
-            });
-            main_results = _.concat(main_results, mapped_bili);
+            })
+            main_results = _.concat(main_results, b2Mapped);
         }
-        if (platforms_choices.includes("twitch") && type === "live") {
-            let twitch_live: TwitchLiveData[] = await dataSources.twitchLive.getLive(allowed_users);
-            let mapped_twitch = _.map(twitch_live, (value) => {
-                // @ts-ignore
-                let remap: LiveObject = {};
-                remap["id"] = value["id"];
-                remap["title"] = value["title"];
-                remap["startTime"] = value["startTime"];
-                remap["endTime"] = null;
-                remap["channel_id"] = value["channel"];
-                remap["thumbnail"] = value["thumbnail"];
-                remap["viewers"] = value["viewers"];
-                remap["peakViewers"] = value["peakViewers"];
-                remap["status"] = "live";
-                if (hasKey(value, "group")) {
-                    remap["group"] = value["group"];
-                } else {
-                    remap["group"] = null;
+        if (platforms_choices.includes("twitcasting") && ["live", "past"].includes(type)) {
+            let twcastLiveFetch = await dataSources.twitcastingLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
+            let twMapped = twcastLiveFetch.map((res) => {
+                let remap: LiveObject = {
+                    "id": res["id"],
+                    "title": res["title"],
+                    // @ts-ignore
+                    "status": res["status"],
+                    "startTime": res["startTime"],
+                    "endTime": res["endTime"],
+                    "channel_id": res["channel_id"],
+                    "viewers": res["viewers"],
+                    "peakViewers": res["peakViewers"],
+                    "thumbnail": res["thumbnail"],
+                    "group": res["group"],
+                    "platform": "twitcasting"
                 }
-                remap["platform"] = "twitch";
                 return remap;
-            });
-            main_results = _.concat(main_results, mapped_twitch);
+            })
+            main_results = _.concat(main_results, twMapped);
         }
-        if (platforms_choices.includes("twitcasting") && type === "live") {
-            let twcast_live: TwitcastingLiveData[] = await dataSources.twitcastingLive.getLive(allowed_users);
-            let mapped_twcast = _.map(twcast_live, (value) => {
-                // @ts-ignore
-                let remap: LiveObject = {};
-                remap["id"] = value["id"];
-                remap["title"] = value["title"];
-                remap["startTime"] = value["startTime"];
-                remap["channel_id"] = value["channel"];
-                if (hasKey(value, "thumbnail")) {
-                    remap["thumbnail"] = value["thumbnail"];
-                } else {
-                    remap["thumbnail"] = null;
+        if (platforms_choices.includes("twitch") && ["live", "past"].includes(type)) {
+            let ttvLiveFetch = await dataSources.twitchLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
+            let ttvMapped = ttvLiveFetch.map((res) => {
+                let remap: LiveObject = {
+                    "id": res["id"],
+                    "title": res["title"],
+                    // @ts-ignore
+                    "status": res["status"],
+                    "startTime": res["startTime"],
+                    "endTime": res["endTime"],
+                    "channel_id": res["channel_id"],
+                    "viewers": res["viewers"],
+                    "peakViewers": res["peakViewers"],
+                    "thumbnail": res["thumbnail"],
+                    "group": res["group"],
+                    "platform": "twitch"
                 }
-                remap["viewers"] = value["viewers"];
-                remap["peakViewers"] = value["peakViewers"];
-                remap["status"] = "live";
-                if (hasKey(value, "group")) {
-                    remap["group"] = value["group"];
-                } else {
-                    remap["group"] = null;
-                }
-                remap["platform"] = "twitcasting";
                 return remap;
-            });
-            main_results = _.concat(main_results, mapped_twcast);
+            })
+            main_results = _.concat(main_results, ttvMapped);
         }
         return main_results;
     }
@@ -365,207 +231,142 @@ class VTAPIQuery {
                 user_ids_limit = null;
             }
         }
+        let groups_choices: string[] = getValueFromKey(args, "groups", null);
 
         if (parents.force_single) {
             if (parents.platform === "youtube") {
-                if (anyNijiGroup([parents.group])) {
-                    var ytchan_info: YoutubeDocument<YoutubeChannelData> = await dataSources.nijitubeChannels.getChannel(user_ids_limit);
-                } else {
-                    var ytchan_info: YoutubeDocument<YoutubeChannelData> = await dataSources.youtubeChannels.getChannel(user_ids_limit);
-                }
-                let ytchan_mapped: ChannelObject[] = [];
-                for (let [_, chan_info] of Object.entries(ytchan_info)) {
-                    // @ts-ignore
-                    let remap: ChannelObject = {};
-                    remap["id"] = chan_info["id"];
-                    remap["room_id"] = null;
-                    remap["user_id"] = null;
-                    remap["name"] = chan_info["name"];
-                    remap["description"] = chan_info["description"];
-                    remap["publishedAt"] = chan_info["publishedAt"];
-                    remap["image"] = chan_info["thumbnail"];
-                    remap["is_live"] = null;
-                    remap["group"] = chan_info["group"];
-                    remap["platform"] = "youtube";
-                    ytchan_mapped.push(remap);
-                }
-                return ytchan_mapped;
-            } else if (parents.platform === "bilibili") {
-                var bili_channel: BiliBiliChannel[];
-                if (!is_none(parents.group)) {
-                    if (anyNijiGroup([parents.group])) {
-                        bili_channel = await dataSources.nijibili.getChannels(user_ids_limit);
-                    } else if (anyHoloProGroup([parents.group])) {
-                        bili_channel = await dataSources.holobili.getChannels(user_ids_limit);
-                    } else {
-                        bili_channel = await dataSources.otherbili.getChannels(user_ids_limit);
+                let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit);
+                let remappedData: ChannelObject[] = ytUsers.map((res) => {
+                    let remap: ChannelObject = {
+                        id: res["id"],
+                        name: res["name"],
+                        description: res["description"],
+                        publishedAt: res["publishedAt"],
+                        image: res["thumbnail"],
+                        group: res["group"],
+                        platform: "youtube"
                     }
-                } else {
-                    bili_channel = [];
-                    let nijichannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
-                    let holochannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
-                    let otherchannel_s = await dataSources.nijibili.getChannels(user_ids_limit);
-                    bili_channel = _.concat(bili_channel, nijichannel_s, holochannel_s, otherchannel_s);
-                }
-                let bilichan_mapped: ChannelObject[] = _.map(bili_channel, (value) => {
-                    // @ts-ignore
-                    let remap: ChannelObject = {};
-                    remap["id"] = value["id"];
-                    remap["room_id"] = value["room_id"];
-                    remap["user_id"] = null;
-                    remap["name"] = value["name"];
-                    remap["description"] = value["description"];
-                    remap["publishedAt"] = null;
-                    remap["image"] = value["thumbnail"];
-                    remap["is_live"] = value["live"];
-                    if (hasKey(value, "group")) {
-                        remap["group"] = value["group"];
-                    } else {
-                        remap["group"] = null;
-                    }
-                    remap["platform"] = "bilibili"
                     return remap;
-                });
-                return bilichan_mapped;
+                })
+                return remappedData;
+            } else if (parents.platform === "bilibili") {
+                let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit);
+                let remappedData: ChannelObject[] = biliUsers.map((res) => {
+                    let remap: ChannelObject = {
+                        id: res["id"],
+                        room_id: res["room_id"],
+                        name: res["name"],
+                        description: res["description"],
+                        publishedAt: res["publishedAt"],
+                        image: res["thumbnail"],
+                        is_live: res["live"],
+                        group: res["group"],
+                        platform: "bilibili"
+                    }
+                    return remap;
+                })
+                return remappedData;
             } else if (parents.platform === "twitcasting") {
-                let twcast_stats: TwitcastingChannelDocument = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
-                let twcast_mapped: ChannelObject[] = [];
-                for (let [_, chan_info] of Object.entries(twcast_stats)) {
-                    // @ts-ignore
-                    let remap: ChannelObject = {};
-                    remap["id"] = chan_info["id"];
-                    remap["room_id"] = null;
-                    remap["user_id"] = null;
-                    remap["name"] = chan_info["name"];
-                    remap["description"] = chan_info["description"];
-                    remap["publishedAt"] = null;
-                    remap["image"] = chan_info["thumbnail"];
-                    remap["group"] = chan_info["group"];
-                    remap["is_live"] = null;
-                    remap["platform"] = "twitcasting";
-                    twcast_mapped.push(remap);
-                }
-                return twcast_mapped;
+                let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
+                let remappedData: ChannelObject[] = twUsers.map((res) => {
+                    let remap: ChannelObject = {
+                        id: res["id"],
+                        name: res["name"],
+                        description: res["description"],
+                        image: res["thumbnail"],
+                        group: res["group"],
+                        platform: "twitcasting"
+                    }
+                    return remap;
+                })
+                return remappedData;
             } else if (parents.platform === "twitch") {
-                let twch_stats: TwitchChannelDocument = await dataSources.twitchChannels.getChannels(user_ids_limit);
-                let twch_mapped: ChannelObject[] = [];
-                for (let [_, chan_info] of Object.entries(twch_stats)) {
-                    // @ts-ignore
-                    let remap: ChannelObject = {};
-                    remap["id"] = chan_info["id"];
-                    remap["room_id"] = null;
-                    remap["user_id"] = chan_info["user_id"];
-                    remap["name"] = chan_info["name"];
-                    remap["description"] = chan_info["description"];
-                    remap["publishedAt"] = chan_info["publishedAt"];
-                    remap["image"] = chan_info["thumbnail"];
-                    remap["group"] = chan_info["group"];
-                    remap["is_live"] = null;
-                    remap["platform"] = "twitch";
-                    twch_mapped.push(remap);
-                }
-                return twch_mapped;
+                let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
+                let remappedData: ChannelObject[] = ttvUsers.map((res) => {
+                    let remap: ChannelObject = {
+                        id: res["id"],
+                        user_id: res["user_id"],
+                        name: res["name"],
+                        description: res["description"],
+                        publishedAt: res["publishedAt"],
+                        image: res["thumbnail"],
+                        group: res["group"],
+                        platform: "twitch"
+                    }
+                    return remap;
+                })
+                return remappedData;
             }
         }
 
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
-        let groups_choices: string[] = getValueFromKey(args, "groups", null);
 
         let combined_channels: ChannelObject[] = [];
         if (platforms_choices.includes("youtube")) {
-            let otherchan_collect: YoutubeDocument<YoutubeChannelData> = await dataSources.youtubeChannels.getChannel(user_ids_limit);
-            if (anyNijiGroup(groups_choices)) {
-                let nijichan_info: YoutubeDocument<YoutubeChannelData> = await dataSources.nijitubeChannels.getChannel(user_ids_limit);
-                _.merge(otherchan_collect, nijichan_info);
-            }
-            let ytchan_mapped: ChannelObject[] = [];
-            for (let [_, chan_info] of Object.entries(otherchan_collect)) {
-                // @ts-ignore
-                let remap: ChannelObject = {};
-                remap["id"] = chan_info["id"];
-                remap["room_id"] = null;
-                remap["user_id"] = null;
-                remap["name"] = chan_info["name"];
-                remap["description"] = chan_info["description"];
-                remap["publishedAt"] = chan_info["publishedAt"];
-                remap["image"] = chan_info["thumbnail"];
-                remap["is_live"] = null;
-                remap["group"] = chan_info["group"];
-                remap["platform"] = "youtube";
-                ytchan_mapped.push(remap);
-            }
-            combined_channels = _.concat(combined_channels, ytchan_mapped);
+            let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit, this.remapGroupsData(groups_choices));
+            let remappedData: ChannelObject[] = ytUsers.map((res) => {
+                let remap: ChannelObject = {
+                    id: res["id"],
+                    name: res["name"],
+                    description: res["description"],
+                    publishedAt: res["publishedAt"],
+                    image: res["thumbnail"],
+                    group: res["group"],
+                    platform: "youtube"
+                }
+                return remap;
+            })
+            combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("bilibili")) {
-            let otherbili_chans: BiliBiliChannel[] = await dataSources.otherbili.getChannels(user_ids_limit);
-            if (anyNijiGroup(groups_choices)) {
-                let nijibili_chans: BiliBiliChannel[] = await dataSources.nijibili.getChannels(user_ids_limit);
-                _.merge(otherbili_chans, nijibili_chans);
-            }
-            if (anyHoloProGroup(groups_choices)) {
-                let holobili_chans: BiliBiliChannel[] = await dataSources.holobili.getChannels(user_ids_limit);
-                _.merge(otherbili_chans, holobili_chans);
-            }
-            let bilichan_mapped: ChannelObject[] = _.map(otherbili_chans, (value) => {
-                // @ts-ignore
-                let remap: ChannelObject = {};
-                remap["id"] = value["id"];
-                remap["room_id"] = value["room_id"];
-                remap["user_id"] = null;
-                remap["name"] = value["name"];
-                remap["description"] = value["description"];
-                remap["publishedAt"] = null;
-                remap["image"] = value["thumbnail"];
-                remap["is_live"] = value["live"];
-                if (hasKey(value, "group")) {
-                    remap["group"] = value["group"];
-                } else {
-                    remap["group"] = null;
+            let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
+            let remappedData: ChannelObject[] = biliUsers.map((res) => {
+                let remap: ChannelObject = {
+                    id: res["id"],
+                    room_id: res["room_id"],
+                    name: res["name"],
+                    description: res["description"],
+                    publishedAt: res["publishedAt"],
+                    image: res["thumbnail"],
+                    is_live: res["live"],
+                    group: res["group"],
+                    platform: "bilibili"
                 }
-                remap["platform"] = "bilibili"
                 return remap;
-            });
-            combined_channels = _.concat(combined_channels, bilichan_mapped);
+            })
+            combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("twitcasting")) {
-            let twcast_stats: TwitcastingChannelDocument = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
-            let twcast_mapped: ChannelObject[] = [];
-            for (let [_, chan_info] of Object.entries(twcast_stats)) {
-                // @ts-ignore
-                let remap: ChannelObject = {};
-                remap["id"] = chan_info["id"];
-                remap["room_id"] = null;
-                remap["user_id"] = null;
-                remap["name"] = chan_info["name"];
-                remap["description"] = chan_info["description"];
-                remap["publishedAt"] = null;
-                remap["image"] = chan_info["thumbnail"];
-                remap["group"] = chan_info["group"];
-                remap["is_live"] = null;
-                remap["platform"] = "twitcasting";
-                twcast_mapped.push(remap);
-            }
-            combined_channels = _.concat(combined_channels, twcast_mapped);
-        } 
+            let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
+            let remappedData: ChannelObject[] = twUsers.map((res) => {
+                let remap: ChannelObject = {
+                    id: res["id"],
+                    name: res["name"],
+                    description: res["description"],
+                    image: res["thumbnail"],
+                    group: res["group"],
+                    platform: "twitcasting"
+                }
+                return remap;
+            })
+            combined_channels = _.concat(combined_channels, remappedData);
+        }
         if (platforms_choices.includes("twitch")) {
-            let twch_stats: TwitchChannelDocument = await dataSources.twitchChannels.getChannels(user_ids_limit);
-            let twch_mapped: ChannelObject[] = [];
-            for (let [_, chan_info] of Object.entries(twch_stats)) {
-                // @ts-ignore
-                let remap: ChannelObject = {};
-                remap["id"] = chan_info["id"];
-                remap["room_id"] = null;
-                remap["user_id"] = chan_info["user_id"];
-                remap["name"] = chan_info["name"];
-                remap["description"] = chan_info["description"];
-                remap["publishedAt"] = chan_info["publishedAt"];
-                remap["image"] = chan_info["thumbnail"];
-                remap["group"] = chan_info["group"];
-                remap["is_live"] = null;
-                remap["platform"] = "twitch";
-                twch_mapped.push(remap);
-            }
-            combined_channels = _.concat(combined_channels, twch_mapped);
+            let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
+            let remappedData: ChannelObject[] = ttvUsers.map((res) => {
+                let remap: ChannelObject = {
+                    id: res["id"],
+                    user_id: res["user_id"],
+                    name: res["name"],
+                    description: res["description"],
+                    publishedAt: res["publishedAt"],
+                    image: res["thumbnail"],
+                    group: res["group"],
+                    platform: "twitch"
+                }
+                return remap;
+            })
+            combined_channels = _.concat(combined_channels, remappedData);
         }
         return combined_channels;
     }
@@ -573,100 +374,41 @@ class VTAPIQuery {
     @Memoize()
     async performQueryOnChannelStats(dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelStatistics> {
         if (parents.platform === "youtube") {
-            if (parents.group) {
-                if (anyNijiGroup([parents.group])) {
-                    var yt_stats = await dataSources.nijitubeChannels.getChannelStats(parents.channel_id);
-                } else {
-                    var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
-                }
-            } else {
-                var yt_stats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id);
-            }
-            try {
-                let yt_stats_channel: ChannelStatistics = yt_stats[parents.channel_id[0]];
-                yt_stats_channel["level"] = null;
-                return yt_stats_channel
-            } catch (e) {
+            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
+            let ytStats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id).catch(() => {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "viewCount": 0,
-                    "videoCount": 0,
-                    "level": null
-                }
-            };
+                let ret: YoutubeDocument<ChannelStatistics> = {};
+                ret[parents.channel_id[0]] = defaults;
+                return ret;
+            });
+            return _.get(ytStats, parents.channel_id[0], defaults);
         } else if (parents.platform === "bilibili") {
-            var bili_stats: any[];
-            if (parents.group) {
-                if (anyNijiGroup([parents.group])) {
-                    bili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
-                } else if (anyHoloProGroup([parents.group])) {
-                    bili_stats = await dataSources.holobili.getChannels(parents.channel_id);
-                } else {
-                    bili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
-                }
-            } else {
-                let nijibili_stats = await dataSources.nijibili.getChannels(parents.channel_id);
-                let holobili_stats = await dataSources.holobili.getChannels(parents.channel_id);
-                let otherbili_stats = await dataSources.otherbili.getChannels(parents.channel_id);
-                bili_stats = _.concat(nijibili_stats, holobili_stats, otherbili_stats);
-            }
-            for (let i = 0; i < bili_stats.length; i++) {
-                let bili_elem_stats: BiliBiliChannel = bili_stats[i];
-                if (bili_elem_stats["id"] === parents.channel_id[0]) {
-                    return {
-                        "subscriberCount": bili_elem_stats["subscriberCount"],
-                        "viewCount": bili_elem_stats["viewCount"],
-                        "videoCount": bili_elem_stats["videoCount"],
-                        "level": null
-                    }
-                }
-            }
-            console.error("[performQueryOnChannel] Failed to perform parents statistics on bilibili ID: ", parents.channel_id[0]);
-            return {
-                "subscriberCount": 0,
-                "viewCount": 0,
-                "videoCount": 0,
-                "level": null
-            }
+            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
+            let biliStats = await dataSources.biliChannels.getChannelStats(parents.channel_id).catch(() => {
+                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                let ret: YoutubeDocument<ChannelStatistics> = {};
+                ret[parents.channel_id[0]] = defaults;
+                return ret;
+            });
+            return _.get(biliStats, parents.channel_id[0], defaults);
         } else if (parents.platform === "twitcasting") {
-            let twcast_stats = await dataSources.twitcastingChannels.getChannels(parents.channel_id);
-            try {
-                let twcast_user_stats: TwitcastingChannelData = twcast_stats[parents.channel_id[0]];
-                return {
-                    "subscriberCount": twcast_user_stats["followerCount"],
-                    "level": twcast_user_stats["level"],
-                    "viewCount": null,
-                    "videoCount": null
-                }
-            } catch (e) {
+            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
+            let twStats = await dataSources.twitcastingChannels.getChannelStats(parents.channel_id).catch(() => {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "level": 0,
-                    "viewCount": null,
-                    "videoCount": null
-                }
-            };
+                let ret: YoutubeDocument<ChannelStatistics> = {};
+                ret[parents.channel_id[0]] = defaults;
+                return ret;
+            });
+            return _.get(twStats, parents.channel_id[0], defaults);
         } else if (parents.platform === "twitch") {
-            let twch_stats = await dataSources.twitchChannels.getChannels(parents.channel_id);
-            try {
-                let twch_user_stats: TwitchChannelData = twch_stats[parents.channel_id[0]];
-                return {
-                    "subscriberCount": twch_user_stats["followerCount"],
-                    "viewCount": twch_user_stats["viewCount"],
-                    "videoCount": null,
-                    "level": null
-                }
-            } catch (e) {
+            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
+            let ttvStats = await dataSources.twitchChannels.getChannelStats(parents.channel_id).catch(() => {
                 console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                return {
-                    "subscriberCount": 0,
-                    "viewCount": 0,
-                    "videoCount": null,
-                    "level": null,
-                }
-            };
+                let ret: YoutubeDocument<ChannelStatistics> = {};
+                ret[parents.channel_id[0]] = defaults;
+                return ret;
+            });
+            return _.get(ttvStats, parents.channel_id[0], defaults);
         }
         return null;
     }

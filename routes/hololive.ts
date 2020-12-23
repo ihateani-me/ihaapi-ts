@@ -1,6 +1,6 @@
 import * as express from "express";
-import { VTubersDB } from "../dbconn";
-import { bilibili_use_uuids, channel_filters } from "../utils/filters";
+import { VTDB } from "../dbconn";
+import { bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
 import { sortObjectsByKey } from "../utils/swissknife";
 import { LiveMap, BilibiliData, BiliBiliChannel, ChannelMap } from "../utils/models";
 const holoroutes = express.Router();
@@ -62,21 +62,17 @@ holoroutes.get("/live", (req, res) => {
     });
     try {
         console.log("[HololiveBili] Fetching Database...");
-        VTubersDB.open_collection("hololive_data")
-            .then(data_docs => {
+        VTDB.fetchVideos("bilibili", get_group("holopro"))
+            .then(([live, upcoming, past]) => {
                 console.log("[HololiveBili] Parsing Database...");
-                let vtb_res: LiveMap<BilibiliData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 let final_mappings: LiveMap<BilibiliData[]> = {};
                 console.log("[HololiveBili] Filtering Database...");
                 // @ts-ignore
-                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
+                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, live), "startTime");
                 // @ts-ignore
-                final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, vtb_res["upcoming"]);
+                final_mappings["upcoming"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, upcoming), "startTime");
+                // @ts-ignore
+                final_mappings["past"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, past), "endTime");
                 final_mappings["cached"] = true;
                 console.log("[HololiveBili] Sending...");
                 res.json(final_mappings)
@@ -168,17 +164,10 @@ holoroutes.get("/channels", (req, res) => {
     let user_query = req.query;
     try {
         console.log("[HololiveBili_Channels] Fetching Database...");
-        VTubersDB.open_collection("hololive_data")
+        VTDB.fetchChannels("bilibili", get_group("holopro"))
             .then(data_docs => {
-                console.log("[HololiveBili_Channels] Parsing Database...");
-                let vtb_res: ChannelMap<BiliBiliChannel[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[HololiveBili_Channels] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res["channels"]);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[HololiveBili_Channels] Sending...");
                 res.json(final_mappings)
             })

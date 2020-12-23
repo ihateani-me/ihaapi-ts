@@ -1,9 +1,9 @@
 import * as express from "express";
-import { VTBDB } from "../dbconn";
+import { MongoConnection } from "../dbconn";
 import { LiveMap, YouTubeData, YTLiveArray } from "../utils/models";
 import { map_bool } from "../utils/swissknife";
 const museroutes = express.Router()
-const MuseDB = new VTBDB("museid");
+const MuseDB = new MongoConnection("museid");
 
 museroutes.use((req, res, next) => {
     res.header({

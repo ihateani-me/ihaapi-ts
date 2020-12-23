@@ -1,4 +1,7 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb';
+import moment from "moment-timezone";
+import { YTChannelDocs, YTChannelProps, YTVideoDocs, YTVideoProps } from '../../dbconn/models/youtube';
+import { is_none } from '../../utils/swissknife';
 import { ChannelStatistics } from "../schemas/vtapi";
 
 export interface YoutubeLiveData {
@@ -33,75 +36,62 @@ export interface YoutubeDocument<T> {
     [channel_id: string]: T
 }
 
-export class YoutubeLive extends MongoDataSource<YoutubeDocument<YoutubeLiveData[]>> {
-    async getLive(channel_ids: string[] = null) {
-        let generate_aggreate = {};
-        if (channel_ids) {
-            for (let i = 0; i < channel_ids.length; i++) {
-                const e = channel_ids[i];
-                generate_aggreate[e] = 1;
-            }
+export class YoutubeLive extends MongoDataSource<YTVideoDocs> {
+    async getLive(status: string, channel_ids: string[] = null, groups: string[] = null) {
+        let lookbackMax = moment.tz("UTC").unix() - (24 * 3600);
+        let fetchFormat = {
+            "status": {"$eq": status},
+            "$or": [{"endTime": {"$gte": lookbackMax}}, {"endTime": {"$type": "null"}}],
+        };
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["channel_id"] = {"$in": channel_ids};
         }
-        if (Object.keys(generate_aggreate).length > 0) {
-            let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
-            let main_res = results[0];
-            try {
-                delete main_res["_id"];
-            } catch (e) {}
-            return main_res;
-        } else {
-            let results = await this.collection.find().toArray();
-            let main_res = results[0];
-            try {
-                delete main_res["_id"];
-            } catch (e) {}
-            return main_res;
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
         }
+        // @ts-ignore
+        const livesData: YTVideoProps[] = await this.model.find(fetchFormat);
+        return livesData;
     }
 }
 
-export class YoutubeChannel extends MongoDataSource<YoutubeDocument<YoutubeChannelData>, YoutubeDocument<ChannelStatistics>> {
-    async getChannel(channel_ids: string[] = null) {
-        let generate_aggreate = {};
-        if (channel_ids) {
-            for (let i = 0; i < channel_ids.length; i++) {
-                const e = channel_ids[i];
-                generate_aggreate[e] = 1;
-            }
+export class YoutubeChannel extends MongoDataSource<YTChannelDocs> {
+    async getChannel(channel_ids: string[] = null, groups: string[] = null) {
+        let fetchFormat = {};
+        if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
+            fetchFormat["id"] = {"$in": channel_ids};
         }
-        if (Object.keys(generate_aggreate).length > 0) {
-            let results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
-            let main_res = results[0];
-            try {
-                delete main_res["_id"];
-            } catch (e) {}
-            return main_res;
-        } else {
-            let results = await this.collection.find().toArray();
-            let main_res = results[0];
-            try {
-                delete main_res["_id"];
-            } catch (e) {}
-            return main_res;
+        if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
+            fetchFormat["group"] = {"$in": groups};
         }
+        // @ts-ignore
+        const channelsData: YTChannelProps[] = await this.model.find(fetchFormat);
+        return channelsData;
     }
 
     async getChannelStats(channel_ids: string[]) {
-        let generate_aggreate = {};
-        for (let i = 0; i < channel_ids.length; i++) {
-            const e = channel_ids[i];
-            generate_aggreate[e] = 1;
-        }
-        let raw_results = await this.collection.aggregate([{"$project": generate_aggreate}]).toArray();
-        let results = raw_results[0];
+        let raw_results = await this.model.aggregate([
+            {
+                "$match": {
+                    "id": {"$in": channel_ids}
+                },
+                "$project": {
+                    "id": 1,
+                    "subscriberCount": 1,
+                    "videoCount": 1,
+                    "viewCount": 1
+                }
+            }
+        ])
         let mapping: YoutubeDocument<ChannelStatistics> = {}
-        for (let [channel_id, channel_data] of Object.entries(results)) {
-            mapping[channel_id] = {
+        raw_results.forEach((channel_data) => {
+            mapping[channel_data["id"]] = {
                 "subscriberCount": channel_data["subscriberCount"],
                 "videoCount": channel_data["videoCount"],
-                "viewCount": channel_data["videoCount"],
+                "viewCount": channel_data["viewCount"],
+                "level": null,
             }
-        }
+        })
         return mapping;
     }
 }

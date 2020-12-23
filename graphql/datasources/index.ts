@@ -1,4 +1,4 @@
-import { BiliBili } from "./bilibili";
+import { BiliBiliChannel, BiliBiliLive } from "./bilibili";
 import { IQDBAPI, SauceNAOAPI } from "./saucerest";
 import { TwitcastingChannel, TwitcastingLive } from "./twitcasting";
 import { TwitchChannel, TwitchLive } from "./twitch";
@@ -11,13 +11,10 @@ export * from "./twitcasting";
 export * from "./saucerest";
 
 export interface VTAPIDataSources {
-    holobili: BiliBili
-    nijibili: BiliBili
-    otherbili: BiliBili
+    biliLive: BiliBiliLive
+    biliChannels: BiliBiliChannel
     youtubeLive: YoutubeLive
     youtubeChannels: YoutubeChannel
-    nijitubeLive: YoutubeLive
-    nijitubeChannels: YoutubeChannel
     twitchLive: TwitchLive
     twitchChannels: TwitchChannel
     twitcastingLive: TwitcastingLive

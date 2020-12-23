@@ -1,6 +1,6 @@
 import * as express from "express";
 import { nhFetchInfo, nhImagePathProxy, nhImageProxy, nhLatestDoujin, nhSearchDoujin } from "../utils/nh";
-import { is_none } from "../utils/swissknife";
+import { is_none, fallbackNaN } from "../utils/swissknife";
 const nhroutes = express.Router();
 
 nhroutes.use((req, res, next) => {
@@ -860,6 +860,10 @@ nhroutes.get("/search", (req, res) => {
             res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
         })
     }
+})
+
+nhroutes.get("/unduh", (_, res) => {
+    res.render("nhdown");
 })
 
 export { nhroutes };

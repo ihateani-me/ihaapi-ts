@@ -29,8 +29,22 @@ export const GROUPS_MAPPINGS = {
     "vapart": ["vapart"],
     "honeystrap": ["honeystrap"],
     "sugarlyric": ["sugarlyric"],
-    "others": ["entum", "solotuber", "solovtuber", "paryiproject", "vic", "dotlive", "vgaming", "vshojo", "upd8"],
+    "others": [
+        "entum",
+        "eilene",
+        "solotuber",
+        "solovtuber",
+        "paryiproject",
+        "vic",
+        "dotlive",
+        "vgaming",
+        "vshojo",
+        "upd8",
+        "hanayori",
+        "mahapanca"
+    ],
     "mahapanca": ["mahapanca"],
+    "eilene": ["eilene"],
     "vivid": ["vivid"],
     "noripro": ["noripro"],
     "hanayori": ["hanayori"],
@@ -68,7 +82,7 @@ function get_group(group_name: string) {
     return null;
 }
 
-function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArray<YouTubeData[]>): LiveMap<YouTubeData[]> {
+function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeData[]): LiveMap<YouTubeData[]> {
     let filtered_live: YouTubeData[] = [];
     let filtered_upcoming: YouTubeData[] = [];
     let filtered_ended: YouTubeData[] = [];
@@ -76,27 +90,19 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArra
         "id", "title", "status", "startTime", "thumbnail", "endTime", "viewers", "peakViewers", "channel", "channel_id", "group", "platform"
     ];
 
-    var groups = args.group;
     var statuses = args.status;
     var fields = args.fields;
     let add_lives, add_upcoming, add_past;
     add_lives = add_upcoming = add_past = true
-    if (is_none(groups)) {
-        groups = "";
-    };
     if (is_none(statuses)) {
         statuses = "";
     };
     if (is_none(fields)) {
         fields = "";
     };
-    var groups_set: string[] = filter_empty(decodeURIComponent(groups).split(","));
     var statuses_set = filter_empty(decodeURIComponent(statuses).split(","));
-    var fields_set = filter_empty(decodeURIComponent(fields).split(","));
+    var fields_set = filter_empty(decodeURIComponent(fields).split(","))
 
-    if (groups_set.length == 0) {
-        groups_set = GROUPS_KEY;
-    };
     if (fields_set.length == 0) {
         fields_set = DEFAULT_FIELDS_KEY;
     };
@@ -105,33 +111,19 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YTLiveArra
         if (!statuses_set.includes("upcoming")) { add_upcoming = false };
         if (!statuses_set.includes("ended")) { add_past = false };
     };
-    console.log(`[parse_youtube_live_args] groups set: ${groups_set.join(", ")}`);
+
     console.log(`[parse_youtube_live_args] fields set: ${fields_set.join(", ")}`);
     console.log(`[parse_youtube_live_args] status live/upcoming/past: ${add_lives}/${add_upcoming}/${add_past}`);
-
-    let allowed_groups = [];
-    groups_set.forEach((group) => {
-        let groups_map = get_group(group);
-        if (groups_map) {
-            allowed_groups = allowed_groups.concat(groups_map);
-        }
-    });
-
     console.log("[parse_youtube_live_args] filtering data...");
-    for (let [channel_id, channel_data] of Object.entries(fetched_results)) {
-        channel_data.forEach((stream) => {
-            stream.channel = channel_id;
-            if (allowed_groups.includes(stream.group)) {
-                if (stream.status == "live") {
-                    filtered_live.push(stream);
-                } else if (stream.status == "upcoming") {
-                    filtered_upcoming.push(stream);
-                } else if (stream.status == "past") {
-                    filtered_ended.push(stream);
-                };
-            };
-        });
-    };
+    fetched_results.forEach((stream) => {
+        if (stream.status == "live") {
+            filtered_live.push(stream);
+        } else if (stream.status == "upcoming") {
+            filtered_upcoming.push(stream);
+        } else if (stream.status == "past") {
+            filtered_ended.push(stream);
+        };
+    });
 
     let key_to_delete = [];
     DEFAULT_FIELDS_KEY.forEach((field => {

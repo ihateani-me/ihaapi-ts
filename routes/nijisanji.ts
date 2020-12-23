@@ -1,8 +1,9 @@
 import * as express from "express";
-import { NijiTubeDB, VTubersDB } from "../dbconn";
-import { parse_youtube_live_args, bilibili_use_uuids, channel_filters } from "../utils/filters";
-import { sortObjectsByKey } from "../utils/swissknife";
+import { VTDB } from "../dbconn";
+import { parse_youtube_live_args, bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
+import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
 import { LiveMap, BilibiliData, YTLiveArray, YouTubeData, ChannelMap, YouTubeChannel, BiliBiliChannel, ChannelArray } from "../utils/models";
+import _ from "lodash";
 const nijiroutes = express.Router()
 
 nijiroutes.use((req, res, next) => {
@@ -55,21 +56,17 @@ nijiroutes.get("/live", (req, res) => {
     });
     try {
         console.log("[NijisanjiBili] Fetching Database...");
-        VTubersDB.open_collection("nijisanji_data")
-            .then(data_docs => {
+        VTDB.fetchVideos("bilibili", get_group("nijisanji"))
+            .then(([live, upcoming, past]) => {
                 console.log("[NijisanjiBili] Parsing Database...");
-                let vtb_res: LiveMap<BilibiliData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 let final_mappings: LiveMap<BilibiliData[]> = {};
                 console.log("[NijisanjiBili] Filtering Database...");
                 // @ts-ignore
-                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, vtb_res["live"]), "startTime");
+                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, live), "startTime");
                 // @ts-ignore
-                final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, vtb_res["upcoming"]);
+                final_mappings["upcoming"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, upcoming), "startTime");
+                // @ts-ignore
+                final_mappings["past"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, past), "endTime");
                 final_mappings["cached"] = true;
                 console.log("[NijisanjiBili] Sending...");
                 res.json(final_mappings)
@@ -154,19 +151,12 @@ nijiroutes.get("/channels", (req, res) => {
     let user_query = req.query;
     try {
         console.log("[NijisanjiBili_Channels] Fetching Database...");
-        VTubersDB.open_collection("nijisanji_data")
+        VTDB.fetchChannels("bilibili", get_group("nijisanji"))
             .then(data_docs => {
-                console.log("[NijisanjiBili_Channels] Parsing Database...");
-                let vtb_res: ChannelMap<BiliBiliChannel[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[NijisanjiBili_Channels] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res["channels"]);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[NijisanjiBili_Channels] Sending...");
-                res.json(final_mappings)
+                res.json(final_mappings);
             })
             .catch(error => {
                 console.log(error);
@@ -259,19 +249,21 @@ nijiroutes.get("/channels", (req, res) => {
  */
 nijiroutes.get("/youtube/live", (req, res) => {
     let user_query = req.query;
+    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
+    let nijigroups: any[] = get_group("nijisanji");
+    fetchedGroups = fetchedGroups.filter(group => nijigroups.includes(group));
+    if (fetchedGroups.length < 1) {
+        fetchedGroups = nijigroups;
+    }
     try {
         console.log("[NijisanjiYT] Fetching Database...");
-        NijiTubeDB.open_collection("nijitube_live")
-            .then(data_docs => {
+        VTDB.fetchChannels("youtube", fetchedGroups)
+            .then(([live, upcoming, ended]) => {
                 console.log("[NijisanjiYT] Parsing Database...");
-                let vtb_res: YTLiveArray<YouTubeData[]> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
-                console.log("[NijisanjiYT] Filtering Database...")
-                let final_mappings = parse_youtube_live_args(user_query, vtb_res);
+                let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
+                console.log("[NijisanjiYT] Filtering Database...");
+                // @ts-ignore
+                let final_mappings = parse_youtube_live_args(user_query, data_docs);
                 final_mappings["cached"] = true;
                 console.log("[NijisanjiYT] Sending...");
                 res.json(final_mappings)
@@ -370,19 +362,12 @@ nijiroutes.get("/youtube/channels", (req, res) => {
     let user_query = req.query;
     try {
         console.log("[NijisanjiYT_Channels] Fetching Database...");
-        NijiTubeDB.open_collection("nijitube_channels")
+        VTDB.fetchChannels("youtube", get_group("nijisanji"))
             .then(data_docs => {
-                console.log("[NijisanjiYT_Channels] Parsing Database...");
-                let vtb_res: ChannelArray<YouTubeChannel> = data_docs[0];
-                try {
-                    delete vtb_res["_id"];
-                } catch (error) {
-                    console.error(error);
-                }
                 console.log("[NijisanjiYT_Channels] Filtering Database...");
-                let final_mappings = channel_filters(user_query, vtb_res);
+                let final_mappings = channel_filters(user_query, data_docs);
                 console.log("[NijisanjiYT_Channels] Sending...");
-                res.json(final_mappings)
+                res.json(final_mappings);
             })
             .catch(error => {
                 console.log(error);
