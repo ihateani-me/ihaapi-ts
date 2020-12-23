@@ -3,6 +3,7 @@
 import { is_none, filter_empty, hasKey, sortObjectsByKey } from "./swissknife";
 import { YouTubeData, BilibiliData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
 import moment = require('moment-timezone');
+import _ from "lodash";
 
 export const GROUPS_MAPPINGS = {
     "holopro": ["hololive", "hololiveid", "hololivecn", "hololiveen", "hololivejp", "holostars"],
@@ -46,7 +47,8 @@ export const GROUPS_MAPPINGS = {
     "mahapanca": ["mahapanca"],
     "eilene": ["eilene"],
     "vivid": ["vivid"],
-    "noripro": ["noripro"],
+    "noripro": ["noripro", "noriopro"],
+    "noriopro": ["noripro", "noriopro"],
     "hanayori": ["hanayori"],
     "voms": ["voms"],
     "kizunaai": ["kizunaai"],
@@ -91,6 +93,7 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
     ];
 
     var statuses = args.status;
+    var groups = args.group;
     var fields = args.fields;
     let add_lives, add_upcoming, add_past;
     add_lives = add_upcoming = add_past = true
@@ -101,8 +104,12 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
         fields = "";
     };
     var statuses_set = filter_empty(decodeURIComponent(statuses).split(","));
-    var fields_set = filter_empty(decodeURIComponent(fields).split(","))
-
+    var fields_set = filter_empty(decodeURIComponent(fields).split(","));
+    var groups_set: string[] = filter_empty(decodeURIComponent(groups).split(","));
+    
+    if (groups_set.length == 0) {
+        groups_set = Object.keys(GROUPS_MAPPINGS);
+    };
     if (fields_set.length == 0) {
         fields_set = DEFAULT_FIELDS_KEY;
     };
@@ -115,15 +122,42 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
     console.log(`[parse_youtube_live_args] fields set: ${fields_set.join(", ")}`);
     console.log(`[parse_youtube_live_args] status live/upcoming/past: ${add_lives}/${add_upcoming}/${add_past}`);
     console.log("[parse_youtube_live_args] filtering data...");
-    fetched_results.forEach((stream) => {
-        if (stream.status == "live") {
-            filtered_live.push(stream);
-        } else if (stream.status == "upcoming") {
-            filtered_upcoming.push(stream);
-        } else if (stream.status == "past") {
-            filtered_ended.push(stream);
-        };
+
+    let allowed_groups = [];
+    groups_set.forEach((group) => {
+        let groups_map = get_group(group);
+        if (groups_map) {
+            allowed_groups = allowed_groups.concat(groups_map);
+        }
     });
+    allowed_groups = _.uniq(allowed_groups);
+
+    if (Array.isArray(fetched_results)) {
+        filtered_live = fetched_results.filter(res => res.status === "live");
+        filtered_upcoming = fetched_results.filter(res => res.status === "upcoming");
+        filtered_ended = fetched_results.filter(res => res.status === "past");
+        console.log(filtered_live.length, filtered_upcoming.length, filtered_ended.length, fetched_results.length);
+    } else if (typeof fetched_results == "object" && !Array.isArray(fetched_results)) {
+        for (let [channel_id, channel_data] of Object.entries(fetched_results)) {
+            // @ts-ignore
+            channel_data.forEach((live_data) => {
+                live_data["channel"] = channel_id;
+                if (live_data["status"] === "live") {
+                    filtered_live.push(live_data);
+                } else if (live_data["status"] === "upcoming") {
+                    filtered_upcoming.push(live_data);
+                } else if (live_data["status"] === "past" || live_data["status"] === "ended") {
+                    filtered_ended.push(live_data);
+                }
+            })
+        }
+        filtered_live = filtered_live.filter(res => (_.has(res, "group") && allowed_groups.includes(res.group)) && !_.has(res, "group"));
+        filtered_upcoming = filtered_upcoming.filter(res => (_.has(res, "group") && allowed_groups.includes(res.group)) && !_.has(res, "group"));
+        filtered_ended = filtered_ended.filter(res => (_.has(res, "group") && allowed_groups.includes(res.group)) && !_.has(res, "group"));
+    } else {
+        // @ts-ignore
+        return fetched_results;
+    }
 
     let key_to_delete = [];
     DEFAULT_FIELDS_KEY.forEach((field => {
@@ -232,7 +266,7 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
     var fields_set = filter_empty(decodeURIComponent(fields).split(","));
 
     if (groups_set.length == 0) {
-        groups_set = GROUPS_KEY;
+        groups_set = Object.keys(GROUPS_MAPPINGS);
     };
     if (fields_set.length == 0) {
         fields_set = DEFAULT_FIELDS_KEY;
@@ -249,11 +283,10 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
             allowed_groups = allowed_groups.concat(groups_map);
         }
     });
+    allowed_groups = _.uniq(allowed_groups);
 
     if (Array.isArray(fetched_results)) {
-        fetched_results.forEach((value => {
-            channels_data.push(value);
-        }));
+        channels_data = fetched_results.filter(res => (_.has(res, "group") && allowed_groups.includes(res["group"])) || !_.has(res, "group"));
     } else if (typeof fetched_results == "object" && !Array.isArray(fetched_results)) {
         for (let [_, channel_data] of Object.entries(fetched_results)) {
             if (hasKey(channel_data, "publishedAt")) {
