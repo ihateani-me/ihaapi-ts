@@ -22,6 +22,7 @@ const YoutubeVideoSchema = createSchema(
         group: Type.string({required: true}),
         platform: Type.string({required: true}),
         is_missing: Type.boolean(),
+        is_premiere: Type.boolean(),
     }
 )
 
@@ -35,6 +36,12 @@ const YoutubeChannelSchema = createSchema(
         viewCount: Type.number(),
         videoCount: Type.number(),
         thumbnail: Type.string({required: true}),
+        history: Type.array().of({
+            timestamp: Type.number({required: true}),
+            subscriberCount: Type.number(),
+            viewCount: Type.number(),
+            videoCount: Type.number()
+        }),
         group: Type.string({required: true}),
         platform: Type.string({required: true}),
     }

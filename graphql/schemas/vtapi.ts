@@ -91,6 +91,36 @@ export const VTAPIv2 = gql`
     }
 
     """
+    Channel stats growth data
+    """
+    type ChannelGrowth {
+        "Growth in 1 day or last day"
+        oneDay: Int!
+        "Growth in the last week"
+        oneWeek: Int!
+        "Growth in the last 2 weeks"
+        twoWeeks: Int!
+        "Growth in the last 1 month"
+        oneMonth: Int!
+        "Growth in the last 6 month"
+        sixMonths: Int!
+        "Growth in the last 1 year"
+        oneYear: Int!
+        "Timestamp of last updated (UNIX time, in seconds)"
+        lastUpdated: Int!
+    }
+
+    """
+    Channel stats growth data, for now only views and subscribers are tracked.
+    """
+    type ChannelGrowthData @cacheControl(maxAge: 1800) {
+        "Subscriber growth (or follower if it's Twitch/Twitcasting) data"
+        subscribersGrowth: ChannelGrowth
+        "Channel views growth data"
+        viewsGrowth: ChannelGrowth
+    }
+
+    """
     Statistics for a channel
     Not all stats are available so please do test it channel query
     """
@@ -140,6 +170,8 @@ export const VTAPIv2 = gql`
         image: String!
         "The channel statistics (subs, view, total videos)"
         statistics: ChannelStatistics! @cacheControl(maxAge: 3600)
+        "Channel growth data"
+        growth: ChannelGrowthData
         "The channel group/organization"
         group: String
         "Is the channel live or not? (BiliBili Only!)"
@@ -174,6 +206,10 @@ export const VTAPIv2 = gql`
         viewers: Int
         "The peak viewers for the stream"
         peakViewers: Int
+        "Is the video privated or not? if it's null assume no"
+        is_missing: Boolean
+        "Is it a premiere video or not? if it's null assume no"
+        is_premiere: Boolean
         "The channel group/organization"
         group: String
         "The stream platform being used"
@@ -227,6 +263,16 @@ export interface ChannelStatistics {
     level?: number
 }
 
+export interface ChannelGrowth {
+    oneDay: number
+    oneWeek: number
+    twoWeeks: number
+    oneMonth: number
+    sixMonths: number
+    oneYear: number
+    lastUpdated: number
+}
+
 export interface VideoTime {
     startTime?: number
     endTime?: number
@@ -245,6 +291,10 @@ export interface ChannelObject {
     publishedAt?: string
     image: string
     statistics?: ChannelStatistics
+    growth?: {
+        subscribersGrowth?: ChannelGrowth
+        viewsGrowth?: ChannelGrowth
+    }
     group?: string
     is_live?: boolean
     platform: PlatformName
@@ -262,6 +312,8 @@ export interface LiveObject {
     status: LiveStatus
     viewers?: number
     peakViewers?: number
+    is_missing?: boolean
+    is_premiere?: boolean
     group: string
     platform?: PlatformName
     pageInfo?: PageInfo

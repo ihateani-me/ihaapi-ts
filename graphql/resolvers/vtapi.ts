@@ -16,7 +16,8 @@ import {
     DateTimeScalar,
     LivesResource,
     ChannelsResource,
-    SortOrder
+    SortOrder,
+    ChannelGrowth
 } from "../schemas";
 import {
     YoutubeDocument,
@@ -27,6 +28,8 @@ import { fallbackNaN, filter_empty, getValueFromKey, hasKey, is_none, map_bool, 
 import { Buffer } from "buffer";
 import express from "express";
 import moment from "moment-timezone";
+
+const ONE_DAY = 864E2;
 
 interface ChannelParents {
     platform?: PlatformName
@@ -41,6 +44,173 @@ interface VTAPIContext {
     res: express.Response
     cacheServers: CustomRedisCache
     dataSources: VTAPIDataSources
+}
+
+interface HistoryGrowthData {
+    timestamp: number
+    subscriberCount?: number
+    viewCount?: number
+    videoCount?: number
+    followerCount?: number
+    level?: number
+}
+
+interface GrowthChannelData {
+    subscribersGrowth?: ChannelGrowth
+    viewsGrowth?: ChannelGrowth
+}
+
+function fallbackGrowthMakeSure(historyData?: HistoryGrowthData): HistoryGrowthData {
+    if (typeof historyData === "undefined") {
+        return {
+            timestamp: -1,
+            subscriberCount: undefined,
+            viewCount: undefined,
+            videoCount: undefined,
+            followerCount: undefined,
+            level: undefined
+        }
+    }
+    let ts = _.get(historyData, "timestamp", -1);
+    let sC = _.get(historyData, "subscriberCount", undefined);
+    let vC = _.get(historyData, "viewCount", undefined);
+    let vdC = _.get(historyData, "videoCount", undefined);
+    let fC = _.get(historyData, "followerCount", undefined);
+    let lC = _.get(historyData, "level", undefined);
+    return {
+        timestamp: ts,
+        subscriberCount: sC,
+        viewCount: vC,
+        videoCount: vdC,
+        followerCount: fC,
+        level: lC
+    }
+}
+
+function fallbackGrowthIfNaN(growth: ChannelGrowth): ChannelGrowth {
+    let oD = _.get(growth, "oneDay", NaN);
+    let oW = _.get(growth, "oneWeek", NaN);
+    let tW = _.get(growth, "twoWeeks", NaN);
+    let oM = _.get(growth, "oneMonth", NaN);
+    let sM = _.get(growth, "sixMonths", NaN);
+    let oY = _.get(growth, "oneYear", NaN);
+    let ts = _.get(growth, "lastUpdated", -1);
+    oD = isNaN(oD) ? 0 : oD;
+    oW = isNaN(oW) ? 0 : oW;
+    tW = isNaN(tW) ? 0 : tW;
+    oM = isNaN(oM) ? 0 : oM;
+    sM = isNaN(sM) ? 0 : sM;
+    oY = isNaN(oY) ? 0 : oY;
+    return {
+        oneDay: oD,
+        oneWeek: oW,
+        twoWeeks: tW,
+        oneMonth: oM,
+        sixMonths: sM,
+        oneYear: oY,
+        lastUpdated: ts,
+    }
+}
+
+function mapGrowthData(platform: PlatformName, channelId: string, historyData?: HistoryGrowthData[]): GrowthChannelData {
+    if (typeof historyData === "undefined") {
+        return null;
+    }
+    if (_.isNull(historyData)) {
+        return null;
+    }
+    let currentTime = moment.tz("UTC").unix();
+    let oneDay = currentTime - ONE_DAY,
+        oneWeek = currentTime - (ONE_DAY * 7),
+        twoWeeks = currentTime - (ONE_DAY * 14),
+        oneMonth = currentTime - (ONE_DAY * 30),
+        sixMonths = currentTime - (ONE_DAY * 183),
+        oneYear = currentTime - (ONE_DAY * 365);
+
+    if (historyData.length < 1) {
+        console.error(`mapGrowthData() history data is less than one, returning null for ${platform} ${channelId}`);
+        return null;
+    }
+
+    let lookbackOneDay = _.sortBy(historyData.filter(res => res.timestamp >= oneDay), (o) => o.timestamp);
+    let lookbackOneWeek = _.sortBy(historyData.filter(res => res.timestamp >= oneWeek), (o) => o.timestamp);
+    let lookbackTwoWeeks = _.sortBy(historyData.filter(res => res.timestamp >= twoWeeks), (o) => o.timestamp);
+    let lookbackOneMonth = _.sortBy(historyData.filter(res => res.timestamp >= oneMonth), (o) => o.timestamp);
+    let lookbackSixMonths = _.sortBy(historyData.filter(res => res.timestamp >= sixMonths), (o) => o.timestamp);
+    let lookbackOneYear = _.sortBy(historyData.filter(res => res.timestamp >= oneYear), (o) => o.timestamp);
+    if (lookbackOneDay.length < 1 && lookbackOneWeek.length < 1 && lookbackTwoWeeks.length < 1 && lookbackOneMonth.length < 1 && lookbackSixMonths.length < 1 && lookbackOneYear.length) {
+        console.error(`mapGrowthData() missing all history data after filtering, returning null for ${platform} ${channelId}`);
+        return null;
+    }
+
+    let oneDayStart = fallbackGrowthMakeSure(_.nth(lookbackOneDay, 0)),
+        oneDayEnd = fallbackGrowthMakeSure(_.nth(lookbackOneDay, -1));
+    let oneWeekStart = fallbackGrowthMakeSure(_.nth(lookbackOneWeek, 0)),
+        oneWeekEnd = fallbackGrowthMakeSure(_.nth(lookbackOneWeek, -1));
+    let twoWeeksStart = fallbackGrowthMakeSure(_.nth(lookbackTwoWeeks, 0)),
+        twoWeeksEnd = fallbackGrowthMakeSure(_.nth(lookbackTwoWeeks, -1));
+    let oneMonthStart = fallbackGrowthMakeSure(_.nth(lookbackOneMonth, 0)),
+        oneMonthEnd = fallbackGrowthMakeSure(_.nth(lookbackOneMonth, -1));
+    let sixMonthsStart = fallbackGrowthMakeSure(_.nth(lookbackSixMonths, 0)),
+        sixMonthsEnd = fallbackGrowthMakeSure(_.nth(lookbackSixMonths, -1));
+    let oneYearStart = fallbackGrowthMakeSure(_.nth(lookbackOneYear, 0)),
+        oneYearEnd = fallbackGrowthMakeSure(_.nth(lookbackOneYear, -1));
+
+    if (platform === "youtube") {
+        let subsGrowth: ChannelGrowth = {
+            oneDay: oneDayEnd["subscriberCount"] - oneDayStart["subscriberCount"],
+            oneWeek: oneWeekEnd["subscriberCount"] - oneWeekStart["subscriberCount"],
+            twoWeeks: twoWeeksEnd["subscriberCount"] - twoWeeksStart["subscriberCount"],
+            oneMonth: oneMonthEnd["subscriberCount"] - oneMonthStart["subscriberCount"],
+            sixMonths: sixMonthsEnd["subscriberCount"] - sixMonthsStart["subscriberCount"],
+            oneYear: oneYearEnd["subscriberCount"] - oneYearStart["subscriberCount"],
+            lastUpdated: oneDayEnd["timestamp"],
+        }
+        let viewsGrowth: ChannelGrowth = {
+            oneDay: oneDayEnd["viewCount"] - oneDayStart["viewCount"],
+            oneWeek: oneWeekEnd["viewCount"] - oneWeekStart["viewCount"],
+            twoWeeks: twoWeeksEnd["viewCount"] - twoWeeksStart["viewCount"],
+            oneMonth: oneMonthEnd["viewCount"] - oneMonthStart["viewCount"],
+            sixMonths: sixMonthsEnd["viewCount"] - sixMonthsStart["viewCount"],
+            oneYear: oneYearEnd["viewCount"] - oneYearStart["viewCount"],
+            lastUpdated: oneDayEnd["timestamp"],
+        }
+        return {subscribersGrowth: fallbackGrowthIfNaN(subsGrowth), viewsGrowth: fallbackGrowthIfNaN(viewsGrowth)};
+    } else if (platform === "twitcasting") {
+        let subsGrowth: ChannelGrowth = {
+            oneDay: oneDayEnd["followerCount"] - oneDayStart["followerCount"],
+            oneWeek: oneWeekEnd["followerCount"] - oneWeekStart["followerCount"],
+            twoWeeks: twoWeeksEnd["followerCount"] - twoWeeksStart["followerCount"],
+            oneMonth: oneMonthEnd["followerCount"] - oneMonthStart["followerCount"],
+            sixMonths: sixMonthsEnd["followerCount"] - sixMonthsStart["followerCount"],
+            oneYear: oneYearEnd["followerCount"] - oneYearStart["followerCount"],
+            lastUpdated: oneDayEnd["timestamp"],
+        }
+        return {subscribersGrowth: fallbackGrowthIfNaN(subsGrowth)};
+    } else if (platform === "twitch") {
+        let subsGrowth: ChannelGrowth = {
+            oneDay: oneDayEnd["followerCount"] - oneDayStart["followerCount"],
+            oneWeek: oneWeekEnd["followerCount"] - oneWeekStart["followerCount"],
+            twoWeeks: twoWeeksEnd["followerCount"] - twoWeeksStart["followerCount"],
+            oneMonth: oneMonthEnd["followerCount"] - oneMonthStart["followerCount"],
+            sixMonths: sixMonthsEnd["followerCount"] - sixMonthsStart["followerCount"],
+            oneYear: oneYearEnd["followerCount"] - oneYearStart["followerCount"],
+            lastUpdated: oneDayEnd["timestamp"],
+        }
+        let viewsGrowth: ChannelGrowth = {
+            oneDay: oneDayEnd["viewCount"] - oneDayStart["viewCount"],
+            oneWeek: oneWeekEnd["viewCount"] - oneWeekStart["viewCount"],
+            twoWeeks: twoWeeksEnd["viewCount"] - twoWeeksStart["viewCount"],
+            oneMonth: oneMonthEnd["viewCount"] - oneMonthStart["viewCount"],
+            sixMonths: sixMonthsEnd["viewCount"] - sixMonthsStart["viewCount"],
+            oneYear: oneYearEnd["viewCount"] - oneYearStart["viewCount"],
+            lastUpdated: oneDayEnd["timestamp"],
+        }
+        return {subscribersGrowth: fallbackGrowthIfNaN(subsGrowth), viewsGrowth: fallbackGrowthIfNaN(viewsGrowth)};
+    } else if (platform === "bilibili") {
+        return null;
+    }
+    return null;
 }
 
 function calcDuration(realDuration: number, startTime?: number, endTime?: number) {
@@ -161,8 +331,10 @@ class VTAPIQuery {
                         "lateBy": res["timedata"]["lateTime"],
                     },
                     "channel_id": res["channel_id"],
-                    "viewers": type === "video" ? null : res["viewers"], // force null 
+                    "viewers": type === "video" ? null : res["viewers"], // force null
                     "peakViewers": res["peakViewers"],
+                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
                     "thumbnail": res["thumbnail"],
                     "group": res["group"],
                     "platform": "youtube"
@@ -190,6 +362,8 @@ class VTAPIQuery {
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
                     "thumbnail": res["thumbnail"],
+                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
                     "group": res["group"],
                     "platform": "bilibili"
                 }
@@ -216,6 +390,8 @@ class VTAPIQuery {
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
                     "thumbnail": res["thumbnail"],
+                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
                     "group": res["group"],
                     "platform": "twitcasting"
                 }
@@ -242,6 +418,8 @@ class VTAPIQuery {
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
                     "thumbnail": res["thumbnail"],
+                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
                     "group": res["group"],
                     "platform": "twitch"
                 }
@@ -275,6 +453,7 @@ class VTAPIQuery {
                         publishedAt: res["publishedAt"],
                         image: res["thumbnail"],
                         group: res["group"],
+                        growth: mapGrowthData("youtube", res["id"], res["history"]),
                         platform: "youtube"
                     }
                     return remap;
@@ -304,6 +483,7 @@ class VTAPIQuery {
                         id: res["id"],
                         name: res["name"],
                         description: res["description"],
+                        growth: mapGrowthData("twitcasting", res["id"], res["history"]),
                         image: res["thumbnail"],
                         group: res["group"],
                         platform: "twitcasting"
@@ -320,6 +500,7 @@ class VTAPIQuery {
                         name: res["name"],
                         description: res["description"],
                         publishedAt: res["publishedAt"],
+                        growth: mapGrowthData("twitch", res["id"], res["history"]),
                         image: res["thumbnail"],
                         group: res["group"],
                         platform: "twitch"
@@ -341,6 +522,7 @@ class VTAPIQuery {
                     name: res["name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
+                    growth: mapGrowthData("youtube", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "youtube"
@@ -374,6 +556,7 @@ class VTAPIQuery {
                     id: res["id"],
                     name: res["name"],
                     description: res["description"],
+                    growth: mapGrowthData("twitcasting", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "twitcasting"
@@ -391,6 +574,7 @@ class VTAPIQuery {
                     name: res["name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
+                    growth: mapGrowthData("twitch", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "twitch"
@@ -961,6 +1145,9 @@ export const VTAPIv2Resolvers: IResolvers = {
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
             console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            if (no_cache) {
+                console.info("[GraphQL-VTAPIv2-channels()] No cache requested!");
+            }
             let cache_name = getCacheNameForChannels(args, "channel");
             // @ts-ignore
             let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
