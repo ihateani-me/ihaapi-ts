@@ -1,0 +1,33 @@
+{
+    "short_name": "ihaAPIv2",
+    "name": "ihateani.me API v2 - Docs",
+    "description": "ihateani.me API v2 GraphQL Documentation",
+    "icons": [
+        {
+            "src": "/assets/img/icon256.png",
+            "type": "image/png",
+            "sizes": "256x256"
+        },
+        {
+            "src": "/assets/img/icon128.png",
+            "type": "image/png",
+            "sizes": "128x128"
+        },
+        {
+            "src": "/assets/img/icon512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        },
+        {
+            "src": "/assets/img/icon192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "/v2/gql-docs/",
+    "scope": "/v2/gql-docs/",
+    "background_color": "#0D0D0D",
+    "display": "standalone",
+    "theme_color": "#3DCE70",
+    "version": "2.3.0"
+}

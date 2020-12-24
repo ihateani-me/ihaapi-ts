@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ihateani.me API v2 - Docs</title>
+    <meta name="description" content="Documentation for ihaAPI v2">
+    <link rel="canonical" href="https://api.ihateani.me/v2/gql-docs/">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="HandheldFriendly" content="True">
+    <link rel="manifest" href="/v2/gql-docs/assets/manifest.json">
+    <!-- OpenGraph -->
+    <meta property="og:title" content="Dokumentasi">
+    <meta property="og:description" content="Bot berbahasa Indonesia untuk membantu tracking garapan fansubber.">
+    <meta property="og:url" content="https://api.ihateani.me/v2/gql-docs/">
+    <meta property="og:site_name" content="ihateani.me API">
+    <meta property="og:image" content="/assets/favicon.png">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#3DCE70">
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="57x57" href="/assets/img/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/assets/img/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/assets/img/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/assets/img/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/assets/img/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/assets/img/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/assets/img/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/assets/img/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icon192.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="/assets/img/icon128.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/assets/img/icon96.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/assets/img/icon64.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icon32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/icon16.png">
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css">
+</head>
+
+<body>
+    <div id="app">Please wait...</div>
+    <script>
+        window.$docsify = {
+            name: "ihaAPI v2",
+            repo: "ihateani-me/ihaapi-ts",
+            coverpage: true,
+            formatUpdated: "{MM}/{DD} {HH}:{mm}",
+            loadSidebar: true,
+            loadNavbar: true,
+            auto2top: true,
+            subMaxLevel: 5,
+            homepage: "homepage.md",
+            maxLevel: 8,
+            search: {
+                noData: {
+                    "/": "No results!"
+                },
+                paths: "auto",
+                placeholder: {
+                    "/": 'Search'
+                }
+            },
+            tabs: {
+                theme: "material"
+            },
+            themeColor: "#3DCE70"
+        }
+
+        if (typeof navigator.serviceWorker !== "undefined") {
+            navigator.serviceWorker.register("/assets/js/swdocs.js");
+        }
+    </script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-tabs@1"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
+    <script src="//unpkg.com/docsify-copy-code@2"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-bash.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-markdown.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-python.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-json.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-graphql.min.js"></script>
+</body>
+
+</html>
