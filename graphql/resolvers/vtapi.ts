@@ -732,7 +732,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             console.log("[GraphQL-VTAPIv2] Processing live()");
             console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
             console.log("[GraphQL-VTAPIv2-live()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "live");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
@@ -837,7 +837,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             console.log("[GraphQL-VTAPIv2] Processing upcoming()");
             console.log("[GraphQL-VTAPIv2-upcoming()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "upcoming");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
@@ -939,7 +939,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             console.log("[GraphQL-VTAPIv2] Processing ended()");
             console.log("[GraphQL-VTAPIv2-ended()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "past");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
@@ -1041,7 +1041,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             console.log("[GraphQL-VTAPIv2] Processing videos()");
             console.log("[GraphQL-VTAPIv2-videos()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "video");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
@@ -1144,7 +1144,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             console.log("[GraphQL-VTAPIv2] Processing channels()");
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
             console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             if (no_cache) {
                 console.info("[GraphQL-VTAPIv2-channels()] No cache requested!");
             }
@@ -1263,7 +1263,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 settings["group"] = parent["group"];
             }
             // console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForChannels({}, "stats", parent);
             // @ts-ignore
             let [results, ttl]: [ChannelStatistics, number] = await ctx.cacheServers.getBetter(cache_name, true);
@@ -1299,7 +1299,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             // console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
             // console.log("[GraphQL-VTAPIv2-LiveObject.channel()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req, "nocache", "0"));
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             let cache_name = getCacheNameForChannels({}, "singlech", parent);
             // @ts-ignore
