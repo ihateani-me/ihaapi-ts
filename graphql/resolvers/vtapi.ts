@@ -271,7 +271,7 @@ class VTAPIQuery {
                 if (is_none(value)) {
                     return null;
                 }
-                if (current_time >= value["endTime"]) {
+                if (current_time >= value["timeData"]["endTime"]) {
                     return null;
                 } else {
                     return value;
