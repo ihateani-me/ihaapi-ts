@@ -336,6 +336,7 @@ class VTAPIQuery {
                     "averageViewers": _.get(res, "averageViewers", null),
                     "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
                     "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
+                    "is_member": is_none(_.get(res, "is_member", null)) ? null : res["is_member"],
                     "thumbnail": res["thumbnail"],
                     "group": res["group"],
                     "platform": "youtube"

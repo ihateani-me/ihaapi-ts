@@ -212,6 +212,8 @@ export const VTAPIv2 = gql`
         is_missing: Boolean
         "Is it a premiere video or not? if it's null assume no"
         is_premiere: Boolean
+        "Is it a member stream or not? if it's null assume no (Youtube only). Started being checked since 27 Dec 2020 23:00 JST"
+        is_member: Boolean
         "The channel group/organization"
         group: String
         "The stream platform being used"
@@ -317,6 +319,7 @@ export interface LiveObject {
     averageViewers?: number
     is_missing?: boolean
     is_premiere?: boolean
+    is_member?: boolean
     group: string
     platform?: PlatformName
     pageInfo?: PageInfo
