@@ -206,6 +206,8 @@ export const VTAPIv2 = gql`
         viewers: Int
         "The peak viewers for the stream"
         peakViewers: Int
+        "Average viewers of the streams (only available when it's ended)"
+        averageViewers: Int
         "Is the video privated or not? if it's null assume no"
         is_missing: Boolean
         "Is it a premiere video or not? if it's null assume no"
@@ -312,6 +314,7 @@ export interface LiveObject {
     status: LiveStatus
     viewers?: number
     peakViewers?: number
+    averageViewers?: number
     is_missing?: boolean
     is_premiere?: boolean
     group: string

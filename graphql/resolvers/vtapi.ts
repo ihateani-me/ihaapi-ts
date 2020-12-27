@@ -333,6 +333,7 @@ class VTAPIQuery {
                     "channel_id": res["channel_id"],
                     "viewers": type === "video" ? null : res["viewers"], // force null
                     "peakViewers": res["peakViewers"],
+                    "averageViewers": _.get(res, "averageViewers", null),
                     "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
                     "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
                     "thumbnail": res["thumbnail"],
@@ -389,6 +390,7 @@ class VTAPIQuery {
                     "channel_id": res["channel_id"],
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
+                    "averageViewers": _.get(res, "averageViewers", null),
                     "thumbnail": res["thumbnail"],
                     "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
                     "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
@@ -417,6 +419,7 @@ class VTAPIQuery {
                     "channel_id": res["channel_id"],
                     "viewers": res["viewers"],
                     "peakViewers": res["peakViewers"],
+                    "averageViewers": _.get(res, "averageViewers", null),
                     "thumbnail": res["thumbnail"],
                     "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
                     "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
