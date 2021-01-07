@@ -458,6 +458,12 @@ class VTAPIQuery {
                         publishedAt: res["publishedAt"],
                         image: res["thumbnail"],
                         group: res["group"],
+                        statistics: {
+                            subscriberCount: res["subscriberCount"],
+                            viewCount: res["viewCount"],
+                            videoCount: res["videoCount"],
+                            level: null
+                        },
                         growth: mapGrowthData("youtube", res["id"], res["history"]),
                         platform: "youtube"
                     }
@@ -474,6 +480,12 @@ class VTAPIQuery {
                         description: res["description"],
                         publishedAt: res["publishedAt"],
                         image: res["thumbnail"],
+                        statistics: {
+                            subscriberCount: res["subscriberCount"],
+                            viewCount: res["viewCount"],
+                            videoCount: res["videoCount"],
+                            level: null
+                        },
                         is_live: res["live"],
                         group: res["group"],
                         platform: "bilibili"
@@ -488,6 +500,12 @@ class VTAPIQuery {
                         id: res["id"],
                         name: res["name"],
                         description: res["description"],
+                        statistics: {
+                            subscriberCount: res["followerCount"],
+                            viewCount: null,
+                            videoCount: null,
+                            level: res["level"]
+                        },
                         growth: mapGrowthData("twitcasting", res["id"], res["history"]),
                         image: res["thumbnail"],
                         group: res["group"],
@@ -505,6 +523,12 @@ class VTAPIQuery {
                         name: res["name"],
                         description: res["description"],
                         publishedAt: res["publishedAt"],
+                        statistics: {
+                            subscriberCount: res["followerCount"],
+                            viewCount: res["viewCount"],
+                            videoCount: res["videoCount"],
+                            level: null
+                        },
                         growth: mapGrowthData("twitch", res["id"], res["history"]),
                         image: res["thumbnail"],
                         group: res["group"],
@@ -520,13 +544,21 @@ class VTAPIQuery {
 
         let combined_channels: ChannelObject[] = [];
         if (platforms_choices.includes("youtube")) {
+            console.info("performQueryOnChannel() fetching youtube channels stats...");
             let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit, this.remapGroupsData(groups_choices));
+            console.info("performQueryOnChannel() processing youtube channels stats...");
             let remappedData: ChannelObject[] = ytUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
                     name: res["name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
+                    statistics: {
+                        subscriberCount: res["subscriberCount"],
+                        viewCount: res["viewCount"],
+                        videoCount: res["videoCount"],
+                        level: null
+                    },
                     growth: mapGrowthData("youtube", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
@@ -537,13 +569,21 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("bilibili")) {
+            console.info("performQueryOnChannel() fetching bilibili channels staats...");
             let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
+            console.info("performQueryOnChannel() processing bilibili channels staats...");
             let remappedData: ChannelObject[] = biliUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
                     room_id: res["room_id"],
                     name: res["name"],
                     description: res["description"],
+                    statistics: {
+                        subscriberCount: res["subscriberCount"],
+                        viewCount: res["viewCount"],
+                        videoCount: res["videoCount"],
+                        level: null
+                    },
                     publishedAt: res["publishedAt"],
                     image: res["thumbnail"],
                     is_live: res["live"],
@@ -555,12 +595,20 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("twitcasting")) {
+            console.info("performQueryOnChannel() fetching twitcasting channels staats...");
             let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
+            console.info("performQueryOnChannel() processing twitcasting channels staats...");
             let remappedData: ChannelObject[] = twUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
                     name: res["name"],
                     description: res["description"],
+                    statistics: {
+                        subscriberCount: res["followerCount"],
+                        viewCount: null,
+                        videoCount: null,
+                        level: res["level"]
+                    },
                     growth: mapGrowthData("twitcasting", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
@@ -571,7 +619,9 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("twitch")) {
+            console.info("performQueryOnChannel() fetching twitch channels staats...");
             let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
+            console.info("performQueryOnChannel() processing twitch channels staats...");
             let remappedData: ChannelObject[] = ttvUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
@@ -579,6 +629,12 @@ class VTAPIQuery {
                     name: res["name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
+                    statistics: {
+                        subscriberCount: res["followerCount"],
+                        viewCount: res["viewCount"],
+                        videoCount: res["videoCount"],
+                        level: null
+                    },
                     growth: mapGrowthData("twitch", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
@@ -731,8 +787,8 @@ export const VTAPIv2Resolvers: IResolvers = {
         live: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 50) {
-                limit = 50;
+            if (limit >= 75) {
+                limit = 75;
             }
             console.log("[GraphQL-VTAPIv2] Processing live()");
             console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
@@ -837,8 +893,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 50) {
-                limit = 50;
+            if (limit >= 75) {
+                limit = 75;
             }
             console.log("[GraphQL-VTAPIv2] Processing upcoming()");
             console.log("[GraphQL-VTAPIv2-upcoming()] Checking for cache...");
@@ -939,8 +995,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({maxAge: 300, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 50) {
-                limit = 50;
+            if (limit >= 75) {
+                limit = 75;
             }
             console.log("[GraphQL-VTAPIv2] Processing ended()");
             console.log("[GraphQL-VTAPIv2-ended()] Checking for cache...");
@@ -1041,8 +1097,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 50) {
-                limit = 50;
+            if (limit >= 75) {
+                limit = 75;
             }
             console.log("[GraphQL-VTAPIv2] Processing videos()");
             console.log("[GraphQL-VTAPIv2-videos()] Checking for cache...");
@@ -1143,20 +1199,21 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
-            if (limit >= 50) {
-                limit = 50;
+            if (limit >= 75) {
+                limit = 75;
             }
             console.log("[GraphQL-VTAPIv2] Processing channels()");
             console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
             console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+            let resetCache = map_bool(getValueFromKey(ctx.req.query, "resetcache", "0"));
             if (no_cache) {
                 console.info("[GraphQL-VTAPIv2-channels()] No cache requested!");
             }
             let cache_name = getCacheNameForChannels(args, "channel");
             // @ts-ignore
             let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
-            if (!is_none(results) && !no_cache) {
+            if (!is_none(results) && !no_cache && !resetCache) {
                 console.log(`[GraphQL-VTAPIv2-channels()] Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
@@ -1170,6 +1227,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    ctx.res.set("Cache-Control", "private, max-age=1800");
+                } else if (resetCache && results.length) {
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
@@ -1251,53 +1311,53 @@ export const VTAPIv2Resolvers: IResolvers = {
             return final_results;
         }
     },
-    ChannelObject: {
-        statistics: async (parent: ChannelObject, _a, ctx: VTAPIContext, info): Promise<ChannelStatistics> => {
-            // @ts-ignore
-            info.cacheControl.setCacheHint({maxAge: 3600, scope: 'PRIVATE'});
-            // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
-            let settings: ChannelParents = {
-                platform: parent.platform,
-                // @ts-ignore
-                channel_id: [parent.id],
-                group: null,
-                type: "stats",
-                force_single: true,
-            }
-            if (hasKey(parent, "group")) {
-                settings["group"] = parent["group"];
-            }
-            // console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
-            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
-            let cache_name = getCacheNameForChannels({}, "stats", parent);
-            // @ts-ignore
-            let [results, ttl]: [ChannelStatistics, number] = await ctx.cacheServers.getBetter(cache_name, true);
-            if (is_none(results)) {
-                // console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
-                // console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
-                results = await VTQuery.performQueryOnChannelStats(ctx.dataSources, settings);
-                // console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
-                if (!no_cache && !is_none(results)) {
-                    // dont cache for reason.
-                    ttl = 1800
-                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
-                }
-            }
-            if (is_none(results)) {
-                console.error("[GraphQL-VTAPIv2] ERROR: Got non-null type returned for channels.statistics()", parent.platform, parent.id);
-                return {
-                    "subscriberCount": null,
-                    "viewCount": null,
-                    "videoCount": null,
-                    "level": null
-                }
-            }
-            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
-            // console.log("ChannelDataStatsParent", parent);
-            // console.log("ChannelDataStatsParam", args);
-            return results;
-        }
-    },
+    // ChannelObject: {
+    //     statistics: async (parent: ChannelObject, _a, ctx: VTAPIContext, info): Promise<ChannelStatistics> => {
+    //         // @ts-ignore
+    //         info.cacheControl.setCacheHint({maxAge: 3600, scope: 'PRIVATE'});
+    //         // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
+    //         let settings: ChannelParents = {
+    //             platform: parent.platform,
+    //             // @ts-ignore
+    //             channel_id: [parent.id],
+    //             group: null,
+    //             type: "stats",
+    //             force_single: true,
+    //         }
+    //         if (hasKey(parent, "group")) {
+    //             settings["group"] = parent["group"];
+    //         }
+    //         // console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
+    //         let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+    //         let cache_name = getCacheNameForChannels({}, "stats", parent);
+    //         // @ts-ignore
+    //         let [results, ttl]: [ChannelStatistics, number] = await ctx.cacheServers.getBetter(cache_name, true);
+    //         if (is_none(results)) {
+    //             // console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
+    //             // console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
+    //             results = await VTQuery.performQueryOnChannelStats(ctx.dataSources, settings);
+    //             // console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
+    //             if (!no_cache && !is_none(results)) {
+    //                 // dont cache for reason.
+    //                 ttl = 1800
+    //                 await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+    //             }
+    //         }
+    //         if (is_none(results)) {
+    //             console.error("[GraphQL-VTAPIv2] ERROR: Got non-null type returned for channels.statistics()", parent.platform, parent.id);
+    //             return {
+    //                 "subscriberCount": null,
+    //                 "viewCount": null,
+    //                 "videoCount": null,
+    //                 "level": null
+    //             }
+    //         }
+    //         ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+    //         // console.log("ChannelDataStatsParent", parent);
+    //         // console.log("ChannelDataStatsParam", args);
+    //         return results;
+    //     }
+    // },
     LiveObject: {
         channel: async (parent: LiveObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelObject> => {
             // @ts-ignore
