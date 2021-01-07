@@ -384,10 +384,14 @@
             $cardMain.append($linkClick);
             let $cardMainBody = $(`<div class="card-body" />`);
             let is_member = get(channelInfo, "is_member", false);
+            let is_premiere = get(channelInfo, "is_premiere", false);
             if (channelInfo.platform === "youtube") {
                 $cardMainBody.append($(`<i class="nico-youtube mx-1 text-danger" />`));
                 if (is_member) {
                     $cardMainBody.append($(`<i class="nico-lock mx-1 text-warning" />`));
+                }
+                if (is_premiere) {
+                    $cardMainBody.append($(`<i class="nico-play mx-1 text-info" />`));
                 }
                 $cardMainBody.append($(`<span />`).text(is_member ? "YouTube (Member-only)" : "YouTube"));
             } else if (channelInfo.platform === "twitch") {
