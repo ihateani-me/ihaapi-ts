@@ -1,9 +1,10 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import FeedParser = require('feedparser');
 import cheerio = require("cheerio");
 import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import moment = require('moment-timezone');
 import stringToStream from "string-to-stream";
+import { logger as MainLogger } from "./logger";
 import { MongoConnection } from "../dbconn/mongo_client";
 
 const U2_DATABASE = new MongoConnection("u2db");
@@ -104,6 +105,7 @@ class U2Sessions {
 
 
 export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torrent[], string]> {
+    const logger = MainLogger.child({fn: "getU2TorrentsRSS"});
     const sess = new U2Sessions();
     const U2_PASSKEY = process.env.U2_PASSKEY;
     if (is_none(options)) {
@@ -113,15 +115,15 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
         options += "&trackerssl=1";
     }
     if (is_none(U2_PASSKEY)) {
-        console.warn("[getU2TorrentsRSS] `U2_PASSKEY` are not provided in env file.");
+        logger.warn("`U2_PASSKEY` are not provided in env file.");
         return [[], "webmaster doesn't provide U2 Passkey"];
     }
     options += "&passkey=" + U2_PASSKEY;
-    console.log("[getU2TorrentsRSS] fetching rss...");
+    logger.info("fetching rss...");
     try {
         var res = await sess.request(`https://u2.dmhy.org/torrentrss.php?${options}`);
     } catch (err) {
-        console.error(err);
+        logger.error(err);
         return [[], "Exception occured: " + err.toString()];
     }
 
@@ -132,7 +134,7 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
     try {
         var u2_res = await feedParse(res);
     } catch (err) {
-        console.error(err);
+        logger.error(err);
         return [[], "Exception occured: " + err.toString()];
     }
     if (Object.keys(u2_res).length < 1) {
@@ -140,6 +142,7 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
     }
 
     var u2_results: U2Torrent[] = [];
+    logger.info("finalizing results...");
     u2_res["items"].forEach((entry_data) => {
         // @ts-ignore
         let dataset: U2Torrent = {};
@@ -170,16 +173,18 @@ export async function getU2TorrentsRSS(options: string = null): Promise<[U2Torre
 }
 
 export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> {
+    const logger = MainLogger.child({fn: "getU2TorrentOffers"});
     const sess = new U2Sessions();
     if (sess.no_cookies) {
-        console.warn("[getU2TorrentOffers] `U2_COOKIES` are not provided in env file.");
+        logger.warn("`U2_COOKIES` are not provided in env file.");
         return [[], "webmaster doesn't provide U2 Cookies"];
     }
 
+    logger.info("requesting offers page...");
     try {
         var res = await sess.request(`https://u2.dmhy.org/offers.php`);
     } catch (err) {
-        console.error(err);
+        logger.error(err);
         return [[], "Exception occured: " + err.toString()];
     }
 
@@ -192,11 +197,12 @@ export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> 
     // scuffed way to only select the main tr and not inner one.
     // this is bad, and very hacky, and might be broken.
     // :FubukiWorry:
+    logger.info("processing results...");
     let $main_table = $("table.mainouter");
     let $torrents_set: cheerio.Cheerio[] = $main_table.find("table.torrents > tbody > tr").map((index, elem) => {
         return $(elem);
     }).get();
-    let $main_head = $torrents_set[0];
+    // let $main_head = $torrents_set[0];
     let parsed_data = $torrents_set.slice(1).map(($torrent) => {
         let all_td = $torrent.children("td");
         if (all_td.length == 0) {
@@ -257,6 +263,7 @@ export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> 
 }
 
 export async function checkNewestRSS(options: string = null, sort_from_newest: boolean = false): Promise<U2Torrent[]> {
+    const logger = MainLogger.child({fn: "checkNewestU2RSS"});
     try {
         var [u2_dataset, msg] = await getU2TorrentsRSS(options);
     } catch (e) {
@@ -267,7 +274,7 @@ export async function checkNewestRSS(options: string = null, sort_from_newest: b
         return [];
     }
 
-    console.log("[checkNewestRSS] Fetching old data...");
+    logger.info("Fetching old data...");
     let u2_olddata = (await U2_DATABASE.open_collection("u2data"))[0];
     let u2_filtered_data = [];
     u2_dataset.forEach((new_data) => {
@@ -278,7 +285,7 @@ export async function checkNewestRSS(options: string = null, sort_from_newest: b
     });
 
     if (u2_filtered_data.length > 0) {
-        console.log("[checkNewestRSS] Updating old data...");
+        logger.info("Updating old data...");
         await U2_DATABASE.update_collection("u2data", u2_olddata);
     }
     if (sort_from_newest) {
@@ -288,6 +295,7 @@ export async function checkNewestRSS(options: string = null, sort_from_newest: b
 }
 
 export async function checkNewestOffers(sort_from_newest: boolean = false): Promise<U2OfferTorrent[]> {
+    const logger = MainLogger.child({fn: "checkNewestU2Offers"});
     try {
         var [u2_dataset, msg] = await getU2TorrentOffers();
     } catch (e) {
@@ -298,7 +306,7 @@ export async function checkNewestOffers(sort_from_newest: boolean = false): Prom
         return [];
     }
 
-    console.log("[checkNewestOffers] Fetching old data...");
+    logger.info("Fetching old data...");
     let u2_olddata = (await U2_DATABASE.open_collection("offersdata"))[0];
     let u2_filtered_data = [];
     u2_dataset.forEach((new_data) => {
@@ -309,7 +317,7 @@ export async function checkNewestOffers(sort_from_newest: boolean = false): Prom
     });
 
     if (u2_filtered_data.length > 0) {
-        console.log("[checkNewestOffers] Updating old data...");
+        logger.info("Updating old data...");
         await U2_DATABASE.update_collection("offersdata", u2_olddata);
     }
     if (sort_from_newest) {

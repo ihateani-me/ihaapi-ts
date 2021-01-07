@@ -4,6 +4,9 @@ import { RedisDB } from "../dbconn/redis_client";
 import { getValueFromKey, is_none, removeKeyFromObjects, sortObjectsByKey } from "./swissknife";
 import getMimeType = require('mime-type-check');
 import { basename } from 'path';
+import { logger as TopLogger } from "./logger";
+
+const MainLogger = TopLogger.child({cls: "nHentai"});
 
 export interface nhInfoData {
     id: string
@@ -164,10 +167,11 @@ async function nhParseJson(res_data: object, page_ident = null): Promise<nhInfoD
 }
 
 export async function nhFetchInfo(doujin_id: string): Promise<[nhInfoData | string, number]> {
-    console.info(`[nh:info] Fetching code: ${doujin_id}`);
+    const logger = MainLogger.child({fn: "fetchInfo"});
+    logger.info(`Fetching code: ${doujin_id}`);
     let cache_data: nhInfoData = await REDIS_INSTANCE.get(`nhi${doujin_id}`);
     if (!is_none(cache_data)) {
-        console.log(`[nh:info] Cache exist for ${doujin_id}, using it...`);
+        logger.info(`Cache exist for ${doujin_id}, using it...`);
         cache_data["status_code"] = 200;
         return [cache_data, 200];
     }
@@ -178,14 +182,14 @@ export async function nhFetchInfo(doujin_id: string): Promise<[nhInfoData | stri
         }
     });
 
-    console.info("[nh:info] Communicating with nhentai.");
+    logger.info("Communicating with nhentai.");
     let [res_data, stat_code] = await nhRequest(`https://nhentai.net/api/gallery/${doujin_id}`, session);
     if (stat_code != 200) {
-        console.error(`[nh:info] err ${stat_code}: ${res_data['message']}`);
+        logger.error(`err ${stat_code}: ${res_data['message']}`);
         return [res_data, stat_code];
     }
 
-    console.info("[nh:info] Parsing results...");
+    logger.info("Parsing results...");
     let parsed_info = await nhParseJson(res_data);
     await REDIS_INSTANCE.setex(`nhi${doujin_id}`, 60 * 60 * 24 * 3, parsed_info);
     parsed_info["status_code"] = 200;
@@ -193,25 +197,26 @@ export async function nhFetchInfo(doujin_id: string): Promise<[nhInfoData | stri
 }
 
 export async function nhSearchDoujin(query: string, page: number): Promise<[nhSearchData, number]> {
-    console.info(`[nh:search] Searching: ${query}`);
+    const logger = MainLogger.child({fn: "searchDoujin"});
+    logger.info(`Searching: ${query}`);
     let session = axios.create({
         headers: {
             "User-Agent": CHROME_UA
         }
     });
 
-    console.info("[nh:search] Communicating with nhentai.");
+    logger.info("Communicating with nhentai.");
     let request_url = `https://nhentai.net/api/galleries/search?query=${encodeURIComponent(query)}&page=${page}`;
     let [res_data, stat_code] = await nhRequest(request_url, session);
     if (stat_code != 200) {
-        console.error(`[nh:search] err ${stat_code}: ${res_data['message']}`);
+        logger.error(`err ${stat_code}: ${res_data['message']}`);
         return [res_data, stat_code];
     }
 
-    console.info("[nh:search] Parsing results...");
+    logger.info("Parsing results...");
     let request_results: object[] = res_data["result"];
     if (is_none(request_results)) {
-        console.error("[nh:search] err 404: no results");
+        logger.error("err 404: no results");
         return [{ "status_code": 400, "message": "no results" }, 404];
     }
     let parsed_results: nhInfoData[] = [];
@@ -235,10 +240,11 @@ export async function nhSearchDoujin(query: string, page: number): Promise<[nhSe
 }
 
 export async function nhLatestDoujin(page: number): Promise<[nhSearchData, number]> {
-    console.info(`[nh:latest] Fetching page: ${page}`);
+    const logger = MainLogger.child({fn: "latestDoujin"});
+    logger.info(`Fetching page: ${page}`);
     let cache_data: nhSearchData = await REDIS_INSTANCE.get(`nhlatest_page${page}`);
     if (!is_none(cache_data)) {
-        console.log(`[nh:latest] Cache exist for latest page ${page}, using it...`);
+        logger.info(`Cache exist for latest page ${page}, using it...`);
         cache_data["status_code"] = 200;
         return [cache_data, 200];
     }
@@ -248,18 +254,18 @@ export async function nhLatestDoujin(page: number): Promise<[nhSearchData, numbe
         }
     });
 
-    console.info("[nh:latest] Communicating with nhentai.");
+    logger.info("Communicating with nhentai.");
     let request_url = `https://nhentai.net/api/galleries/all?page=${page}`;
     let [res_data, stat_code] = await nhRequest(request_url, session);
     if (stat_code != 200) {
-        console.error(`[nh:search] err ${stat_code}: ${res_data['message']}`);
+        logger.error(`err ${stat_code}: ${res_data['message']}`);
         return [res_data, stat_code];
     }
 
-    console.info("[nh:latest] Parsing results...");
+    logger.info("Parsing results...");
     let request_results: object[] = res_data["result"];
     if (is_none(request_results)) {
-        console.error("[nh:latest] err 404: no results");
+        logger.error("err 404: no results");
         return [{ "status_code": 400, "message": "no results" }, 404];
     }
     let parsed_results: nhInfoData[] = [];
@@ -283,7 +289,8 @@ export async function nhLatestDoujin(page: number): Promise<[nhSearchData, numbe
 }
 
 async function nhInternalImageCaching(url: string, session: AxiosInstance): Promise<[Buffer, string]> {
-    console.info(`[nh:imgcache] finding cache: ${url}`);
+    const logger = MainLogger.child({fn: "imageCaching"});
+    logger.info(`finding cache: ${url}`);
     let base_name = basename(url).split(".");
     let ext = base_name.slice(base_name.length - 1, base_name.length).join(".");
     let mimetype = getMimeType(ext);
@@ -293,7 +300,7 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
         return [null, null];
     }
     if (is_none(img_cache)) {
-        console.info(`[nh:imgcache] ${url} cache not found, requesting.`);
+        logger.info(`${url} cache not found, requesting.`);
         while (true) {
             var [r_img, stat_code] = await nhRequest(url, session);
             if (stat_code == 404) {
@@ -302,16 +309,16 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
             if (stat_code < 400) {
                 break;
             }
-            console.warn("[nh:imgcache:req] failed to request, retrying in 500ms");
+            logger.warn("failed to request, retrying in 500ms");
             await sleep(500);
         }
-        console.log(`[nh:imgcache] Caching ${url}`);
+        logger.info(`Caching ${url}`);
         let buffer_image = Buffer.from(r_img, "binary");
         await REDIS_INSTANCE.setex(url, 60 * 60 * 24 * 7, buffer_image.toString("base64"));
         // used for expressjs return.
         return [buffer_image, mimetype];
     } else {
-        console.info(`[nhproxy:imgcache] ${url} cache found.`);
+        logger.info(`${url} cache found.`);
         // used for expressjs return.
         let buffer_image = Buffer.from(img_cache, "base64");
         return [buffer_image, mimetype];
@@ -319,6 +326,7 @@ async function nhInternalImageCaching(url: string, session: AxiosInstance): Prom
 }
 
 export async function nhImageProxy(doujin_id: string, page: number): Promise<[nhInfoData | nhSearchData | Buffer, string, number]> {
+    const logger = MainLogger.child({fn: "imageProxy"});
     if (page < 1) { page = 1};
     let session = axios.create({
         headers: {
@@ -326,10 +334,10 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
         },
         responseType: "arraybuffer"
     });
-    console.info(`[nh:simg] finding info cache: ${doujin_id}`)
+    logger.info(`finding info cache: ${doujin_id}`)
     let parsed_info: nhInfoData = await REDIS_INSTANCE.get(`nhi${doujin_id}`)
     if (!is_none(parsed_info)) {
-        console.info(`[nh:simg:${doujin_id}] info cache found`);
+        logger.info(`${doujin_id}: info cache found`);
     } else {
         let inf_stat_code: number;
         // @ts-ignore
@@ -339,12 +347,12 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
         }
     }
 
-    console.info(`[nh:simg:${doujin_id}] getting image set`);
+    logger.info(`${doujin_id}: getting image set`);
     let images = parsed_info["images"];
     try {
         var image_url = images[page - 1];
     } catch (e) {
-        console.error(`[nh:simg:${doujin_id}] number out of bounds`);
+        logger.error(`${doujin_id}: number out of bounds`);
         return [
             {"status_code": 404, "message": "page number doesn't exists"},
             null,
@@ -358,7 +366,7 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
         image_url = image_url.replace("https://api.ihateani.me/v1/nh/t/", "https://t.nhentai.net/galleries/");
     }
 
-    console.info(`[nh:simg:${doujin_id}] getting image cache...`);
+    logger.info(`${doujin_id}: getting image cache...`);
     let [image_buffer, mimetype] = await nhInternalImageCaching(image_url, session);
     if (is_none(image_buffer)) {
         return [{"status_code": 404, "message": "image not found"}, null, 404];
@@ -367,6 +375,7 @@ export async function nhImageProxy(doujin_id: string, page: number): Promise<[nh
 }
 
 export async function nhImagePathProxy(path: string, is_thumbnail: boolean = false): Promise<[nhSearchData | Buffer, string]> {
+    const logger = MainLogger.child({fn: "imagePathProxy"});
     var base_url = "https://i.nhentai.net/galleries/";
     if (is_thumbnail) {
         base_url = "https://t.nhentai.net/galleries/";
@@ -380,7 +389,7 @@ export async function nhImagePathProxy(path: string, is_thumbnail: boolean = fal
     });
 
     let image_url = `${base_url}${path}`;
-    console.info(`[nh:imgproxy] getting image proxy: ${path}`);
+    logger.info(`getting image proxy: ${path}`);
     let [image_buffer, mimetype] = await nhInternalImageCaching(image_url, session);
     if (is_none(image_buffer)) {
         return [{"status_code": 404, "message": "image not found"}, null];

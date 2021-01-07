@@ -1,7 +1,9 @@
 import axios, { AxiosInstance } from "axios";
 import moment from "moment-timezone";
 import { is_none } from "./swissknife";
+import { logger as MainLogger } from "./logger";
 import _ from "lodash";
+import winston from "winston";
 
 interface AnyDict {
     [key: string]: any;
@@ -14,6 +16,7 @@ export class TwitchHelix {
     private authorized: boolean
     private bearer_token?: string
     private expires: number
+    private logger: winston.Logger
     BASE_URL: string
     OAUTH_URL: string
 
@@ -29,6 +32,7 @@ export class TwitchHelix {
 
         this.BASE_URL = "https://api.twitch.tv/helix/";
         this.OAUTH_URL = "https://id.twitch.tv/oauth2/";
+        this.logger = MainLogger.child({cls: "TwitchHelix"});
     }
 
     private current() {
@@ -77,11 +81,12 @@ export class TwitchHelix {
     }
 
     async expireToken() {
+        const logger = this.logger.child({fn: "expireToken"});
         let params = {"client_id": this.cid, "token": this.bearer_token};
         if (this.authorized) {
-            console.info("twitchHelix.expireToken() de-authorizing...");
+            logger.info("de-authorizing...");
             await this.postReq(this.OAUTH_URL + "revoke", params);
-            console.info("twitchHelix.expireToken() de-authorized.");
+            logger.info("de-authorized.");
             this.expires = 0;
             this.bearer_token = undefined;
             this.authorized = false;
@@ -89,22 +94,24 @@ export class TwitchHelix {
     }
 
     async authorizeClient() {
+        const logger = this.logger.child({fn: "authorizeClient"});
         let params = {"client_id": this.cid, "client_secret": this.csc, "grant_type": "client_credentials"};
-        console.info("twitchHelix.authorizeClient() authorizing...");
+        logger.info("authorizing...");
         let res = await this.postReq(this.OAUTH_URL + "token", params);
         this.expires = this.current() + res["expires_in"];
         this.bearer_token = res["access_token"];
-        console.info("twitchHelix.authorizeClient() authorized.");
+        logger.info("authorized!");
         this.authorized = true;
     }
 
     async fetchLivesData(usernames: string[]) {
+        const logger = this.logger.child({fn: "fetchLivesData"});
         if (!this.authorized) {
-            console.warn("twitchHelix.fetchLivesData() You're not authorized yet, requesting new bearer token...");
+            logger.warn("You're not authorized yet, requesting new bearer token...");
             await this.authorizeClient();
         }
         if (this.current() >= this.expires) {
-            console.warn("twitchHelix.fetchLivesData() Token expired, rerequesting...");
+            logger.warn("Token expired, rerequesting...");
             await this.authorizeClient();
         }
 
@@ -113,6 +120,7 @@ export class TwitchHelix {
             "Client-ID": this.cid
         }
         let params = ["first=100"];
+        logger.info(`requesting a total of ${usernames.length} usernames`);
         usernames.forEach((username) => {
             params.push(`user_login=${username}`);
         })
@@ -121,12 +129,13 @@ export class TwitchHelix {
     }
 
     async fetchChannels(usernames: string[]) {
+        const logger = this.logger.child({fn: "fetchChannels"});
         if (!this.authorized) {
-            console.warn("twitchHelix.fetchChannels() You're not authorized yet, requesting new bearer token...");
+            logger.warn("You're not authorized yet, requesting new bearer token...");
             await this.authorizeClient();
         }
         if (this.current() >= this.expires) {
-            console.warn("twitchHelix.fetchChannels() Token expired, rerequesting...");
+            logger.warn("Token expired, rerequesting...");
             await this.authorizeClient();
         }
 
@@ -135,6 +144,7 @@ export class TwitchHelix {
             "Client-ID": this.cid
         }
         let params: string[] = [];
+        logger.info(`requesting a total of ${usernames.length} usernames`);
         usernames.forEach((username) => {
             params.push(`login=${username}`);
         })
@@ -143,12 +153,13 @@ export class TwitchHelix {
     }
 
     async fetchChannelFollowers(user_id: string) {
+        const logger = this.logger.child({fn: "fetchChannelFollowers"});
         if (!this.authorized) {
-            console.warn("twitchHelix.fetchChannelFollowers() You're not authorized yet, requesting new bearer token...");
+            logger.warn("You're not authorized yet, requesting new bearer token...");
             await this.authorizeClient();
         }
         if (this.current() >= this.expires) {
-            console.warn("twitchHelix.fetchChannelFollowers() Token expired, rerequesting...");
+            logger.warn("Token expired, rerequesting...");
             await this.authorizeClient();
         }
 
@@ -162,12 +173,13 @@ export class TwitchHelix {
     }
 
     async fetchChannelVideos(user_id: string) {
+        const logger = this.logger.child({fn: "fetchChannelVideos"});
         if (!this.authorized) {
-            console.warn("twitchHelix.fetchChannelFollowers() You're not authorized yet, requesting new bearer token...");
+            logger.warn("You're not authorized yet, requesting new bearer token...");
             await this.authorizeClient();
         }
         if (this.current() >= this.expires) {
-            console.warn("twitchHelix.fetchChannelFollowers() Token expired, rerequesting...");
+            logger.warn("Token expired, rerequesting...");
             await this.authorizeClient();
         }
 

@@ -3,6 +3,8 @@ import { basename } from 'path';
 import xml2js = require("xml2js");
 import moment = require('moment-timezone');
 import { capitalizeIt, fallbackNaN, getValueFromKey, hasKey, is_none } from './swissknife';
+import { logger as MainLogger } from "./logger";
+import winston = require('winston');
 
 const SDB_ALGOLIA = "https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/";
 const DEFAULT_AVATAR = "https://steamuserimages-a.akamaihd.net/ugc/868480752636433334/1D2881C5C9B3AD28A1D8852903A8F9E1FF45C2C8/";
@@ -131,6 +133,7 @@ class SteamUser {
     API_KEY: string | undefined;
     BASE_API: string;
     BASE_STEAM: string;
+    logger: winston.Logger;
 
     constructor(user: string) {
         this.user_data = user;
@@ -144,6 +147,8 @@ class SteamUser {
         this.API_KEY = process.env.STEAM_API_KEY;
         this.BASE_API = "https://api.steampowered.com/";
         this.BASE_STEAM = "https://steamcommunity.com/";
+
+        this.logger = MainLogger.child({cls: "SteamUser"});
     }
 
     check_if_vanity(user: string | number) {
@@ -157,6 +162,7 @@ class SteamUser {
     }
 
     private async request_api(method: string, endpoint: string, params?: any) {
+        const logger = this.logger.child({fn: "request_api"});
         let req_config: AxiosRequestConfig = {
             "url": this.BASE_API + endpoint
         };
@@ -173,7 +179,7 @@ class SteamUser {
         if (params) {
             req_config["params"] = params;
         }
-        console.log(`[steam:request_api]: requesting to: '${endpoint}'`);
+        logger.info(`requesting to: '${endpoint}'`);
         return await this.session.request(req_config);
     }
 
@@ -184,32 +190,34 @@ class SteamUser {
     }
 
     async resolve_vanity() {
-        console.log("[Steam:user] Resolving vanity: " + this.user_data);
+        const logger = this.logger.child({fn: "resolve_vanity"});
+        logger.info("Resolving vanity: " + this.user_data);
         var response = await this.request_api("get", `ISteamUser/ResolveVanityURL/v1?key=${this.API_KEY}&vanityurl=${this.user_data}`);
         try {
             var resp = response.data["response"];
             if (!hasKey(resp, "success")) {
-                console.error("[Steam:user:vanity] No success data.");
+                logger.error("No success data.");
                 throw new SteamVanityResolveError("Can't resolve Vanity URL.");
             }
             if (resp["success"] != 1) {
-                console.error("[Steam:user:vanity] Failed to resolve vanity.");
+                logger.error("Failed to resolve vanity.");
                 throw new SteamVanityResolveError("Can't resolve Vanity URL.");
             }
             this.user_data = resp["steamid"];
             
             this.check_if_vanity(this.user_data);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             throw new SteamVanityResolveError("Can't resolve Vanity URL.");
         };
     }
 
     async fetch_info() {
+        const logger = this.logger.child({fn: "fetch_info"});
         if (this.is_vanity) {
             await this.resolve_vanity();
         };
-        console.info(`[Steam:user] Fetching user: ${this.user_data}`);
+        logger.info(`Fetching user: ${this.user_data}`);
 
         function _pick_avatar(steam_data) {
             var avatar = null;
@@ -246,7 +254,7 @@ class SteamUser {
             "5": "Public",
         }
 
-        console.info("[Steam:user] Processing jobs...");
+        logger.info("Processing jobs...");
         let raw_results_hell = await Promise.all(
             [
                 this.request_api("get", `ISteamUser/GetPlayerSummaries/v2?key=${this.API_KEY}&steamids=${this.user_data}`),
@@ -256,7 +264,7 @@ class SteamUser {
                 this.request_api("get", `ISteamUser/GetPlayerBans/v1?key=${this.API_KEY}&steamids=${this.user_data}`)
             ]
         )
-        console.log("[Steam:user] Finished requesting!");
+        logger.info("Finished requesting, parsing results!");
         let raw_results = {};
         // @ts-ignore
         var user_data: SteamUserData = {};
@@ -266,7 +274,7 @@ class SteamUser {
         raw_results["friends"] = raw_results_hell[3].data;
         raw_results["vacban"] = raw_results_hell[4].data;
         for (let [ident, result] of Object.entries(raw_results)) {
-            console.info("[Steam:user:" + ident + "] Parsing...");
+            logger.info(`Parsing "${ident}" data...`);;
             if (ident === "summary") {
                 var summaries = result["response"]["players"][0];
                 user_data["id"] = summaries["steamid"];
@@ -344,9 +352,10 @@ class SteamUser {
 }
 
 export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameData | object, string]> {
+    const logger = MainLogger.child({fn: "fetch_steam_game_info"});
     const ENDPOINT = "https://store.steampowered.com/api/appdetails";
     let qparam = {"cc": "id", "l": "en", "appids": app_id};
-    console.info(`[Steam:info] Querying ID: ${app_id}...`);
+    logger.info(`Querying ID: ${app_id}...`);
     let response = await axios.get(ENDPOINT, {
         params: qparam,
         headers: {
@@ -354,7 +363,7 @@ export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameD
         }
     });
     let json_data = response.data;
-    console.info(`[Steam:info] Parsing: ${app_id}...`);
+    logger.info(`Parsing: ${app_id}...`);
     let raw_steam_data = json_data[app_id];
     if (!raw_steam_data["success"]) {
         return [{}, "Failed fetching that appID from Steam."];
@@ -412,9 +421,10 @@ export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameD
 
 
 export async function do_search_on_steam(query_search: string): Promise<SteamGameSearch[]> {
+    const logger = MainLogger.child({fn: "do_search_on_steam"});
     const ENDPOINT = "https://store.steampowered.com/api/storesearch";
     let qparam = {"cc": "id", "l": "en", "term": encodeURIComponent(query_search)};
-    console.info(`[Steam:search] Searching: ${query_search}...`);
+    logger.info(`Searching: ${query_search}...`);
     let response = await axios.get(ENDPOINT, {
         params: qparam,
         headers: {
@@ -422,9 +432,9 @@ export async function do_search_on_steam(query_search: string): Promise<SteamGam
         }
     });
     let results = response.data;
-    console.info(`[Steam:info] Collecting results: ${query_search}...`);
+    logger.info(`Collecting results: ${query_search}...`);
     if (!hasKey(results, "items")) {
-        console.info("[Steam:search] No result.");
+        logger.warn("No result.");
         return [];
     };
 
@@ -465,8 +475,8 @@ export async function do_steamdb_search(query, add_dlc=false, add_app=false, add
         "Referer": "https://steamdb.info/",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
     }
-
-    console.info("[SDBSearch] Setting parameters...")
+    const logger = MainLogger.child({fn: "do_steamdb_search"});
+    logger.info("Setting parameters...")
     let query_param = {
         "x-algolia-agent": "SteamDB Autocompletion",
         "x-algolia-application-id": "94HE6YATEI",
@@ -479,16 +489,17 @@ export async function do_steamdb_search(query, add_dlc=false, add_app=false, add
     }
 
     try {
+        logger.info(`requesting: ${query}`);
         var response = await axios.get(SDB_ALGOLIA, {
             params: query_param,
             headers: headers
         })
     } catch (error) {
-        console.error(`[SDBSearch] Error occured: ${error}`);
+        logger.error(`Error occured: ${error}`);
         return [[], "Exception occured: " + error.toString()];
     }
 
-    console.log("[SDBSearch] Parsing info...");
+    logger.info("Parsing info...");
     let results = response.data;
     if (!hasKey(results, "hits")) { return [[], "Failed to fetch results."] };
     if (results["hits"].length == 0) { return [[], "No results."] };
@@ -580,12 +591,13 @@ export async function do_steamdb_search(query, add_dlc=false, add_app=false, add
 
 
 export async function fetch_steam_user_info(user_id_or_vanity: string): Promise<[SteamUserData | object, string]> {
+    const logger = MainLogger.child({fn: "fetch_steam_user_info"});
     let steam_u = new SteamUser(user_id_or_vanity);
     try {
         var steam_res = await steam_u.fetch_info();
         return [steam_res, "Success"];
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         if (err.name == "SteamVanityResolveError") {
             return [{}, err.problem];
         }

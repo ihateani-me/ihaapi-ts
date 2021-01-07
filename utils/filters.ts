@@ -2,6 +2,7 @@
 
 import { is_none, filter_empty, hasKey, sortObjectsByKey } from "./swissknife";
 import { YouTubeData, BilibiliData, YTFilterArgs, YTLiveArray, LiveMap, ChannelArray, ChannelMap } from "./models";
+import { logger as MainLogger } from "./logger"
 import moment = require('moment-timezone');
 import _ from "lodash";
 
@@ -85,6 +86,7 @@ function get_group(group_name: string) {
 }
 
 function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeData[]): LiveMap<YouTubeData[]> {
+    const logger = MainLogger.child({fn: "parse_youtube_live_args"});
     let filtered_live: YouTubeData[] = [];
     let filtered_upcoming: YouTubeData[] = [];
     let filtered_ended: YouTubeData[] = [];
@@ -119,9 +121,9 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
         if (!statuses_set.includes("ended")) { add_past = false };
     };
 
-    console.log(`[parse_youtube_live_args] fields set: ${fields_set.join(", ")}`);
-    console.log(`[parse_youtube_live_args] status live/upcoming/past: ${add_lives}/${add_upcoming}/${add_past}`);
-    console.log("[parse_youtube_live_args] filtering data...");
+    logger.info(`fields set: ${fields_set.join(", ")}`);
+    logger.info(`status live/upcoming/past: ${add_lives}/${add_upcoming}/${add_past}`);
+    logger.info("filtering data...");
 
     let allowed_groups = [];
     groups_set.forEach((group) => {
@@ -136,7 +138,6 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
         filtered_live = fetched_results.filter(res => res.status === "live");
         filtered_upcoming = fetched_results.filter(res => res.status === "upcoming");
         filtered_ended = fetched_results.filter(res => res.status === "past");
-        console.log(filtered_live.length, filtered_upcoming.length, filtered_ended.length, fetched_results.length);
     } else if (typeof fetched_results == "object" && !Array.isArray(fetched_results)) {
         for (let [channel_id, channel_data] of Object.entries(fetched_results)) {
             // @ts-ignore
@@ -205,11 +206,12 @@ function parse_youtube_live_args(args: YTFilterArgs, fetched_results: YouTubeDat
 }
 
 function bilibili_use_uuids(uuids: any, fetched_results: BilibiliData[]): BilibiliData[] {
+    const logger = MainLogger.child({fn: "bilibili_use_uuids"});
     if (uuids == undefined || uuids == null) {
         return fetched_results;
     }
     var uuids_splitted = decodeURIComponent(uuids).split(",");
-    console.debug(`[bilibili_use_uuids] filtering with user UUIDs: ${uuids_splitted.join(", ")}`);
+    logger.info(`filtering with user UUIDs: ${uuids_splitted.join(", ")}`);
     let filtered_results: BilibiliData[] = [];
     fetched_results.forEach((stream) => {
         if (uuids_splitted.includes(stream.channel)) {
@@ -220,6 +222,7 @@ function bilibili_use_uuids(uuids: any, fetched_results: BilibiliData[]): Bilibi
 }
 
 function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>): ChannelMap<any[]> {
+    const logger = MainLogger.child({fn: "channel_filters"});
     let channels_data: any[] = [];
     const DEFAULT_FIELDS_KEY = [
         "id",
@@ -272,9 +275,9 @@ function channel_filters(args: YTFilterArgs, fetched_results: ChannelArray<any>)
         fields_set = DEFAULT_FIELDS_KEY;
     };
 
-    console.log(`[channel_filters] groups set: ${groups_set.join(", ")}`);
-    console.log(`[channel_filters] fields set: ${fields_set.join(", ")}`);
-    console.log(`[channel_filters] sorted by/sort order: ${sort_by}/${sort_order}`);
+    logger.info(`groups set: ${groups_set.join(", ")}`);
+    logger.info(`fields set: ${fields_set.join(", ")}`);
+    logger.info(`sorted by/sort order: ${sort_by}/${sort_order}`);
 
     let allowed_groups = [];
     groups_set.forEach((group) => {

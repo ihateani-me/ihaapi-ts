@@ -2,6 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import cheerio = require("cheerio");
 import qs = require('qs');
 import { getValueFromKey, is_none } from './swissknife';
+import { logger as MainLogger } from "./logger";
+import winston = require('winston');
 
 interface HLTBData {
     title: string
@@ -17,6 +19,7 @@ class HowLongToBeat {
     API_URL: string
     BASE_URL: string
     session: AxiosInstance;
+    logger: winston.Logger;
 
     constructor() {
         this.BASE_URL = "https://howlongtobeat.com/";
@@ -27,6 +30,7 @@ class HowLongToBeat {
             }
         });
         this.session = session;
+        this.logger = MainLogger.child({cls: "HowLongToBeat"});
     }
 
     private format_results($: cheerio.Root, results: cheerio.Cheerio): HLTBData[] {
@@ -134,8 +138,9 @@ class HowLongToBeat {
             "length_max": "",
             "detail": "user_stats",
         }
-        console.info(`[HLTB] Start searching: ${q}`);
-        console.info(`[HLTB] Requesting: ${this.API_URL}?page=${p}`);
+        const logger = this.logger.child({fn: "search"});
+        logger.info(`Start searching: ${q}`);
+        logger.info(`Requesting: ${this.API_URL}?page=${p}`);
         let response = await this.session.post(`${this.API_URL}?page=${p}`, qs.stringify(formData), {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
@@ -150,11 +155,11 @@ class HowLongToBeat {
                 return [[], "Unknown error occured"];
             };
         };
-        console.log(`[HLTB] Start parsing: ${q}`);
+        logger.info(`Start parsing: ${q}`);
         let $ = cheerio.load(response.data);
         let results = $("li.back_darkish");
         if (results.length == 0) {
-            console.warn("[HLTB] No results.");
+            logger.warn("No results.");
             return [[], "No results"]
         }
         return [this.format_results($, results), "Success"];
@@ -162,12 +167,13 @@ class HowLongToBeat {
 }
 
 export async function hltb_search(query: string, page: number = 1): Promise<[HLTBData[], string]> {
+    const logger = MainLogger.child({fn: "hltb_search"});
     let hltb_cls = new HowLongToBeat();
     try {
         let [hltb_res, hltb_msg] = await hltb_cls.search(query, page);
         return [hltb_res, hltb_msg];
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         return [[], "Exception occured: " + error.toString()];
     }
 }

@@ -2,7 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 import xml2js = require("xml2js");
 import cheerio = require("cheerio");
 import FormData = require('form-data');
+import { logger as MainLogger } from "./logger";
 import { fallbackNaN, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from './swissknife';
+import winston = require('winston');
 const packageJson = require("../package.json");
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
@@ -40,6 +42,7 @@ export class SauceNAO {
     dbmask: string
     dbmaski: string
     test_mode: boolean
+    logger: winston.Logger;
 
     constructor(settings?: SauceNAOSettings) {
         this.api_key = getValueFromKey(settings, "api_key");
@@ -54,6 +57,7 @@ export class SauceNAO {
         this.dbmask = getValueFromKey(settings, "dbmask_enable");
         this.dbmaski = getValueFromKey(settings, "dbmask_disable");
         this.test_mode = getValueFromKey(settings, "testmode", false);
+        this.logger = MainLogger.child({cls: "SauceNAO"});
         this.precheckSettings();
     }
 
@@ -637,8 +641,9 @@ export class SauceNAO {
         if (!hasKey(results, "results")) {
             return [];
         }
+        const logger = this.logger.child({fn: "buildResults"});
         let main_results: object[] = results["results"];
-        console.info(`[SauceNAO] Raw Result: ${main_results.length}`);
+        logger.info(`Raw Result: ${main_results.length}`);
 
         let parsed_data: SauceFinderResult[] = main_results.map((r) => {
             // @ts-ignore
@@ -770,7 +775,7 @@ export class SauceNAO {
         });
         finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
         finalized_parsed_data = finalized_parsed_data.reverse();
-        console.info(`[SauceNAO] Finalized Result: ${finalized_parsed_data.length}`);
+        logger.info(`Finalized Result: ${finalized_parsed_data.length}`);
         return finalized_parsed_data;
     }
 
@@ -779,7 +784,8 @@ export class SauceNAO {
     }
 
     async getSauce(data: any): Promise<SauceFinderResult[]> {
-        console.info("[SauceNAO] Finding sauce...");
+        const logger = this.logger.child({fn: "getSauce"});
+        logger.info("Finding sauce...");
         var collected_params = [];
         if (!is_none(this.dbmask)) {
             collected_params.push(`dbmask=${this.dbmask}`);
@@ -803,7 +809,7 @@ export class SauceNAO {
             // passthrough files.
         }
 
-        console.debug(`[SauceNAO] Searching with ${build_url} ...`);
+        logger.info(`Searching with ${build_url} ...`);
         let session = axios.create({
             headers: {
                 "User-Agent": `ihaAPI/${packageJson['version']}`
@@ -817,12 +823,14 @@ export class SauceNAO {
 
 export class IQDB {
     minsim: number
+    logger: winston.Logger;
 
     constructor(minsim: number = 47.5) {
         this.minsim = fallbackNaN(parseFloat, minsim, 47.5);
         if (this.minsim <= 0 || this.minsim >= 100) {
             this.minsim = 47.5;
         }
+        this.logger = MainLogger.child({cls: "IQDB"});
     }
 
     private formatBaseBooru(child_data, root_path: string): [string, object, string] {
@@ -935,14 +943,15 @@ export class IQDB {
     }
 
     private async buildResults(xml_data: string): Promise<SauceFinderResult[]> {
+        const logger = this.logger.child({fn: "buildResults"});
         let root = await xml2js.parseStringPromise(xml_data);
         if (hasKey(root, "error")) {
-            console.error(`[IQDB] Request error: ${root["error"]["$"]["message"]}`);
+            logger.error(`Request error: ${root["error"]["$"]["message"]}`);
             return [];
         }
 
         let matches: any[] = root.matches.match;
-        console.info(`[IQDB] Raw Result: ${matches.length}`);
+        logger.info(`Raw Result: ${matches.length}`);
         let parsed_data = matches.map((match) => {
             let match_data = match["$"];
             // @ts-ignore
@@ -998,7 +1007,7 @@ export class IQDB {
         });
         finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
         finalized_parsed_data = finalized_parsed_data.reverse();
-        console.info(`[IQDB] Finalized Result: ${finalized_parsed_data.length}`);
+        logger.info(`Finalized Result: ${finalized_parsed_data.length}`);
         return finalized_parsed_data;
     }
 
@@ -1007,16 +1016,16 @@ export class IQDB {
     }
 
     async getSauce(url: string): Promise<SauceFinderResult[]> {
-        console.info("[IQDB] Searching sauce...");
+        const logger = this.logger.child({fn: "getSauce"});
+        logger.info("Searching sauce...");
         let build_url = `https://iqdb.org/index.xml?url=${encodeURIComponent(url)}`;
-        console.debug(`[IQDB] Searching with ${build_url} ...`);
+        logger.info(`Searching with ${build_url} ...`);
         let session = axios.create({
             headers: {
                 "User-Agent": `ihaAPI/${packageJson['version']}`
             },
             responseType: "text"
         });
-        console.info("[IQDB] Requesting sauce...");
         let response = await session.get(build_url);
         return (await this.buildResults(response.data));
     }
@@ -1026,6 +1035,7 @@ export class ASCII2D {
     results_limit: number
     base_url: string
     _sessions: AxiosInstance
+    logger: winston.Logger;
 
     constructor(limit: number = 2) {
         this.base_url = "https://ascii2d.net/";
@@ -1038,10 +1048,12 @@ export class ASCII2D {
                 "User-Agent": CHROME_UA
             }
         })
+        this.logger = MainLogger.child({cls: "ASCII2D"});
     }
 
     private async requestToken(): Promise<string> {
-        console.info("[ASCII2D] Requesting token...");
+        const logger = this.logger.child({fn: "requestToken"});
+        logger.info("Requesting token...");
         let response = await this._sessions.get(this.base_url, {
             responseType: "text"
         });
@@ -1132,10 +1144,11 @@ export class ASCII2D {
     }
 
     private async buildResults(html_res: string): Promise<SauceFinderResult[]> {
+        const logger = this.logger.child({fn: "buildResults"});
         let $ = cheerio.load(html_res);
         let $rows_data = $("div.container > div.row");
         let $all_results = $rows_data.children("div").children(".item-box");
-        console.info(`[ASCII2D] Raw Result: ${$all_results.length}`);
+        logger.info(`Raw Result: ${$all_results.length}`);
 
         let parsed_data: SauceFinderResult[] = $all_results.slice(1).map((index, elem) => {
             if (index >= this.results_limit) {
@@ -1173,7 +1186,7 @@ export class ASCII2D {
             }
         });
         finalized_parsed_data = sortObjectsByKey(finalized_parsed_data, "confidence");
-        console.info(`[ASCII2D] Finalized Result: ${finalized_parsed_data.length}`);
+        logger.info(`Finalized Result: ${finalized_parsed_data.length}`);
         return finalized_parsed_data;
     }
 
@@ -1182,13 +1195,14 @@ export class ASCII2D {
     }
 
     async getSauce(url: string): Promise<SauceFinderResult[]> {
+        const logger = this.logger.child({fn: "getSauce"});
         let token = await this.requestToken();
-        console.info("[ASCII2D] Searching sauce...");
+        logger.info("Searching sauce...");
         let forms_data = new FormData();
         forms_data.append("utf-8", "✓");
         forms_data.append("uri", url);
         forms_data.append("authenticity_token", token);
-        console.info("[ASCII2D] Requesting sauce...");
+        logger.info("Requesting sauce...");
         let response = await this._sessions.post(
             this.base_url + "search/uri",
             forms_data,
@@ -1223,6 +1237,7 @@ export interface MultiFinderSettings {
 
 
 export async function multiSauceFinder(url: string, settings: MultiFinderSettings): Promise<[SauceFinderResult[], string][]> {
+    const logger = MainLogger.child({fn: "multiSauceFinder"});
     let enableSauceNAO = fallbackBool(getValueFromKey(settings, "enableSauceNAO", true), true);
     let enableIQDB = fallbackBool(getValueFromKey(settings, "enableIQDB", true), true);
     let enableAscii2D = fallbackBool(getValueFromKey(settings, "enableAscii2D", true), true);
@@ -1234,11 +1249,11 @@ export async function multiSauceFinder(url: string, settings: MultiFinderSetting
     let sauceNAO_minsim = fallbackNaN(parseFloat, getValueFromKey(sauceNAOSetting, "minsim", 57.5), 57.5);
 
     if (!enableSauceNAO && !enableIQDB && !enableAscii2D) {
-        console.warn("[SFMulti] No sauce finder picked, ignoring...");
+        logger.warn("No sauce finder picked, ignoring...");
         return [];
     }
     if (enableSauceNAO && is_none(sauceNAO_API_Key)) {
-        console.warn("[SFMulti] Ignoring SauceNAO, since no key is provided.");
+        logger.warn("Ignoring SauceNAO, since no key is provided.");
         enableSauceNAO = false;
     }
 
@@ -1247,13 +1262,13 @@ export async function multiSauceFinder(url: string, settings: MultiFinderSetting
             let res = await cb();
             return [res, identifier];
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             return [[], identifier];
         }
     }
 
     let saucerPromises = [];
-    console.log(`[SFMulti] Searching sauce: ${url} ...`);
+    logger.info(`Searching sauce: ${url} ...`);
     if (enableSauceNAO) {
         let saucerSN = new SauceNAO({"api_key": sauceNAO_API_Key, "minsim": sauceNAO_minsim});
         let promiseSaucer = safeSaucerFetcher(saucerSN.getSauce.bind(saucerSN, url), "saucenao");
