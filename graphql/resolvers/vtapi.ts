@@ -28,6 +28,9 @@ import { fallbackNaN, filter_empty, getValueFromKey, hasKey, is_none, map_bool, 
 import { Buffer } from "buffer";
 import express from "express";
 import moment from "moment-timezone";
+import { logger as TopLogger } from "../../utils/logger";
+
+const MainLogger = TopLogger.child({cls: "GQLVTuberAPI"});
 
 const ONE_DAY = 864E2;
 
@@ -113,6 +116,7 @@ function fallbackGrowthIfNaN(growth: ChannelGrowth): ChannelGrowth {
 }
 
 function mapGrowthData(platform: PlatformName, channelId: string, historyData?: HistoryGrowthData[]): GrowthChannelData {
+    const logger = MainLogger.child({fn: "mapGrowthData"});
     if (typeof historyData === "undefined") {
         return null;
     }
@@ -128,7 +132,7 @@ function mapGrowthData(platform: PlatformName, channelId: string, historyData?: 
         oneYear = currentTime - (ONE_DAY * 365);
 
     if (historyData.length < 1) {
-        console.error(`mapGrowthData() history data is less than one, returning null for ${platform} ${channelId}`);
+        logger.error(`history data is less than one, returning null for ${platform} ${channelId}`);
         return null;
     }
 
@@ -139,7 +143,7 @@ function mapGrowthData(platform: PlatformName, channelId: string, historyData?: 
     let lookbackSixMonths = _.sortBy(historyData.filter(res => res.timestamp >= sixMonths), (o) => o.timestamp);
     let lookbackOneYear = _.sortBy(historyData.filter(res => res.timestamp >= oneYear), (o) => o.timestamp);
     if (lookbackOneDay.length < 1 && lookbackOneWeek.length < 1 && lookbackTwoWeeks.length < 1 && lookbackOneMonth.length < 1 && lookbackSixMonths.length < 1 && lookbackOneYear.length) {
-        console.error(`mapGrowthData() missing all history data after filtering, returning null for ${platform} ${channelId}`);
+        logger.error(`missing all history data after filtering, returning null for ${platform} ${channelId}`);
         return null;
     }
 
@@ -245,6 +249,8 @@ class Base64 {
 }
 
 class VTAPIQuery {
+    logger = TopLogger.child({cls: "VTAPIQuery"});
+
     async filterAndSortQueryResults(
         main_results: any[],
         args: LiveObjectParams,
@@ -302,6 +308,7 @@ class VTAPIQuery {
 
     @Memoize()
     async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<LiveObject[]> {
+        const logger = this.logger.child({fn: "performQueryOnLive"});
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
         let groups_choices: string[] = getValueFromKey(args, "groups", null);
         let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
@@ -437,6 +444,7 @@ class VTAPIQuery {
 
     @Memoize()
     async performQueryOnChannel(args: ChannelObjectParams, dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelObject[]> {
+        const logger = this.logger.child({fn: "performQueryOnChannel"});
         let user_ids_limit: string[] = getValueFromKey(parents, "channel_id", null) || getValueFromKey(args, "id", null);
         if (!Array.isArray(user_ids_limit)) {
             user_ids_limit = null;
@@ -544,9 +552,9 @@ class VTAPIQuery {
 
         let combined_channels: ChannelObject[] = [];
         if (platforms_choices.includes("youtube")) {
-            console.info("performQueryOnChannel() fetching youtube channels stats...");
+            logger.info("fetching youtube channels stats...");
             let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit, this.remapGroupsData(groups_choices));
-            console.info("performQueryOnChannel() processing youtube channels stats...");
+            logger.info("processing youtube channels stats...");
             let remappedData: ChannelObject[] = ytUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
@@ -569,9 +577,9 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("bilibili")) {
-            console.info("performQueryOnChannel() fetching bilibili channels staats...");
+            logger.info("fetching bilibili channels staats...");
             let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
-            console.info("performQueryOnChannel() processing bilibili channels staats...");
+            logger.info("processing bilibili channels staats...");
             let remappedData: ChannelObject[] = biliUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
@@ -595,9 +603,9 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("twitcasting")) {
-            console.info("performQueryOnChannel() fetching twitcasting channels staats...");
+            logger.info("fetching twitcasting channels staats...");
             let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
-            console.info("performQueryOnChannel() processing twitcasting channels staats...");
+            logger.info("processing twitcasting channels staats...");
             let remappedData: ChannelObject[] = twUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
@@ -619,9 +627,9 @@ class VTAPIQuery {
             combined_channels = _.concat(combined_channels, remappedData);
         }
         if (platforms_choices.includes("twitch")) {
-            console.info("performQueryOnChannel() fetching twitch channels staats...");
+            logger.info("fetching twitch channels staats...");
             let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
-            console.info("performQueryOnChannel() processing twitch channels staats...");
+            logger.info("processing twitch channels staats...");
             let remappedData: ChannelObject[] = ttvUsers.map((res) => {
                 let remap: ChannelObject = {
                     id: res["id"],
@@ -649,10 +657,11 @@ class VTAPIQuery {
 
     @Memoize()
     async performQueryOnChannelStats(dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelStatistics> {
+        const logger = this.logger.child({fn: "performQueryOnChannelStats"});
         if (parents.platform === "youtube") {
             let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
             let ytStats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id).catch(() => {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 let ret: YoutubeDocument<ChannelStatistics> = {};
                 ret[parents.channel_id[0]] = defaults;
                 return ret;
@@ -661,7 +670,7 @@ class VTAPIQuery {
         } else if (parents.platform === "bilibili") {
             let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
             let biliStats = await dataSources.biliChannels.getChannelStats(parents.channel_id).catch(() => {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 let ret: YoutubeDocument<ChannelStatistics> = {};
                 ret[parents.channel_id[0]] = defaults;
                 return ret;
@@ -670,7 +679,7 @@ class VTAPIQuery {
         } else if (parents.platform === "twitcasting") {
             let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
             let twStats = await dataSources.twitcastingChannels.getChannelStats(parents.channel_id).catch(() => {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 let ret: YoutubeDocument<ChannelStatistics> = {};
                 ret[parents.channel_id[0]] = defaults;
                 return ret;
@@ -679,7 +688,7 @@ class VTAPIQuery {
         } else if (parents.platform === "twitch") {
             let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
             let ttvStats = await dataSources.twitchChannels.getChannelStats(parents.channel_id).catch(() => {
-                console.error("[performQueryOnChannel] Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
+                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
                 let ret: YoutubeDocument<ChannelStatistics> = {};
                 ret[parents.channel_id[0]] = defaults;
                 return ret;
@@ -785,32 +794,31 @@ const VTQuery = new VTAPIQuery();
 export const VTAPIv2Resolvers: IResolvers = {
     Query: {
         live: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
+            const logger = MainLogger.child({fn: "live"});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
             }
-            console.log("[GraphQL-VTAPIv2] Processing live()");
-            console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
-            console.log("[GraphQL-VTAPIv2-live()] Checking for cache...");
+            logger.info("Processing live()");
+            logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "live");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
-                console.log(`[GraphQL-VTAPIv2-live()] Cache hit! --> ${cache_name}`);
+                logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
-                console.log("[GraphQL-VTAPIv2-live()] Missing cache, requesting manually...");
-                console.log("[GraphQL-VTAPIv2-live()] Arguments ->", args);
+                logger.info("Missing cache, requesting manually...");
+                logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "live", ctx.dataSources);
-                console.log(`[GraphQL-VTAPIv2-live()] Saving cache with name ${cache_name}, TTL 20s...`);
+                logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 20, results);
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
-                ctx.res.set("Cache-Control")
             }
             results = await VTQuery.filterAndSortQueryResults(
                 results,
@@ -822,11 +830,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
-                console.log("[GraphQL-VTAPIv2-live()] Using cursor to filter results...");
+                logger.info("Using cursor to filter results...");
                 let unbase64cursor = b64.decode(cursor);
-                console.log(`[GraphQL-VTAPIv2-live()] Finding cursor index: ${unbase64cursor}`);
+                logger.info(`Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                console.log(`[GraphQL-VTAPIv2-live()] Using cursor index: ${findIndex}`);
+                logger.info(`Using cursor index: ${findIndex}`);
                 let limitres = results.length;
                 let max_limit = findIndex + limit;
                 let hasnextpage = true;
@@ -834,14 +842,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                     
@@ -851,11 +859,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             } else {
-                console.log(`[GraphQL-VTAPIv2-live()] Starting cursor from zero.`);
+                logger.info(`Starting cursor from zero.`);
                 let limitres = results.length;
                 let hasnextpage = true;
                 let next_cursor: string = null;
@@ -863,14 +871,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }
@@ -879,8 +887,8 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             }
             // @ts-ignore
@@ -891,25 +899,26 @@ export const VTAPIv2Resolvers: IResolvers = {
         upcoming: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
+            const logger = MainLogger.child({fn: "upcoming"});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
             }
-            console.log("[GraphQL-VTAPIv2] Processing upcoming()");
-            console.log("[GraphQL-VTAPIv2-upcoming()] Checking for cache...");
+            logger.info("Processing upcoming()");
+            logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "upcoming");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
-                console.log(`[GraphQL-VTAPIv2-upcoming()] Cache hit! --> ${cache_name}`); 
+                logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
-                console.log("[GraphQL-VTAPIv2-upcoming()] Missing cache, requesting manually...");
-                console.log("[GraphQL-VTAPIv2-upcoming()] Arguments ->", args);
+                logger.info("Missing cache, requesting manually...");
+                logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "upcoming", ctx.dataSources);
-                console.log(`[GraphQL-VTAPIv2-upcoming()] Saving cache with name ${cache_name}, TTL 20s...`);
+                logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 20, results);
@@ -926,11 +935,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
-                console.log("[GraphQL-VTAPIv2-upcoming()] Using cursor to filter results...");
+                logger.info("Using cursor to filter results...");
                 let unbase64cursor = b64.decode(cursor);
-                console.log(`[GraphQL-VTAPIv2-upcoming()] Finding cursor index: ${unbase64cursor}`);
+                logger.info(`Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                console.log(`[GraphQL-VTAPIv2-upcoming()] Using cursor index: ${findIndex}`);
+                logger.info(`Using cursor index: ${findIndex}`);
                 let limitres = results.length;
                 let max_limit = findIndex + limit;
                 let hasnextpage = true;
@@ -938,14 +947,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-live()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                     
@@ -955,11 +964,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             } else {
-                console.log(`[GraphQL-VTAPIv2-upcoming()] Starting cursor from zero.`);
+                logger.info(`Starting cursor from zero.`);
                 let limitres = results.length;
                 let hasnextpage = true;
                 let next_cursor: string = null;
@@ -967,14 +976,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-upcoming()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }
@@ -983,8 +992,8 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             }
             final_results["_total"] = total_results;
@@ -993,25 +1002,26 @@ export const VTAPIv2Resolvers: IResolvers = {
         ended: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 300, scope: 'PRIVATE'});
+            const logger = MainLogger.child({fn: "ended"});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
             }
-            console.log("[GraphQL-VTAPIv2] Processing ended()");
-            console.log("[GraphQL-VTAPIv2-ended()] Checking for cache...");
+            logger.info("Processing ended()");
+            logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "past");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
-                console.log(`[GraphQL-VTAPIv2-ended()] Cache hit! --> ${cache_name}`);
+                logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
-                console.log("[GraphQL-VTAPIv2-ended()] Missing cache, requesting manually...");
-                console.log("[GraphQL-VTAPIv2-ended()] Arguments ->", args);
+                logger.info("Missing cache, requesting manually...");
+                logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "past", ctx.dataSources);
-                console.log(`[GraphQL-VTAPIv2-ended()] Saving cache with name ${cache_name}, TTL 300s...`);
+                logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 300, results);
@@ -1028,11 +1038,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
-                console.log("[GraphQL-VTAPIv2-ended()] Using cursor to filter results...");
+                logger.info("Using cursor to filter results...");
                 let unbase64cursor = b64.decode(cursor);
-                console.log(`[GraphQL-VTAPIv2-ended()] Finding cursor index: ${unbase64cursor}`);
+                logger.info(`Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                console.log(`[GraphQL-VTAPIv2-ended()] Using cursor index: ${findIndex}`);
+                logger.info(`Using cursor index: ${findIndex}`);
                 let limitres = results.length;
                 let max_limit = findIndex + limit;
                 let hasnextpage = true;
@@ -1040,14 +1050,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                     
@@ -1057,11 +1067,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
-                };                
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
+                };
             } else {
-                console.log(`[GraphQL-VTAPIv2-ended()] Starting cursor from zero.`);
+                logger.info(`Starting cursor from zero.`);
                 let limitres = results.length;
                 let hasnextpage = true;
                 let next_cursor: string = null;
@@ -1069,14 +1079,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }
@@ -1085,8 +1095,8 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             }
             final_results["_total"] = total_results;
@@ -1095,25 +1105,26 @@ export const VTAPIv2Resolvers: IResolvers = {
         videos: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
+            const logger = MainLogger.child({fn: "videos"});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
             }
-            console.log("[GraphQL-VTAPIv2] Processing videos()");
-            console.log("[GraphQL-VTAPIv2-videos()] Checking for cache...");
+            logger.info("Processing videos()");
+            logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "video");
             // @ts-ignore
             let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
-                console.log(`[GraphQL-VTAPIv2-videos()] Cache hit! --> ${cache_name}`);
+                logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
-                console.log("[GraphQL-VTAPIv2-videos()] Missing cache, requesting manually...");
-                console.log("[GraphQL-VTAPIv2-videos()] Arguments ->", args);
+                logger.info("Missing cache, requesting manually...");
+                logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "video", ctx.dataSources);
-                console.log(`[GraphQL-VTAPIv2-videos()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
@@ -1130,11 +1141,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
-                console.log("[GraphQL-VTAPIv2-videos()] Using cursor to filter results...");
+                logger.info("Using cursor to filter results...");
                 let unbase64cursor = b64.decode(cursor);
-                console.log(`[GraphQL-VTAPIv2-videos()] Finding cursor index: ${unbase64cursor}`);
+                logger.info(`Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                console.log(`[GraphQL-VTAPIv2-videos()] Using cursor index: ${findIndex}`);
+                logger.info(`Using cursor index: ${findIndex}`);
                 let limitres = results.length;
                 let max_limit = findIndex + limit;
                 let hasnextpage = true;
@@ -1142,14 +1153,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                     
@@ -1159,11 +1170,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
-                };                
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
+                };
             } else {
-                console.log(`[GraphQL-VTAPIv2-videos()] Starting cursor from zero.`);
+                logger.info(`Starting cursor from zero.`);
                 let limitres = results.length;
                 let hasnextpage = true;
                 let next_cursor: string = null;
@@ -1171,14 +1182,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: LiveObject = _.nth(results, max_limit);
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-videos()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }
@@ -1187,8 +1198,8 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             }
             final_results["_total"] = total_results;
@@ -1197,34 +1208,34 @@ export const VTAPIv2Resolvers: IResolvers = {
         channels: async (_s, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelsResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
+            const logger = MainLogger.child({fn: "channels"});
             let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
             }
-            console.log("[GraphQL-VTAPIv2] Processing channels()");
-            console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
-            console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
+            logger.info("Processing channels()");
+            logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let resetCache = map_bool(getValueFromKey(ctx.req.query, "resetcache", "0"));
             if (no_cache) {
-                console.info("[GraphQL-VTAPIv2-channels()] No cache requested!");
+                logger.info("No cache requested!");
             }
             let cache_name = getCacheNameForChannels(args, "channel");
             // @ts-ignore
             let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache && !resetCache) {
-                console.log(`[GraphQL-VTAPIv2-channels()] Cache hit! --> ${cache_name}`);
+                logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
-                console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
-                console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
+                logger.info("Missing cache, requesting manually...");
+                logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
                     "channel_id": args.id,
                     "type": "channel",
                     "force_single": false
                 });
-                console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
+                logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
@@ -1244,11 +1255,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             let total_results = results.length;
             const b64 = new Base64();
             if (cursor !== "") {
-                console.log("[GraphQL-VTAPIv2-channels()] Using cursor to filter results...");
+                logger.info("Using cursor to filter results...");
                 let unbase64cursor = b64.decode(cursor);
-                console.log(`[GraphQL-VTAPIv2-channels()] Finding cursor index: ${unbase64cursor}`);
+                logger.info(`Finding cursor index: ${unbase64cursor}`);
                 let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                console.log(`[GraphQL-VTAPIv2-channels()] Using cursor index: ${findIndex}`);
+                logger.info(`Using cursor index: ${findIndex}`);
                 let limitres = results.length;
                 let max_limit = findIndex + limit;
                 let hasnextpage = true;
@@ -1256,15 +1267,15 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: ChannelObject = _.nth(results, max_limit);
                         // @ts-ignore
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-ended()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                     
@@ -1274,11 +1285,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             } else {
-                console.log(`[GraphQL-VTAPIv2-channels()] Starting cursor from zero.`);
+                logger.info(`Starting cursor from zero.`);
                 let limitres = results.length;
                 let hasnextpage = true;
                 let next_cursor: string = null;
@@ -1286,15 +1297,15 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (max_limit > limitres) {
                     max_limit = limitres;
                     hasnextpage = false;
-                    console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                    logger.info(`Next available cursor: None`);
                 } else {
                     try {
                         let next_data: ChannelObject = _.nth(results, max_limit);
                         // @ts-ignore
                         next_cursor = b64.encode(next_data["id"]);
-                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: ${next_cursor}`);
+                        logger.info(`Next available cursor: ${next_cursor}`);
                     } catch (e) {
-                        console.log(`[GraphQL-VTAPIv2-channels()] Next available cursor: None`);
+                        logger.info(`Next available cursor: None`);
                         hasnextpage = false;
                     }
                 }
@@ -1303,74 +1314,25 @@ export const VTAPIv2Resolvers: IResolvers = {
                 final_results["pageInfo"] = {
                     total_results: results.length,
                     results_per_page: limit,
-                    nextCursor: next_cursor,
-                    hasNextPage: hasnextpage
+                    nextCursor: results.length > 0 ? next_cursor : null,
+                    hasNextPage: results.length > 0 ? hasnextpage : false,
                 };
             }
             final_results["_total"] = total_results;
             return final_results;
         }
     },
-    // ChannelObject: {
-    //     statistics: async (parent: ChannelObject, _a, ctx: VTAPIContext, info): Promise<ChannelStatistics> => {
-    //         // @ts-ignore
-    //         info.cacheControl.setCacheHint({maxAge: 3600, scope: 'PRIVATE'});
-    //         // console.log("[GraphQL-VTAPIv2] Performing channels.statistics()", parent.platform, parent.id);
-    //         let settings: ChannelParents = {
-    //             platform: parent.platform,
-    //             // @ts-ignore
-    //             channel_id: [parent.id],
-    //             group: null,
-    //             type: "stats",
-    //             force_single: true,
-    //         }
-    //         if (hasKey(parent, "group")) {
-    //             settings["group"] = parent["group"];
-    //         }
-    //         // console.log("[GraphQL-VTAPIv2-channels()] Checking for cache...");
-    //         let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
-    //         let cache_name = getCacheNameForChannels({}, "stats", parent);
-    //         // @ts-ignore
-    //         let [results, ttl]: [ChannelStatistics, number] = await ctx.cacheServers.getBetter(cache_name, true);
-    //         if (is_none(results)) {
-    //             // console.log("[GraphQL-VTAPIv2-channels()] Missing cache, requesting manually...");
-    //             // console.log("[GraphQL-VTAPIv2-channels()] Arguments ->", args);
-    //             results = await VTQuery.performQueryOnChannelStats(ctx.dataSources, settings);
-    //             // console.log(`[GraphQL-VTAPIv2-channels()] Saving cache with name ${cache_name}, TTL 1800s...`);
-    //             if (!no_cache && !is_none(results)) {
-    //                 // dont cache for reason.
-    //                 ttl = 1800
-    //                 await ctx.cacheServers.setexBetter(cache_name, 1800, results);
-    //             }
-    //         }
-    //         if (is_none(results)) {
-    //             console.error("[GraphQL-VTAPIv2] ERROR: Got non-null type returned for channels.statistics()", parent.platform, parent.id);
-    //             return {
-    //                 "subscriberCount": null,
-    //                 "viewCount": null,
-    //                 "videoCount": null,
-    //                 "level": null
-    //             }
-    //         }
-    //         ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
-    //         // console.log("ChannelDataStatsParent", parent);
-    //         // console.log("ChannelDataStatsParam", args);
-    //         return results;
-    //     }
-    // },
     LiveObject: {
         channel: async (parent: LiveObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelObject> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: 'PRIVATE'});
-            // console.log("[GraphQL-VTAPIv2] Processing LiveObject.channel()", parent.platform, parent.channel_id);
-            // console.log("[GraphQL-VTAPIv2-LiveObject.channel()] Checking for cache...");
+            const logger = MainLogger.child({fn: "LiveObject.channel"});
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             let cache_name = getCacheNameForChannels({}, "singlech", parent);
             // @ts-ignore
             let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (is_none(results)) {
-                // console.log("[GraphQL-VTAPIv2-LiveObject.channel()] Missing cache, requesting manually...");
                 results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
                     // @ts-ignore
                     "channel_id": [parent.channel_id],
@@ -1379,7 +1341,6 @@ export const VTAPIv2Resolvers: IResolvers = {
                     "group": parent.group,
                     "platform": parent.platform
                 });
-                // console.log(`[GraphQL-VTAPIv2-LiveObject.channel()] Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.length > 0) {
                     // dont cache for reason.
                     ttl = 1800
@@ -1387,7 +1348,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 }
             }
             if (results.length < 1) {
-                console.error("[GraphQL-VTAPIv2-LiveObject.channel()] Failed to fetch", parent.platform, parent.channel_id, parent.group);
+                logger.error(`Failed to fetch ${parent.platform} ${parent.channel_id} ${parent.group}`);
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return results[0];
