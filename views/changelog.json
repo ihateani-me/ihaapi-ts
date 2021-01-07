@@ -71,5 +71,11 @@
     ],
     "2.3.0": [
         "Migrated old schematics in favor of new schematics of VTuber API"
+    ],
+    "2.3.1": [
+        "Version skipped :)"
+    ],
+    "2.3.2": [
+        "Add a VTuber API Frontend Endpoint located in: /v2/vtuber"
     ]
 }
