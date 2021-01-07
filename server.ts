@@ -3,13 +3,14 @@ import express from "express";
 import * as cons from "consolidate";
 import mongoose from 'mongoose';
 import * as Routes from "./routes";
-import { gqldocsRoutes } from "./views/gqldocs";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
 import express_compression from "compression";
+import { expressErrorLogger, expressLogger, logger } from "./utils/logger";
 
 import { GQLAPIv2Server } from "./graphql";
 import { capitalizeIt } from "./utils/swissknife";
+import { gqldocsRoutes } from "./views/gqldocs";
 
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
@@ -24,11 +25,11 @@ let MONGO_VERSIONING = {
     "version": "X.XX.XX",
 };
 
-console.info("Connecting to database...");
+logger.info("Connecting to database...");
 mongoose.connect(`${mongouri}/${process.env.MONGODB_DBNAME}`, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
 
 mongoose.connection.on("open", () => {
-    console.log("Connected to VTubers Database!");
+    logger.info("Connected to VTubers Database!");
     let admin = mongoose.connection.db.admin();
     admin.serverInfo((err, info) => {
         MONGO_VERSIONING["version"] = info.version;
@@ -44,6 +45,8 @@ mongoose.connection.on("open", () => {
 
 const app = express();
 const app_version = packageJson["version"];
+
+app.use(expressLogger)
 
 app.engine("html", cons.atpl);
 app.set("view engine", "html");
@@ -74,7 +77,7 @@ app.get("/swagger.yml", (_, res) => {
 });
 
 app.get("/other", (_, res) => {
-    res.redirect("/v2/vtuber", 302);
+    res.redirect(302, "/v2/vtuber");
 });
 
 app.get("/api-docs", (_, res) => {
@@ -84,7 +87,7 @@ app.get("/api-docs", (_, res) => {
 });
 
 app.all("/swagger", (_, res) => {
-    res.redirect("/api-docs", 302);
+    res.redirect(302, "/api-docs");
 });
 
 app.get("/changelog", (_, res) => {
@@ -161,6 +164,8 @@ app.use("/v2/vtuber", Routes.VTAPIDashboardRoutes);
 app.use("/v2/gql-docs", gqldocsRoutes);
 
 GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
+
+app.use(expressErrorLogger);
 
 app.use(function (req, res, next) {
     let current_utc = moment().tz("UTC").unix();
