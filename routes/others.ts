@@ -288,6 +288,7 @@ othersroutes.get("/youtube/live", (req, res) => {
         VTDB.fetchVideos("youtube", fetchedGroups)
             .then(([live, upcoming, ended]) => {
                 console.log("[OthersYT] Parsing Database...");
+                // @ts-ignore
                 let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
                 console.log("[OthersYT] Filtering Database...")
                 // @ts-ignore
