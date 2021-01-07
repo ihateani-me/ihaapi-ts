@@ -1,6 +1,8 @@
 import * as express from "express";
 import { ASCII2D, IQDB, SauceNAO, multiSauceFinder } from "../utils/saucefinder";
 import { fallbackNaN, getValueFromKey, is_none, map_bool } from "../utils/swissknife";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.SauceFinder"});
 const sauceroutes = express.Router()
 
 sauceroutes.use((req, res, next) => {
@@ -93,7 +95,8 @@ sauceroutes.use((req, res, next) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.get("/saucenao", (req, res) => {
-    console.log("[Sauce:sn:get] GET request received.");
+    const logger = MainLogger.child({fn: "SauceNAO.get"});
+    logger.info("GET request received.");
     let body_bag = req.query;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 60.0), 60.0);
@@ -102,11 +105,11 @@ sauceroutes.get("/saucenao", (req, res) => {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
         payload_url = decodeURIComponent(payload_url);
-        console.info("[Sauce:sn:get] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new SauceNAO({"api_key": process.env.SAUCENAO_API_KEY, "minsim": minsim, "numres": numres});
-        console.info("[Sauce:sn:get] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:sn:get] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -190,7 +193,8 @@ sauceroutes.get("/saucenao", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.get("/iqdb", (req, res) => {
-    console.log("[Sauce:iqdb:get] GET request received.");
+    const logger = MainLogger.child({fn: "IQDB.get"});
+    logger.info("GET request received.");
     let body_bag = req.query;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 50.0), 50.0);
@@ -198,11 +202,11 @@ sauceroutes.get("/iqdb", (req, res) => {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
         payload_url = decodeURIComponent(payload_url);
-        console.info("[Sauce:iqdb:get] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new IQDB(minsim);
-        console.info("[Sauce:iqdb:get] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:iqdb:get] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -286,7 +290,8 @@ sauceroutes.get("/iqdb", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.get("/ascii2d", (req, res) => {
-    console.log("[Sauce:ascii2d:get] GET request received.");
+    const logger = MainLogger.child({fn: "ASCII2D.get"});
+    logger.info("GET request received.");
     let body_bag = req.query;
     let payload_url = getValueFromKey(body_bag, "url");
     let maxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "maxres", 2), 2);
@@ -294,11 +299,11 @@ sauceroutes.get("/ascii2d", (req, res) => {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
         payload_url = decodeURIComponent(payload_url);
-        console.info("[Sauce:ascii2d:get] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new ASCII2D(maxres);
-        console.info("[Sauce:ascii2d:get] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:ascii2d:get] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -414,7 +419,8 @@ sauceroutes.get("/ascii2d", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.get("/multi", (req, res) => {
-    console.log("[Sauce:multi:get] GET request received.");
+    const logger = MainLogger.child({fn: "MultiSource.get"});
+    logger.info("GET request received.");
     let body_bag = req.query;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 57.5), 57.5);
@@ -426,7 +432,7 @@ sauceroutes.get("/multi", (req, res) => {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
         payload_url = decodeURIComponent(payload_url);
-        console.info("[Sauce:multi:get] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         multiSauceFinder(
             payload_url,
             {
@@ -441,7 +447,7 @@ sauceroutes.get("/multi", (req, res) => {
                 }
             }
         ).then((multi_result) => {
-            console.info("[Sauce:multi:get] Finished finding that tasty sauce, mapping results...");
+            logger.info("Finished finding that tasty sauce, mapping results...");
             let proper_multi_results = {};
             proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`"
             multi_result.forEach(([sf_result, ident]) => {
@@ -450,8 +456,8 @@ sauceroutes.get("/multi", (req, res) => {
             proper_multi_results["status_code"] = 200;
             res.json(proper_multi_results);
         }).catch((err) => {
-            console.error("[Sauce:multi:get] Failed to process overall request");
-            console.error(err);
+            logger.error("Failed to process overall request");
+            logger.error(err);
             res.status(500).json({"message": `Failed to process request: ${err.toString()}`, "status_code": 500});
         })
     }
@@ -538,7 +544,8 @@ sauceroutes.use(express.json());
  *                                  description: HTTP Status code
  */
 sauceroutes.post("/saucenao", (req, res) => {
-    console.log("[Sauce:sn:post] POST request received.");
+    const logger = MainLogger.child({fn: "SauceNAO.post"});
+    logger.info("POST request received.");
     let body_bag = req.body;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 60.0), 60.0);
@@ -546,11 +553,11 @@ sauceroutes.post("/saucenao", (req, res) => {
     if (is_none(payload_url)) {
         res.status(400).json({"message": "please provide data with `url` key", "status_code": 400});
     } else {
-        console.info("[Sauce:sn:post] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new SauceNAO({"api_key": process.env.SAUCENAO_API_KEY, "minsim": minsim, "numres": numres});
-        console.info("[Sauce:sn:post] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:sn:post] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -634,18 +641,19 @@ sauceroutes.post("/saucenao", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.post("/iqdb", (req, res) => {
-    console.log("[Sauce:iqdb:post] POST request received.");
+    const logger = MainLogger.child({fn: "IQDB.post"});
+    logger.info("POST request received.");
     let body_bag = req.body;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 60.0), 60.0);
     if (is_none(payload_url)) {
         res.status(400).json({"message": "please provide data with `url` key", "status_code": 400});
     } else {
-        console.info("[Sauce:iqdb:post] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new IQDB(minsim);
-        console.info("[Sauce:iqdb:post] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:iqdb:post] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -729,18 +737,19 @@ sauceroutes.post("/iqdb", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.post("/ascii2d", (req, res) => {
-    console.log("[Sauce:ascii2d:post] POST request received.");
+    const logger = MainLogger.child({fn: "ASCII2D.post"});
+    logger.info("POST request received.");
     let body_bag = req.body;
     let payload_url = getValueFromKey(body_bag, "url");
     let maxres = fallbackNaN(parseInt, getValueFromKey(body_bag, "maxres", 2), 2);
     if (is_none(payload_url)) {
         res.status(400).json({"message": "please provide data with `url` key", "status_code": 400});
     } else {
-        console.info("[Sauce:iqdb:post] Checking image source...");
+        logger.info("Checking image source...");
         let saucer = new ASCII2D(maxres);
-        console.info("[Sauce:ascii2d:post] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         saucer.getSauce(payload_url).then((sauce_results) => {
-            console.info(`[Sauce:ascii2d:post] Found ${sauce_results.length} matching sauce...`);
+            logger.info(`Found ${sauce_results.length} matching sauce...`);
             res.json({notice: "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`", results: sauce_results, status_code: 200});
         }).catch((err) => {
             res.status(500).json({message: `An internal error occured: ${err.toString()}`, status_code: 500});
@@ -850,7 +859,8 @@ sauceroutes.post("/ascii2d", (req, res) => {
  *                                  description: HTTP Status code
  */
 sauceroutes.post("/multi", (req, res) => {
-    console.log("[Sauce:multi:post] POST request received.");
+    const logger = MainLogger.child({fn: "SauceNAO.post"});
+    logger.info("POST request received.");
     let body_bag = req.body;
     let payload_url = getValueFromKey(body_bag, "url");
     let minsim = fallbackNaN(parseFloat, getValueFromKey(body_bag, "minsim", 57.5), 57.5);
@@ -862,7 +872,7 @@ sauceroutes.post("/multi", (req, res) => {
         res.status(400).json({"message": "please provide image with `url` key in query parameters", "status_code": 400});
     } else {
         payload_url = decodeURIComponent(payload_url);
-        console.info("[Sauce:multi:post] Finding that tasty sauce...");
+        logger.info("Finding that tasty sauce...");
         multiSauceFinder(
             payload_url,
             {
@@ -877,7 +887,7 @@ sauceroutes.post("/multi", (req, res) => {
                 }
             }
         ).then((multi_result) => {
-            console.info("[Sauce:multi:post] Finished finding that tasty sauce, mapping results...");
+            logger.info("Finished finding that tasty sauce, mapping results...");
             let proper_multi_results = {};
             proper_multi_results["notice"] = "API will be deprecated at 31st January 2021, please use v2 endpoint here: `/v2/graphql`"
             multi_result.forEach(([sf_result, ident]) => {
@@ -886,8 +896,8 @@ sauceroutes.post("/multi", (req, res) => {
             proper_multi_results["status_code"] = 200;
             res.json(proper_multi_results);
         }).catch((err) => {
-            console.error("[Sauce:multi:post] Failed to process overall request");
-            console.error(err);
+            logger.error("Failed to process overall request");
+            logger.error(err);
             res.status(500).json({"message": `Failed to process request: ${err.toString()}`, "status_code": 500});
         })
     }

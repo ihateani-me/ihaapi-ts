@@ -1,6 +1,8 @@
 import * as express from "express";
 import { nhFetchInfo, nhImagePathProxy, nhImageProxy, nhLatestDoujin, nhSearchDoujin } from "../utils/nh";
 import { is_none, fallbackNaN } from "../utils/swissknife";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.nHentai"});
 const nhroutes = express.Router();
 
 nhroutes.use((req, res, next) => {
@@ -12,6 +14,7 @@ nhroutes.use((req, res, next) => {
 });
 
 nhroutes.get("/i/:media_id/:img_num", (req, res) => {
+    const logger = MainLogger.child({fn: "image"});
     let image_path = `${req.params.media_id}/${req.params.img_num}`;
     nhImagePathProxy(image_path).then(([img_buf, mimes]) => {
         if (!Buffer.isBuffer(img_buf)) {
@@ -21,12 +24,13 @@ nhroutes.get("/i/:media_id/:img_num", (req, res) => {
             res.end(img_buf);
         }
     }).catch((err) => {
-        console.error(err)
+        logger.error(err)
         res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
 
 nhroutes.get("/t/:media_id/:img_num", (req, res) => {
+    const logger = MainLogger.child({fn: "thumbnail"});
     let image_path = `${req.params.media_id}/${req.params.img_num}`;
     nhImagePathProxy(image_path, true).then(([img_buf, mimes]) => {
         if (!Buffer.isBuffer(img_buf)) {
@@ -36,7 +40,7 @@ nhroutes.get("/t/:media_id/:img_num", (req, res) => {
             res.end(img_buf);
         }
     }).catch((err) => {
-        console.error(err)
+        logger.error(err)
         res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
@@ -120,6 +124,7 @@ nhroutes.get("/t/:media_id/:img_num", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/image/:doujin_id/:page_num", (req, res) => {
+    const logger = MainLogger.child({fn: "imagePath"});
     let doujin_id = req.params.doujin_id;
     let page_num = parseInt(req.params.page_num);
     if (isNaN(page_num)) {
@@ -133,7 +138,7 @@ nhroutes.get("/image/:doujin_id/:page_num", (req, res) => {
                 res.end(img_buf);
             }
         }).catch((err) => {
-            console.error(err)
+            logger.error(err)
             res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
         })
     }
@@ -337,6 +342,7 @@ nhroutes.get("/image/:doujin_id/:page_num", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/info/:doujin_id", (req, res) => {
+    const logger = MainLogger.child({fn: "info"});
     let doujin_id = req.params.doujin_id;
     nhFetchInfo(doujin_id).then(([final_data, stat_code]) => {
         if (typeof final_data === "string") {
@@ -353,7 +359,7 @@ nhroutes.get("/info/:doujin_id", (req, res) => {
             res.json(final_data);
         }
     }).catch((err) => {
-        console.error(err)
+        logger.error(err)
         res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
@@ -571,6 +577,7 @@ nhroutes.get("/info/:doujin_id", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/latest", (req, res) => {
+    const logger = MainLogger.child({fn: "latest"});
     var req_page = req.query.page;
     if (is_none(req_page)) {
         req_page = "1";
@@ -590,7 +597,7 @@ nhroutes.get("/latest", (req, res) => {
             res.json(doujin_results);
         }
     }).catch((err) => {
-        console.error(err)
+        logger.error(err)
         res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
@@ -829,6 +836,7 @@ nhroutes.get("/latest", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/search", (req, res) => {
+    const logger = MainLogger.child({fn: "search"});
     var req_page = req.query.page;
     if (is_none(req_page)) {
         req_page = "1";
@@ -856,7 +864,7 @@ nhroutes.get("/search", (req, res) => {
                 res.json(doujin_results);
             }
         }).catch((err) => {
-            console.error(err)
+            logger.error(err)
             res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
         })
     }

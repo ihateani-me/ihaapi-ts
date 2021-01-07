@@ -2,8 +2,10 @@ import * as express from "express";
 import _ from "lodash";
 import { VTDB } from "../dbconn";
 import { parse_youtube_live_args, bilibili_use_uuids, channel_filters, get_group, GROUPS_MAPPINGS } from "../utils/filters";
-import { LiveMap, BilibiliData, YTLiveArray, YouTubeData, BiliBiliChannel, ChannelMap, ChannelArray, YouTubeChannel } from "../utils/models";
+import { LiveMap, BilibiliData } from "../utils/models";
 import { filter_empty, getValueFromKey } from "../utils/swissknife";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.OthersVTuber"});
 const othersroutes = express.Router()
 
 othersroutes.use((req, res, next) => {
@@ -50,6 +52,7 @@ othersroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 othersroutes.get("/upcoming", (req, res) => {
+    const logger = MainLogger.child({fn: "upcoming"});
     let user_query = req.query;
     res.header({
         "Cache-Control": "public, max-age=60, immutable"
@@ -65,23 +68,23 @@ othersroutes.get("/upcoming", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[OthersBili] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("bilibili", fetchedGroups)
             .then(([_l, upcoming, _p]) => {
                 let final_mappings: LiveMap<BilibiliData[]> = {};
-                console.log("[OthersBili] Filtering Database...");
+                logger.info("Filtering Database...");
                 // @ts-ignore
                 final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, upcoming);
                 final_mappings["cached"] = true;
-                console.log("[OthersBili] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -153,6 +156,7 @@ othersroutes.get("/upcoming", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "channels"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let hologroups: any[] = get_group("holopro");
@@ -165,20 +169,20 @@ othersroutes.get("/channels", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[OtherBili_Channels] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("bilibili", fetchedGroups)
             .then(data_docs => {
-                console.log("[OtherBili_Channels] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[OtherBili_Channels] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -272,6 +276,7 @@ othersroutes.get("/channels", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/youtube/live", (req, res) => {
+    const logger = MainLogger.child({fn: "youtubeLive"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let hologroups: any[] = get_group("holopro");
@@ -284,25 +289,25 @@ othersroutes.get("/youtube/live", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[OthersYT] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("youtube", fetchedGroups)
             .then(([live, upcoming, ended]) => {
-                console.log("[OthersYT] Parsing Database...");
+                logger.info("Parsing Database...");
                 // @ts-ignore
                 let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
-                console.log("[OthersYT] Filtering Database...")
+                logger.info("Filtering Database...")
                 // @ts-ignore
                 let final_mappings = parse_youtube_live_args(user_query, data_docs);
                 final_mappings["cached"] = true;
-                console.log("[OthersYT] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -397,6 +402,7 @@ othersroutes.get("/youtube/live", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/youtube/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "youtubeChannels"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let hologroups: any[] = get_group("holopro");
@@ -409,20 +415,20 @@ othersroutes.get("/youtube/channels", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[OthersYT_Channels] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("youtube", fetchedGroups)
             .then(data_docs => {
-                console.log("[OthersYT_Channels] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[OthersYT_Channels] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });

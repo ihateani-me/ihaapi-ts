@@ -2,8 +2,10 @@ import * as express from "express";
 import { VTDB } from "../dbconn";
 import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
 import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { ChannelArray, LiveMap, TwitchChannel, TwitchData } from "../utils/models";
+import { LiveMap, TwitchData } from "../utils/models";
 import _ from "lodash";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.Twitch"});
 const twitchroutes = express.Router()
 
 twitchroutes.use((req, res, next) => {
@@ -47,6 +49,7 @@ twitchroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 twitchroutes.get("/live", (req, res) => {
+    const logger = MainLogger.child({fn: "live"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
@@ -54,23 +57,23 @@ twitchroutes.get("/live", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[Twitch] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("twitch", fetchedGroups)
             .then(([live, _u, ended]) => {
                 let final_mappings: LiveMap<TwitchData[]> = {};
-                console.log("[Twitch] Filtering Database...");
+                logger.info("Filtering Database...");
                 final_mappings["live"] = sortObjectsByKey(live, "startTime");
                 final_mappings["ended"] = sortObjectsByKey(ended, "endTime");
                 final_mappings["cached"] = true;
-                console.log("[Twitch] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -146,6 +149,7 @@ twitchroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 twitchroutes.get("/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "channels"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
@@ -153,20 +157,20 @@ twitchroutes.get("/channels", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[TwitchChannel] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("twitch", fetchedGroups)
             .then(data_docs => {
-                console.log("[TwitchChannel] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[TwitchChannel] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });

@@ -2,7 +2,9 @@ import * as express from "express";
 import { VTDB } from "../dbconn";
 import { bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
 import { sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, BilibiliData, BiliBiliChannel, ChannelMap } from "../utils/models";
+import { LiveMap, BilibiliData } from "../utils/models";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.Hololive"});
 const holoroutes = express.Router();
 
 holoroutes.use((req, res, next) => {
@@ -56,17 +58,18 @@ holoroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 holoroutes.get("/live", (req, res) => {
+    const logger = MainLogger.child({fn: "live"});
     let user_query = req.query;
     res.header({
         "Cache-Control": "public, max-age=60, immutable"
     });
     try {
-        console.log("[HololiveBili] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("bilibili", get_group("holopro"))
             .then(([live, upcoming, past]) => {
-                console.log("[HololiveBili] Parsing Database...");
+                logger.info("Parsing Database...");
                 let final_mappings: LiveMap<BilibiliData[]> = {};
-                console.log("[HololiveBili] Filtering Database...");
+                logger.info("Filtering Database...");
                 // @ts-ignore
                 final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, live), "startTime");
                 // @ts-ignore
@@ -74,15 +77,15 @@ holoroutes.get("/live", (req, res) => {
                 // @ts-ignore
                 final_mappings["past"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, past), "endTime");
                 final_mappings["cached"] = true;
-                console.log("[HololiveBili] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -161,22 +164,23 @@ holoroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 holoroutes.get("/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "channels"});
     let user_query = req.query;
     try {
-        console.log("[HololiveBili_Channels] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("bilibili", get_group("holopro"))
             .then(data_docs => {
-                console.log("[HololiveBili_Channels] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[HololiveBili_Channels] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });

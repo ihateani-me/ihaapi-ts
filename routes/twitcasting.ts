@@ -2,8 +2,10 @@ import * as express from "express";
 import { VTDB } from "../dbconn";
 import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
 import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { ChannelArray, LiveMap, TwitcastingChannel, TwitcastingData } from "../utils/models";
+import { LiveMap, TwitcastingData } from "../utils/models";
 import _ from "lodash";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.Twitcasting"});
 const twitcastroutes = express.Router()
 
 twitcastroutes.use((req, res, next) => {
@@ -47,6 +49,7 @@ twitcastroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 twitcastroutes.get("/live", (req, res) => {
+    const logger = MainLogger.child({fn: "live"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
@@ -54,23 +57,23 @@ twitcastroutes.get("/live", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[Twitcasting] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("twitcasting", fetchedGroups)
             .then(([live, _u, ended]) => {
                 let final_mappings: LiveMap<TwitcastingData[]> = {};
-                console.log("[Twitcasting] Filtering Database...");
+                logger.info("Filtering Database...");
                 final_mappings["live"] = sortObjectsByKey(live, "startTime");
                 final_mappings["ended"] = sortObjectsByKey(ended, "endTime");
                 final_mappings["cached"] = true;
-                console.log("[Twitcasting] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -143,6 +146,7 @@ twitcastroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 twitcastroutes.get("/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "channels"});
     let user_query = req.query;
     let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
     let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
@@ -150,20 +154,20 @@ twitcastroutes.get("/channels", (req, res) => {
         fetchedGroups = allgroups;
     }
     try {
-        console.log("[TwitcastingChannel] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("twitcasting", fetchedGroups)
             .then(data_docs => {
-                console.log("[TwitcastingChannel] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[TwitcastingChannel] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });

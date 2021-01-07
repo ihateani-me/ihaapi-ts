@@ -8,6 +8,8 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { generateCustomString, getValueFromKey, is_none } from "../utils/swissknife";
 import { TwitchHelix } from "../utils/twitchapi";
 import { ttvChannelDataset, twcastChannelsDataset, vtapiRemoveVTuber, youtubeChannelDataset } from "../utils/vtadmin";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.VTuberAPI"});
 
 const vtapiRoutes = express.Router();
 
@@ -49,13 +51,13 @@ vtapiRoutes.get("/", (_, res) => {
     res.render("vtubersdata");
 })
 vtapiRoutes.get("/live", (_, res) => {
-    res.redirect("/v2/vtuber/lives", 302);
+    res.redirect(302, "/v2/vtuber/lives");
 })
 vtapiRoutes.get("/lives", (_, res) => {
     res.render("vtubersdata_lives");
 })
 vtapiRoutes.get("/schedule", (_, res) => {
-    res.redirect("/v2/vtuber/schedules", 302);
+    res.redirect(302, "/v2/vtuber/schedules");
 })
 vtapiRoutes.get("/schedules", (_, res) => {
     res.render("vtubersdata_schedules");
@@ -96,6 +98,7 @@ vtapiRoutes.get("/admin", ensureLoggedIn("/v2/vtuber/access"), (_q, res) => {
 vtapiRoutes.use(express.json());
 
 vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, res, next) => {
+    const logger = MainLogger.child({fn: "AdminAdd"});
     let jsonBody = req.body;
     let channelId = getValueFromKey(jsonBody, "channel", undefined);
     let group = getValueFromKey(jsonBody, "group", undefined);
@@ -112,7 +115,7 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
     if (!["youtube", "twitch", "twitcasting"].includes(platform)) {
         return res.status(400).json({"success": 0, "error": `Unknown "${platform}" platform.`});
     }
-    console.log(`vtuberAdminAdd() Request received, adding ${channelId} (${group}) to ${platform} data`);
+    logger.info(`Request received, adding ${channelId} (${group}) to ${platform} data`);
     try {
         // @ts-ignore
         let success, error;
@@ -135,6 +138,7 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
 })
 
 vtapiRoutes.post("/admin/delete", ensureLoggedIn("/v2/vtuber/access"), async (req, res, next) => {
+    const logger = MainLogger.child({fn: "AdminRemove"});
     let jsonBody = req.body;
     let channelId = getValueFromKey(jsonBody, "channel", undefined);
     let platform = getValueFromKey(jsonBody, "platform", undefined);
@@ -149,9 +153,9 @@ vtapiRoutes.post("/admin/delete", ensureLoggedIn("/v2/vtuber/access"), async (re
     }
     try {
         // @ts-ignore
-        console.log(`vtuberAdminRemove() Request received, removing ${channelId} from ${platform} data`);
+        logger.info(`Request received, removing ${channelId} from ${platform} data`);
         let [success, error] = await vtapiRemoveVTuber(channelId, platform);
-        console.log(`vtuberAdminRemove() Request finished, ${channelId} from ${platform} data have been removed`);
+        logger.info(`Request finished, ${channelId} from ${platform} data have been removed`);
         res.json({"success": success ? 1 : 0, "error": error});
     } catch (error) {
         return next(error);

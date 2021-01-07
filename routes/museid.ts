@@ -2,6 +2,8 @@ import * as express from "express";
 import { MongoConnection } from "../dbconn";
 import { LiveMap, YouTubeData, YTLiveArray } from "../utils/models";
 import { map_bool } from "../utils/swissknife";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.MuseID"});
 const museroutes = express.Router()
 const MuseDB = new MongoConnection("museid");
 
@@ -18,20 +20,21 @@ interface MuseMap extends LiveMap<YouTubeData[]> {
 }
 
 museroutes.get("/live", (req, res) => {
+    const logger = MainLogger.child({fn: "live"});
     let exclude_feeds = map_bool(req.query.exclude_feeds);
     try {
-        console.log("[MuseID] Fetching Database...");
+        logger.info("Fetching Database...");
         let current_lives: YouTubeData[] = []
         let upcoming_lives: YouTubeData[] = []
         var final_mappings: MuseMap = {};
         MuseDB.open_collection("live_data")
             .then(data_docs => {
-                console.log("[MuseID] Parsing Database...");
+                logger.info("Parsing Database...");
                 let vtb_res: YTLiveArray<YouTubeData[]> = data_docs[0];
                 try {
                     delete vtb_res["_id"];
                 } catch (error) {
-                    console.error(error);
+                    logger.error(error);
                 }
 
                 for (let [channel_id, channel_data] of Object.entries(vtb_res)) {
@@ -47,28 +50,28 @@ museroutes.get("/live", (req, res) => {
                 
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({ message: "Internal server error occured." });
             });
         final_mappings["live"] = current_lives;
         final_mappings["upcoming"] = upcoming_lives;
         if (!exclude_feeds) {
-            console.log("[MuseID_Feeds] Fetching Database...");
+            logger.info("Fetching Database...");
             MuseDB.open_collection("video_ids")
                 .then(data_docs => {
-                    console.log("[MuseID_Feeds] Parsing Database...");
+                    logger.info("Parsing Database...");
                     let vtb_res: YTLiveArray<string[]> = data_docs[0];
                     try {
                         delete vtb_res["_id"];
                     } catch (error) {
-                        console.error(error);
+                        logger.error(error);
                     }
                     final_mappings["feeds"] = vtb_res["UCxxnxya_32jcKj4yN1_kD7A"];
                     final_mappings["cached"] = true;
                     res.json(final_mappings);
                 })
                 .catch(error => {
-                    console.log(error);
+                    logger.error(error);
                     res.status(500).json({ message: "Internal server error occured." });
                 });
         } else {
@@ -76,7 +79,7 @@ museroutes.get("/live", (req, res) => {
             res.json(final_mappings);
         }
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({ message: "Internal server error occured." });
     }
 });

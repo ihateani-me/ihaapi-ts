@@ -2,8 +2,10 @@ import * as express from "express";
 import { VTDB } from "../dbconn";
 import { parse_youtube_live_args, bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
 import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, BilibiliData, YTLiveArray, YouTubeData, ChannelMap, YouTubeChannel, BiliBiliChannel, ChannelArray } from "../utils/models";
+import { LiveMap, BilibiliData } from "../utils/models";
 import _ from "lodash";
+import { logger as TopLogger } from "../utils/logger";
+const MainLogger = TopLogger.child({cls: "Routes.Nijisanji"});
 const nijiroutes = express.Router()
 
 nijiroutes.use((req, res, next) => {
@@ -50,17 +52,18 @@ nijiroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 nijiroutes.get("/live", (req, res) => {
+    const logger = MainLogger.child({fn: "live"});
     let user_query = req.query;
     res.header({
         "Cache-Control": "public, max-age=60, immutable"
     });
     try {
-        console.log("[NijisanjiBili] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("bilibili", get_group("nijisanji"))
             .then(([live, upcoming, past]) => {
-                console.log("[NijisanjiBili] Parsing Database...");
+                logger.info("Parsing Database...");
                 let final_mappings: LiveMap<BilibiliData[]> = {};
-                console.log("[NijisanjiBili] Filtering Database...");
+                logger.info("Filtering Database...");
                 // @ts-ignore
                 final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, live), "startTime");
                 // @ts-ignore
@@ -68,15 +71,15 @@ nijiroutes.get("/live", (req, res) => {
                 // @ts-ignore
                 final_mappings["past"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, past), "endTime");
                 final_mappings["cached"] = true;
-                console.log("[NijisanjiBili] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -148,22 +151,23 @@ nijiroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "channels"});
     let user_query = req.query;
     try {
-        console.log("[NijisanjiBili_Channels] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("bilibili", get_group("nijisanji"))
             .then(data_docs => {
-                console.log("[NijisanjiBili_Channels] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[NijisanjiBili_Channels] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings);
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -248,6 +252,7 @@ nijiroutes.get("/channels", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/youtube/live", (req, res) => {
+    const logger = MainLogger.child({fn: "youtubeLive"});
     let user_query = req.query;
     let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
     let nijigroups: any[] = get_group("nijisanji");
@@ -256,25 +261,25 @@ nijiroutes.get("/youtube/live", (req, res) => {
         fetchedGroups = nijigroups;
     }
     try {
-        console.log("[NijisanjiYT] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchVideos("youtube", fetchedGroups)
             .then(([live, upcoming, ended]) => {
-                console.log("[NijisanjiYT] Parsing Database...");
+                logger.info("Parsing Database...");
                 // @ts-ignore
                 let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
-                console.log("[NijisanjiYT] Filtering Database...");
+                logger.info("Filtering Database...");
                 // @ts-ignore
                 let final_mappings = parse_youtube_live_args(user_query, data_docs);
                 final_mappings["cached"] = true;
-                console.log("[NijisanjiYT] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings)
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
@@ -360,22 +365,23 @@ nijiroutes.get("/youtube/live", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/youtube/channels", (req, res) => {
+    const logger = MainLogger.child({fn: "youtubeChannels"});
     let user_query = req.query;
     try {
-        console.log("[NijisanjiYT_Channels] Fetching Database...");
+        logger.info("Fetching Database...");
         VTDB.fetchChannels("youtube", get_group("nijisanji"))
             .then(data_docs => {
-                console.log("[NijisanjiYT_Channels] Filtering Database...");
+                logger.info("Filtering Database...");
                 let final_mappings = channel_filters(user_query, data_docs);
-                console.log("[NijisanjiYT_Channels] Sending...");
+                logger.info("Sending...");
                 res.json(final_mappings);
             })
             .catch(error => {
-                console.log(error);
+                logger.error(error);
                 res.status(500).json({message: "Internal server error occured."});
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({message: "Internal server error occured."});
     }
 });
