@@ -43,8 +43,13 @@ export const GROUPS_MAPPINGS = {
         "vshojo",
         "upd8",
         "hanayori",
-        "mahapanca"
+        "mahapanca",
+        "veemusic",
+        "axel-v"
     ],
+    "axelv": ["axel-v"],
+    "axel-v": ["axel-v"],
+    "kamitsubaki": ["kamitsubaki"],
     "mahapanca": ["mahapanca"],
     "eilene": ["eilene"],
     "vivid": ["vivid"],
@@ -61,6 +66,7 @@ export const GROUPS_MAPPINGS = {
     "solotuber": ["solotuber"],
     "solovtuber": ["solovtuber"],
     "entum": ["entum"],
+    "veemusic": ["veemusic"],
     "vshojo": ["vshojo"]
 }
 export const GROUPS_KEY = [
