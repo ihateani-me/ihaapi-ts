@@ -1,6 +1,8 @@
 import { group } from "console";
 import moment from "moment-timezone";
 import { MongoClient, Db } from "mongodb";
+import winston from "winston";
+import { logger as MainLogger } from "../utils/logger";
 import { capitalizeIt } from "../utils/swissknife";
 import { TWCastChannelProps, TWCastVideoProps, TwitcastingChannel, TwitcastingVideo } from "./models/twitcasting";
 import { TTVChannelProps, TTVVideoProps, TwitchChannel, TwitchVideo } from "./models/twitch";
@@ -89,6 +91,7 @@ export class VTDB {
 
 export class MongoConnection {
     private client: MongoClient;
+    private logger: winston.Logger;
     db: Db
     db_name: string;
     is_connected: boolean;
@@ -99,18 +102,19 @@ export class MongoConnection {
         this.client = new MongoClient(server_url, { useUnifiedTopology: true });
         this.is_connected = false;
         this.db_name = database_name;
+        this.logger = MainLogger.child({cls: "MongoConnection"});
         this.connect();
     }
 
     connect() {
-        console.log(`[db] connecting to ${this.db_name}...`);
+        this.logger.info(`connecting to ${this.db_name}...`);
         this.dbtype = "???";
         this.version = "X.XX.XX"
         this.client.connect()
         .then(client => {
             this.db = this.client.db(this.db_name);
             this.is_connected = true;
-            console.log(`[db] connected to ${this.db_name}.`);
+            this.logger.info(`connected to ${this.db_name}.`);
             var admindb = this.db.admin();
             admindb.serverInfo((err, info) => {
                 this.version = info.version;
@@ -124,8 +128,8 @@ export class MongoConnection {
             })
         })
         .catch((error) => {
-            console.error(`[db] Failed to connect to ${this.db_name}`);
-            console.error(error);
+            this.logger.error(`Failed to connect to ${this.db_name}`);
+            this.logger.error(error);
         });
     }
 
@@ -146,7 +150,6 @@ export class MongoConnection {
             if (this.is_connected) {
                 break;
             }
-            // let timer_id = setTimeout(() => console.log("Waiting a little bit more before running function..."), 1000);
         }
         return this.db.collection(collection_name);
     }

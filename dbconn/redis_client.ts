@@ -1,11 +1,14 @@
-import Redis = require("ioredis");
+import Redis from "ioredis";
 import { fallbackNaN, is_none } from "../utils/swissknife";
+import { logger as MainLogger } from "../utils/logger";
+import winston from "winston";
 
 export class RedisDB {
     client: Redis.Redis
     usable: boolean
     host: string
     port: number
+    logger: winston.Logger;
 
     constructor(host: string, port: number, password?: string) {
         this.host = host;
@@ -21,6 +24,7 @@ export class RedisDB {
         }
         this.client = redis_db;
         this.usable = true;
+        this.logger = MainLogger.child({cls: "RedisDB"});
     }
 
     close() {
@@ -28,11 +32,12 @@ export class RedisDB {
     }
 
     private async safe_call(callback: Function): Promise<any> {
+        const logger = this.logger.child({fn: "safeCall"});
         try {
             let res = await callback();
             return res;
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             return null;
         }
     }
@@ -97,22 +102,23 @@ export class RedisDB {
     }
 
     async ping(): Promise<void> {
-        console.log(`[RedisClient:${this.host}] Pinging server...`);
+        const logger = this.logger.child({fn: "ping"});
+        logger.info(`Pinging ${this.host} server...`);
         var res = await this.safe_call(this.get.bind(this, "ping"));
         if (is_none(res)) {
             var res_set = await this.safe_call(this.set.bind(this, "ping", "pong"));
             if (!res_set) {
-                console.error(`[RedisClient:${this.host}] Ping failed, not usable!`);
+                logger.error(`Ping ${this.host} failed, not usable!`);
                 this.usable = false;
                 return;
             }
             res = await this.safe_call(this.get.bind(this, "ping"));
         }
         if (res !== "pong") {
-            console.error(`[RedisClient:${this.host}] Ping failed, not usable!`);
+            logger.error(`Ping ${this.host} failed, not usable!`);
             this.usable = false;
         } else {
-            console.log(`[RedisClient:${this.host}] Pong!`);
+            logger.info(`${this.host} Pong!`);
             this.usable = true;
         }
     }
