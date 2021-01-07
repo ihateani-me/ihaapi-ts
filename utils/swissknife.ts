@@ -183,3 +183,26 @@ export function fallbackNaN(cb: Function, to_convert: any, fallback?: any): any 
         return cb(to_convert);
     }
 }
+
+function rng(max: number): number {
+    return Math.floor(Math.random() * max);
+}
+
+const ASCII_LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+const ASCII_UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const NUMBERS = "0123456789";
+export function generateCustomString(length = 8, includeNumbers = false, includeUppercase = false): string {
+    let letters_used = ASCII_LOWERCASE;
+    if (includeNumbers) {
+        letters_used += NUMBERS;
+    }
+    if (includeUppercase) {
+        letters_used += ASCII_UPPERCASE;
+    }
+    const charlengths = letters_used.length;
+    let generated = "";
+    for (let i = 0; i < length; i++) {
+        generated += letters_used.charAt(rng(charlengths));
+    }
+    return generated;
+}
