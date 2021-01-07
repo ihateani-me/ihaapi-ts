@@ -1,6 +1,6 @@
 import * as express from "express";
-import fs = require("fs");
-import path = require("path");
+import fs from "fs";
+import path from "path";
 const RUNNING_ON_GLITCH = process.env.PROJECT_REMIX_CHAIN;
 
 const assets_router = express.Router();
