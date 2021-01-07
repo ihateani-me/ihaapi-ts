@@ -24,7 +24,7 @@ import {
     VTAPIDataSources
 } from "../datasources";
 import { CustomRedisCache } from "../caches/redis";
-import { fallbackNaN, filter_empty, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
+import { fallbackNaN, filter_empty, getValueFromKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
 import { Buffer } from "buffer";
 import express from "express";
 import moment from "moment-timezone";
