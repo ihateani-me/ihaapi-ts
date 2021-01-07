@@ -3,9 +3,9 @@ import express from "express";
 import * as cons from "consolidate";
 import mongoose from 'mongoose';
 import * as Routes from "./routes";
+import { gqldocsRoutes } from "./views/gqldocs";
 import moment = require('moment-timezone');
 import { AssetsRoute } from "./assets";
-import { gqldocsRoutes } from "./views/gqldocs";
 import express_compression from "compression";
 
 import { GQLAPIv2Server } from "./graphql";
@@ -26,9 +26,9 @@ let MONGO_VERSIONING = {
 
 console.info("Connecting to database...");
 mongoose.connect(`${mongouri}/${process.env.MONGODB_DBNAME}`, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
-console.info("Connected.");
 
 mongoose.connection.on("open", () => {
+    console.log("Connected to VTubers Database!");
     let admin = mongoose.connection.db.admin();
     admin.serverInfo((err, info) => {
         MONGO_VERSIONING["version"] = info.version;
@@ -71,6 +71,10 @@ app.use("/assets", AssetsRoute);
 
 app.get("/swagger.yml", (_, res) => {
     res.sendFile(__dirname + "/swagger.yml");
+});
+
+app.get("/other", (_, res) => {
+    res.redirect("/v2/vtuber", 302);
 });
 
 app.get("/api-docs", (_, res) => {
@@ -153,6 +157,7 @@ app.use("/v1", v1API);
 app.get("/v2", (_, res) => {
     res.render("v2api");
 })
+app.use("/v2/vtuber", Routes.VTAPIDashboardRoutes);
 app.use("/v2/gql-docs", gqldocsRoutes);
 
 GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });

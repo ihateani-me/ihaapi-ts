@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>ihateani.me API - Restricted Access!</title>
+    <meta name="description" content="Restricted access!">
+    <meta property="og:title" content="ihateani.me API">
+    <meta property="og:description" content="Restricted access!">
+    <meta property="og:image" content="/assets/img/icon192.png">
+    <meta name="theme-color" content="#3DCE70">
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" href="/assets/favicon.ico">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous">
+    </script>
+    <style>
+        .monospace {
+            font-family: monospace;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a:hover,
+        a:active {
+            text-decoration: underline;
+        }
+
+        #root {
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(10px + 2vmin);
+        }
+
+        .smaller {
+            font-size: 0.500em;
+        }
+
+        body {
+            background-color: #0D0D0D;
+            color: #fff;
+        }
+
+        .header-text {
+            color: #c9d5f7;
+            font-weight: 700;
+        }
+
+        a,
+        a:hover,
+        a:active,
+        a:visited {
+            color: #fff8a0;
+        }
+
+        b {
+            color: #93ffdc;
+        }
+
+        .cb-example {
+            background-color: #656565a8;
+            color: #abff97;
+            padding: 0.2rem;
+            margin-top: 0.4rem;
+            margin-bottom: 0.4rem;
+            margin-left: 1.25rem;
+        }
+
+        input {
+            background-color: #656565;
+            color: #00ff20;
+        }
+
+        .text-in {
+            border: 0px;
+            padding: 0.2rem;
+        }
+
+        .btn-in {
+            border: 0px;
+            padding: 0.2rem 0.4rem;
+            font-weight: bolder;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root" class="monospace">
+        <form action="/v2/vtuber/access" method="POST">
+            <input type="hidden" name="_csrf" value="">
+            <input type="hidden" name="_token" value="{{ CSRF_TOKEN }}">
+            <label for="vtpass" class="form-label">Password</label>
+            <input type="password" id="vtpass" class="form-control" aria-describedby="passwordHelpBlock"
+                name="password">
+            <div class="d-grid gap-2 col-6 mx-auto pt-3">
+                <button type="submit" class="btn btn-dark">Enter</button>
+            </div>
+            {% if ERROR_MSG %}
+            <code class="smaller">{{ ERROR_MSG }}</code>
+            {% endif %}
+        </form>
+    </div>
+</body>
+
+</html>
