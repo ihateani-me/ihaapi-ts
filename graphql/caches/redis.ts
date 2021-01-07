@@ -1,13 +1,15 @@
 import { RedisCache } from "apollo-server-cache-redis";
 import IORedis from "ioredis";
 import { is_none, fallbackNaN } from "../../utils/swissknife";
+import { logger as MainLogger } from "../../utils/logger";
 
 // This is just reimplementation of dbconn/redis_client
 export class CustomRedisCache extends RedisCache {
     client: IORedis.Redis
 
     constructor(options: IORedis.RedisOptions) {
-        console.log(`[GQLRedisCache] Connecting to ${options.host}:${options.port}`);
+        const logger = MainLogger.child({cls: "GQLRedisCache"});
+        logger.info(`Connecting to ${options.host}:${options.port}`);
         super(options);
     }
 

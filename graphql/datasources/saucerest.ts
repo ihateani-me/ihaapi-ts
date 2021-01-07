@@ -4,6 +4,8 @@ import { RESTDataSource, RequestOptions } from "apollo-datasource-rest";
 import { SauceNAO, IQDB } from "../../utils/saucefinder";
 import { fallbackNaN, getValueFromKey } from "../../utils/swissknife";
 import { IQDBParams, SauceNAOParams } from "../schemas/saucefinder";
+import { logger as MainLogger } from "../../utils/logger";
+import winston from "winston";
 
 const packageJson = require("../../package.json");
 
@@ -14,11 +16,14 @@ export class SauceNAOAPI extends RESTDataSource {
     db_index: number
 
     saucenao: SauceNAO
+    logger: winston.Logger;
 
     constructor() {
         super();
         this.baseURL = "https://saucenao.com/search.php";
         this.api_key = process.env.SAUCENAO_API_KEY || "";
+
+        this.logger = MainLogger.child({cls: "SauceNAORESTDS"});
     }
 
     private precheckSettings() {
@@ -40,6 +45,7 @@ export class SauceNAOAPI extends RESTDataSource {
         if (!this.api_key) {
             return {"error": "no api_key provided by webmaster"};
         }
+        const logger = this.logger.child({fn: "getSauce"});
         this.minsim = getValueFromKey(settings, "minsim", 57.5);
         this.numres = getValueFromKey(settings, "limit", 6);
         this.db_index = getValueFromKey(settings, "db_index", 999);
@@ -52,9 +58,9 @@ export class SauceNAOAPI extends RESTDataSource {
         build_url.push(`minsim=${this.minsim}!`);
         build_url.push(`api_key=${this.api_key}`);
         build_url.push(`url=${encodeURIComponent(url_input)}`);
-        console.log("[SauecNAOAPI] Fetching sauce...");
+        logger.info("Fetching sauce...");
         let response = await this.post(this.baseURL + `?${build_url.join("&")}`);
-        console.log("[SauecNAOAPI] Sauce requested, parsing results...");
+        logger.info("Sauce requested, parsing results...");
         return (await this.saucenao.generateResults(response));
     }
 }
@@ -64,10 +70,12 @@ export class IQDBAPI extends RESTDataSource {
     numres: number
 
     iqdb: IQDB
+    logger: winston.Logger;
 
     constructor() {
         super();
         this.baseURL = "https://iqdb.org/index.xml";
+        this.logger = MainLogger.child({cls: "IQDBRESTDS"});
     }
 
     private precheckSettings() {
@@ -86,13 +94,14 @@ export class IQDBAPI extends RESTDataSource {
     }
 
     async getSauce(url_input: string, settings: IQDBParams) {
+        const logger = this.logger.child({fn: "getSauce"});
         this.minsim = getValueFromKey(settings, "minsim", 57.5);
         this.numres = getValueFromKey(settings, "limit", 6);
         this.precheckSettings();
         this.iqdb = new IQDB(this.minsim);
-        console.log("[IQDBAPI] Fetching sauce...");
+        logger.info("Fetching sauce...");
         let response = await this.get(this.baseURL + `?url=${encodeURIComponent(url_input)}`);
-        console.log("[IQDBAPI] Sauce requested, parsing results...");
+        logger.info("Sauce requested, parsing results...");
         let parsed_data = await this.iqdb.generateResults(response);
         parsed_data = _.slice(parsed_data, 0, this.numres);
         return parsed_data;
