@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { basename } from 'path';
-import xml2js = require("xml2js");
+import xml2js from "xml2js";
 import moment = require('moment-timezone');
 import { capitalizeIt, fallbackNaN, getValueFromKey, hasKey, is_none } from './swissknife';
 import { logger as MainLogger } from "./logger";

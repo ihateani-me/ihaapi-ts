@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import cheerio = require("cheerio");
+import cheerio from "cheerio";
 import qs = require('qs');
 import { getValueFromKey, is_none } from './swissknife';
 import { logger as MainLogger } from "./logger";

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import moment = require("moment-timezone");
+import moment from "moment-timezone";
 import { RedisDB } from "../dbconn/redis_client";
 import { getValueFromKey, is_none, removeKeyFromObjects, sortObjectsByKey } from "./swissknife";
 import getMimeType = require('mime-type-check');

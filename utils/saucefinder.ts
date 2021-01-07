@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
-import xml2js = require("xml2js");
-import cheerio = require("cheerio");
+import xml2js from "xml2js";
+import cheerio from "cheerio";
 import FormData = require('form-data');
 import { logger as MainLogger } from "./logger";
 import { fallbackNaN, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from './swissknife';
