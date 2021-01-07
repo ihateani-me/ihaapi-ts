@@ -11,6 +11,8 @@ You could contact me at **Discord: *N4O#8868***<br>
 If you need more Other VTubers to add to the list.<br>
 After you add me, please Send Message directly so I'll know.
 
+You could also check Channels Data, Currently Live Streams, Upcoming Streams right here: <a href="/v2/vtuber" target="_blank" rel="noopener">VTuber API Frontend</a>
+
 Currently registered groups:
 * holopro: Hololive Production
   * hololive: Hololive JP Main Branch (including INNK)
@@ -31,16 +33,19 @@ Currently registered groups:
   * lupinusvg: Lupinus Video Games
   * cattleyarg: Cattleya Regina Games
   * irisbg: Iris Black Games
+* axel-v
 * dotlive: .LIVE
 * eilene
 * entum
 * hanayori: Hanayori Girls Dormitory
+* kamitsubaki
 * kizunaai: Kizuna AI and Co.
 * mahapanca
 * noriopro
 * paryiproject
 * upd8
 * solovtuber: Other VTubers that are Indie
+* veemusic
 * vgaming
 * vic
 * voms
