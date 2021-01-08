@@ -164,7 +164,7 @@ export async function youtubeChannelDataset(channelId: string, group: string) {
             let yt_result = result.data;
             let items = yt_result["items"].map((res: any) => {
                 // @ts-ignore
-                let channel_data = _.find(toBeParsed, {"id": res.id});
+                let channel_data = _.find(channelIds, {"id": res.id});
                 // @ts-ignore
                 res["groupData"] = channel_data["group"];
                 return res;

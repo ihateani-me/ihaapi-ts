@@ -139,7 +139,7 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
         }
         res.json({"success": success ? 1 : 0, "error": error});
     } catch (error) {
-        return next(error);
+        res.status(500).json({"success": 0, "error": error.toString()});
     }
 })
 
@@ -164,7 +164,7 @@ vtapiRoutes.post("/admin/delete", ensureLoggedIn("/v2/vtuber/access"), async (re
         logger.info(`Request finished, ${channelId} from ${platform} data have been removed`);
         res.json({"success": success ? 1 : 0, "error": error});
     } catch (error) {
-        return next(error);
+        res.status(500).json({"success": 0, "error": error.toString()});
     }
 })
 
