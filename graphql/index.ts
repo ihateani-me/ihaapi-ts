@@ -1,4 +1,5 @@
 import { ApolloServer } from "apollo-server-express";
+import { ApolloServerPluginInlineTraceDisabled  } from "apollo-server-core";
 import { CustomRedisCache } from "./caches/redis";
 
 import { nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
@@ -40,8 +41,9 @@ export const GQLAPIv2Server = new ApolloServer({
     typeDefs: [VTAPIv2, SauceAPIGQL, nHGQLSchemas, v2Definitions],
     resolvers: v2Resolvers,
     cache: cacheServers,
-    tracing: true,
+    tracing: false,
     introspection: true,
+    playground: false,
     context: ({ req, res }) => ({
         req, res, cacheServers
     }),
@@ -64,5 +66,6 @@ export const GQLAPIv2Server = new ApolloServer({
         twitcastingChannels: new TwitcastingChannel(TWCastChannel),
         saucenao: new SauceNAOAPI(),
         iqdb: new IQDBAPI(),
-    })
+    }),
+    plugins: [ApolloServerPluginInlineTraceDisabled()],
 });

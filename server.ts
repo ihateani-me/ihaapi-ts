@@ -11,6 +11,7 @@ import { expressErrorLogger, expressLogger, logger } from "./utils/logger";
 import { GQLAPIv2Server } from "./graphql";
 import { capitalizeIt } from "./utils/swissknife";
 import { gqldocsRoutes } from "./views/gqldocs";
+import { altairExpress } from "altair-express-middleware";
 
 const API_CHANGELOG = require("./views/changelog.json");
 const packageJson = require("./package.json");
@@ -163,6 +164,34 @@ app.get("/v2", (_, res) => {
 app.use("/v2/vtuber", Routes.VTAPIDashboardRoutes);
 app.use("/v2/gql-docs", gqldocsRoutes);
 
+let initialQuery = `query VTuberLives {
+    vtuber {
+        live {
+            _total
+            items {
+                id
+                title
+                thumbnail
+                platform
+                group
+            }
+            pageInfo {
+                nextCursor
+                hasNextPage
+            }
+        }
+    }
+}
+`
+
+// Bind Altair GraphQL IDE
+app.use("/v2/graphql", altairExpress({
+    endpointURL: "/v2/graphql",
+    initialQuery: initialQuery,
+    initialHeaders: {
+        "Accept-Encoding": "gzip"
+    }
+}))
 GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
 
 app.use(expressErrorLogger);

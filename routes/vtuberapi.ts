@@ -62,6 +62,12 @@ vtapiRoutes.get("/schedule", (_, res) => {
 vtapiRoutes.get("/schedules", (_, res) => {
     res.render("vtubersdata_schedules");
 })
+vtapiRoutes.get("/setting", (_, res) => {
+    res.redirect(302, "/v2/vtuber/settings");
+})
+vtapiRoutes.get("/settings", (_, res) => {
+    res.render("vtubersdata_settings");
+})
 
 // Admin page
 vtapiRoutes.get("/access", csrfProtected, (req, res) => {
