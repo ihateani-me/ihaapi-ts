@@ -127,4 +127,64 @@ while True:
 print(all_items)
 ```
 
+### ** JavaScript **
+
+```js
+
+const gqlSchemas = `query($cursor:String) {
+    vtuber {
+        live(cursor:$cursor) {
+            items {
+                id
+                title
+                channel_id
+                group
+                platform
+            }
+            pageInfo {
+                nextCursor
+                hasNextPage
+            }
+        }
+    }
+}
+`
+
+// API request
+const getLives = async function (cursor = "") {
+    let apiRes = await fetch("https://api.ihateani.me/v2/graphql", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            query: gqlSchemas,
+            variables: {
+                cursor: cursor
+            }
+        })
+    }).then((res) => res.json());
+    return apiRes;
+}
+
+// Pagination via recursion
+const getAllLivesAsync = async function (cursor = "") {
+    let results = await getLives(cursor);
+    let gqlres = results.data.vtuber;
+    let mainResults = gqlres.live.items;
+    let pageData = gqlres.live.pageInfo;
+    if (pageData.hasNextPage && pageData.nextCursor) {
+        return mainResults.concat(await getAllLivesAsync(pageData.nextCursor));
+    } else {
+        return mainResults;
+    }
+}
+
+(async function () {
+    let results = await getAllLivesAsync();
+    console.log(results);
+})()
+```
+
 <!-- tabs:end -->
