@@ -567,7 +567,6 @@ class VTAPIQuery {
                         videoCount: res["videoCount"],
                         level: null
                     },
-                    growth: mapGrowthData("youtube", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "youtube"
@@ -617,7 +616,6 @@ class VTAPIQuery {
                         videoCount: null,
                         level: res["level"]
                     },
-                    growth: mapGrowthData("twitcasting", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "twitcasting"
@@ -643,7 +641,6 @@ class VTAPIQuery {
                         videoCount: res["videoCount"],
                         level: null
                     },
-                    growth: mapGrowthData("twitch", res["id"], res["history"]),
                     image: res["thumbnail"],
                     group: res["group"],
                     platform: "twitch"
@@ -697,6 +694,39 @@ class VTAPIQuery {
         }
         return null;
     }
+
+    @Memoize()
+    async performQueryOnChannelGrowth(dataSources: VTAPIDataSources, parents: ChannelParents) {
+        let defaults: GrowthChannelData = {"subscribersGrowth": null, "viewsGrowth": null};
+        const logger = this.logger.child({fn: "performQueryOnChannelGrowth"});
+        if (parents.platform === "youtube") {
+            let ytStats = await dataSources.youtubeChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
+                logger.error("Failed to perform parents growth on youtube ID: ", parents.channel_id[0]);
+                return {"id": parents.channel_id[0], "history": []};
+            });
+            return mapGrowthData("youtube", ytStats["id"], ytStats["history"]) || defaults;
+        } else if (parents.platform === "bilibili") {
+            // let biliStats = await dataSources.biliChannels.getChannelStats(parents.channel_id).catch(() => {
+            //     logger.error("Failed to perform parents growth on bilibili ID: ", parents.channel_id[0]);
+            //     return defaults;
+            // });
+            // return _.get(biliStats, parents.channel_id[0], defaults);
+            return defaults;
+        } else if (parents.platform === "twitcasting") {
+            let twStats = await dataSources.twitcastingChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
+                logger.error("Failed to perform parents growth on twitcasting ID: ", parents.channel_id[0]);
+                return {"id": parents.channel_id[0], "history": []};
+            });
+            return mapGrowthData("twitcasting", twStats["id"], twStats["history"]) || defaults;
+        } else if (parents.platform === "twitch") {
+            let ttvStats = await dataSources.twitchChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
+                logger.error("Failed to perform parents growth on twitch ID: ", parents.channel_id[0]);
+                return {"id": parents.channel_id[0], "history": []};
+            });
+            return mapGrowthData("twitch", ttvStats["id"], ttvStats["history"]) || defaults;
+        }
+        return defaults;
+    }
 }
 
 const VTPrefix = "vtapi-gqlcache";
@@ -739,13 +769,13 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
     return final_name;
 }
 
-function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | "stats" | "singlech", parent: ChannelObject = null) {
+function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | "stats" | "singlech" | "growth", parent: ChannelObject = null) {
     let final_name = `${VTPrefix}-${type}`;
     if (type === "stats") {
         final_name += `-platforms_${parent.platform}-ch_${parent.id}`;
         return final_name;
     }
-    if (type === "singlech") {
+    if (type === "singlech" || type === "growth") {
         // @ts-ignore
         final_name += `-platforms_${parent.platform}-ch_${parent.channel_id}`;
         return final_name;
@@ -1320,6 +1350,27 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             final_results["_total"] = total_results;
             return final_results;
+        }
+    },
+    ChannelObject: {
+        growth: async (parent: ChannelObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<GrowthChannelData> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 1800, scope: "PRIVATE"});
+            // const logger = MainLogger.child({fn: "ChannelObject.growth"});
+            // @ts-ignore
+            // logger.info(`Querying ${parent.id}`);
+            let cache_name = getCacheNameForChannels({}, "growth", parent);
+            let [results, ttl]: [GrowthChannelData, number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (is_none(results)) {
+                results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources, {
+                    // @ts-ignore
+                    "channel_id": [parent.id],
+                });
+                ttl = 1800
+                await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+            }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            return results;
         }
     },
     LiveObject: {

@@ -1,4 +1,5 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb'
+import _ from 'lodash';
 import moment from "moment-timezone";
 import { TTVChannelDocs, TTVChannelProps, TTVVideoDocs, TTVVideoProps } from '../../dbconn/models';
 import { is_none } from '../../utils/swissknife';
@@ -55,15 +56,30 @@ export interface TwitchChannelDocument<T> {
 
 export class TwitchChannel extends MongoDataSource<TTVChannelDocs> {
     async getChannels(channel_ids: string[] = null, groups: string[] = null) {
-        let fetchFormat = {};
+        let matchFormat = {};
         if (!is_none(channel_ids) && Array.isArray(channel_ids) && channel_ids.length > 0) {
-            fetchFormat["id"] = {"$in": channel_ids};
+            matchFormat["id"] = { "$in": channel_ids };
         }
         if (!is_none(groups) && Array.isArray(groups) && groups.length > 0) {
-            fetchFormat["group"] = {"$in": groups};
+            matchFormat["group"] = { "$in": groups };
         }
+        let aggregateReq = [];
+        if (Object.keys(matchFormat).length > 0) {
+            aggregateReq.push({
+                "$match": matchFormat
+            })
+        }
+        // omit history because it's resource hog
+        let projectFormat = {
+            "_id": 0,
+            "history": 0,
+            "__v": 0
+        }
+        aggregateReq.push({
+            "$project": projectFormat,
+        })
         // @ts-ignore
-        const channelsData: TTVChannelProps[] = await this.model.find(fetchFormat);
+        const channelsData: TTVChannelProps[] = await this.model.aggregate(aggregateReq);
         return channelsData;
     }
 
@@ -91,5 +107,20 @@ export class TwitchChannel extends MongoDataSource<TTVChannelDocs> {
             }
         })
         return mapping;
+    }
+
+    async getChannelHistory(channel_id: string): Promise<TTVChannelProps> {
+        let raw_results = await this.model.aggregate([
+            {
+                "$match": {
+                    "id": { "$eq": channel_id }
+                },
+                "$project": {
+                    "id": 1,
+                    "history": 1,
+                }
+            }
+        ])
+        return _.nth(raw_results, 0);
     }
 }
