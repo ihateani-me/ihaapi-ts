@@ -22,7 +22,8 @@ export const GROUPS_MAPPINGS = {
     "nijisanjiid": ["nijisanjiid"],
     "nijisanjiworld": ["nijisanjikr", "nijisanjiid", "nijisanjien", "nijisanjiin"],
     "virtuareal": ["virtuareal"],
-    "vtuberesports": ["irisbg", "cattleyarg", "lupinusvg"],
+    "vtuberesports": ["irisbg", "cattleyarg", "lupinusvg", "vspo"],
+    "vspo": ["vspo", "irisbg", "cattleyarg", "lupinusvg"],
     "lupinusvg": ["lupinusvg"],
     "irisblackgames": ["irisbg"],
     "cattleyareginagames": ["cattleyarg"],
@@ -45,7 +46,8 @@ export const GROUPS_MAPPINGS = {
         "hanayori",
         "mahapanca",
         "veemusic",
-        "axel-v"
+        "axel-v",
+        "tsunderia"
     ],
     "axelv": ["axel-v"],
     "axel-v": ["axel-v"],
@@ -67,21 +69,9 @@ export const GROUPS_MAPPINGS = {
     "solovtuber": ["solovtuber"],
     "entum": ["entum"],
     "veemusic": ["veemusic"],
-    "vshojo": ["vshojo"]
+    "vshojo": ["vshojo"],
+    "tsunderia": ["tsunderia"],
 }
-export const GROUPS_KEY = [
-    "vtuberesports",
-    "nanashi",
-    "others",
-    "mahapanca",
-    "vivid",
-    "noripro",
-    "voms",
-    "hanayori",
-    "kizunaai",
-    "nijisanji",
-    "holopro"
-]
 
 
 function get_group(group_name: string) {
