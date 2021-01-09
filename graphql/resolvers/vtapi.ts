@@ -462,6 +462,7 @@ class VTAPIQuery {
                     let remap: ChannelObject = {
                         id: res["id"],
                         name: res["name"],
+                        en_name: res["en_name"],
                         description: res["description"],
                         publishedAt: res["publishedAt"],
                         image: res["thumbnail"],
@@ -507,6 +508,7 @@ class VTAPIQuery {
                     let remap: ChannelObject = {
                         id: res["id"],
                         name: res["name"],
+                        en_name: res["en_name"],
                         description: res["description"],
                         statistics: {
                             subscriberCount: res["followerCount"],
@@ -529,6 +531,7 @@ class VTAPIQuery {
                         id: res["id"],
                         user_id: res["user_id"],
                         name: res["name"],
+                        en_name: res["en_name"],
                         description: res["description"],
                         publishedAt: res["publishedAt"],
                         statistics: {
@@ -559,6 +562,7 @@ class VTAPIQuery {
                 let remap: ChannelObject = {
                     id: res["id"],
                     name: res["name"],
+                    en_name: res["en_name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
                     statistics: {
@@ -609,6 +613,7 @@ class VTAPIQuery {
                 let remap: ChannelObject = {
                     id: res["id"],
                     name: res["name"],
+                    en_name: res["en_name"],
                     description: res["description"],
                     statistics: {
                         subscriberCount: res["followerCount"],
@@ -633,6 +638,7 @@ class VTAPIQuery {
                     id: res["id"],
                     user_id: res["user_id"],
                     name: res["name"],
+                    en_name: res["en_name"],
                     description: res["description"],
                     publishedAt: res["publishedAt"],
                     statistics: {

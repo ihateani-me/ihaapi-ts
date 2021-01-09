@@ -162,6 +162,8 @@ export const VTAPIv2 = gql`
         room_id: String
         "The channel name"
         name: String!
+        "The channel name in normal English (doesn't mean it's translated)"
+        en_name: String
         "The channel description"
         description: String!
         "The channel publication time in DateTime format"
@@ -291,6 +293,7 @@ export interface ChannelObject {
     user_id?: string
     room_id?: string
     name: string
+    en_name?: string
     description: string
     publishedAt?: string
     image: string
