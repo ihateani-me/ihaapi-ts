@@ -1,4 +1,4 @@
-import { createSchema, Type, typedModel, ExtractDoc, ExtractProps } from "ts-mongoose";
+import { createSchema, Type, ExtractDoc, typedModel, ExtractProps } from "ts-mongoose";
 
 const LiveStatus = ["live", "upcoming", "past", "video"] as const;
 
