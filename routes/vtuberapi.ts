@@ -109,6 +109,7 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
     let channelId = getValueFromKey(jsonBody, "channel", undefined);
     let group = getValueFromKey(jsonBody, "group", undefined);
     let platform = getValueFromKey(jsonBody, "platform", undefined);
+    let en_name = getValueFromKey(jsonBody, "en_name", undefined);
     if (is_none(channelId)) {
         return res.status(400).json({"success": 0, "error": "Missing Channel ID"});
     }
@@ -118,6 +119,9 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
     if (is_none(group)) {
         return res.status(400).json({"success": 0, "error": "Missing Group"});
     }
+    if (is_none(en_name) || en_name.length < 1 || en_name === "" || en_name === " ") {
+        return res.status(400).json({"success": 0, "error": "Missing Romanized Name"});
+    }
     if (!["youtube", "twitch", "twitcasting"].includes(platform)) {
         return res.status(400).json({"success": 0, "error": `Unknown "${platform}" platform.`});
     }
@@ -126,16 +130,16 @@ vtapiRoutes.post("/admin/add", ensureLoggedIn("/v2/vtuber/access"), async (req, 
         // @ts-ignore
         let success, error;
         if (platform === "youtube") {
-            [success, error] = await youtubeChannelDataset(channelId, group);
+            [success, error] = await youtubeChannelDataset(channelId, group, en_name);
         } else if (platform === "twitch") {
             if (is_none(TTVAPI)) {
                 success = false;
                 error = "Web Admin doesn't give a Twitch API Information to use in the environment table."
             } else {
-                [success, error] = await ttvChannelDataset(channelId, group, TTVAPI);
+                [success, error] = await ttvChannelDataset(channelId, group, en_name, TTVAPI);
             }
         } else if (platform === "twitcasting") {
-            [success, error] = await twcastChannelsDataset(channelId, group);
+            [success, error] = await twcastChannelsDataset(channelId, group, en_name);
         }
         res.json({"success": success ? 1 : 0, "error": error});
     } catch (error) {

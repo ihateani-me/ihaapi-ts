@@ -1,14 +1,14 @@
 import axios from "axios";
 import _ from "lodash";
 import moment from "moment-timezone";
-import { TwitcastingChannel, TwitchChannel, YoutubeChannel } from "../dbconn/models";
+import { TwitcastingChannel, TwitchChannel, YoutubeChannel, YTChannelProps } from "../dbconn/models";
 import { logger as MainLogger } from "./logger";
 import { fallbackNaN, is_none } from "./swissknife";
 import { TwitchHelix } from "./twitchapi";
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36";
 
-export async function twcastChannelsDataset(channelId: string, group: string) {
+export async function twcastChannelsDataset(channelId: string, group: string, en_name: string) {
     let session = axios.create({
         headers: {
             "User-Agent": CHROME_UA
@@ -64,6 +64,7 @@ export async function twcastChannelsDataset(channelId: string, group: string) {
         let mappedNew = {
             "id": udata["id"],
             "name": udata["name"],
+            "en_name": en_name,
             "description": desc,
             "thumbnail": profile_img,
             "followerCount": udata["backerCount"],
@@ -126,7 +127,7 @@ function checkForYoutubeAPIError(apiReponses: any) {
     return [true, false];
 }
 
-export async function youtubeChannelDataset(channelId: string, group: string) {
+export async function youtubeChannelDataset(channelId: string, group: string, en_name: string) {
     let session = axios.create({
         headers: {
             "User-Agent": `vtschedule-ts/0.3.0 (https://github.com/ihateani-me/vtscheduler-ts)`
@@ -145,7 +146,7 @@ export async function youtubeChannelDataset(channelId: string, group: string) {
     }
     
     // @ts-ignore
-    let channelIds = [{"id": channelId, "group": group}];
+    let channelIds = [{"id": channelId, "group": group, "name": en_name}];
 
     const chunked_channels_set = _.chunk(channelIds, 40);
     logger.info(`checking channels with total of ${channelIds.length} channels (${chunked_channels_set.length} chunks)...`);
@@ -167,6 +168,7 @@ export async function youtubeChannelDataset(channelId: string, group: string) {
                 let channel_data = _.find(channelIds, {"id": res.id});
                 // @ts-ignore
                 res["groupData"] = channel_data["group"];
+                res["enName"] = channel_data["name"];
                 return res;
             })
             return items;
@@ -235,6 +237,7 @@ export async function youtubeChannelDataset(channelId: string, group: string) {
         // @ts-ignore
         let finalData: YTChannelProps = {
             id: ch_id,
+            en_name: en_name,
             name: title,
             description: desc,
             publishedAt: pubAt,
@@ -261,7 +264,7 @@ export async function youtubeChannelDataset(channelId: string, group: string) {
     return [true, "Success"];
 }
 
-export async function ttvChannelDataset(channelId: string, group: string, ttvAPI: TwitchHelix) {
+export async function ttvChannelDataset(channelId: string, group: string, en_name: string, ttvAPI: TwitchHelix) {
     const logger = MainLogger.child({fn: "ttvChannelDataset"});
 
     let channels = await TwitchChannel.findOne({"id": {"$eq": channelId}}).catch((err) => {
@@ -297,6 +300,7 @@ export async function ttvChannelDataset(channelId: string, group: string, ttvAPI
             "id": result["login"],
             "user_id": result["id"],
             "name": result["display_name"],
+            "en_name": en_name,
             "description": result["description"],
             "thumbnail": result["profile_image_url"],
             "publishedAt": result["created_at"],

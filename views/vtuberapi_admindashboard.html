@@ -164,21 +164,25 @@
         <hr>
         <form id="formvtapi-add" action="/v2/vtuber/admin/add" method="POST">
             <div class="row">
-                <div class="col-sm-6 mb-3">
-                    <label for="channeladd-vtapi" class="form-label text-white">Channel Link</label>
+                <div class="col-sm-4 mb-3">
+                    <label for="channelUrl" class="form-label text-white">Channel Link</label>
                     <input id="channelUrl" class="form-control" aria-describedby="channelHelp" disabled>
                     <div id="channelHelp" class="form-text">
                         Must be YouTube Channel URL, Twitcasting Channel URL, or Twitch Channel URL
                     </div>
                 </div>
                 <div class="col-sm-3 mb-3">
-                    <label for="channelgroupadd-vtapi" class="form-label text-white">Channel Group</label>
+                    <label for="channelENName" class="form-label text-white">English/Romanized Name</label>
+                    <input id="channelENName" class="form-control" disabled>
+                </div>
+                <div class="col-sm-2 mb-3">
+                    <label for="channelGroup" class="form-label text-white">Channel Group</label>
                     <select id="channelGroup" class="form-select" aria-label="Group" disabled>
                         <option selected>Custom</option>
                     </select>
                 </div>
                 <div class="col-sm-3 mb-3">
-                    <label for="channelgroupadd-vtapi" class="form-label text-white">Custom Group</label>
+                    <label for="channelGroupCustom" class="form-label text-white">Custom Group</label>
                     <input id="channelGroupCustom" class="form-control" aria-describedby="channelGroupHelp" disabled>
                     <div id="channelGroupHelp" class="form-text">
                         Write group here if you use Custom
@@ -550,6 +554,7 @@
             $("#channelUrl").attr("disabled", false);
             $("#channelGroup").attr("disabled", false);
             $("#channelGroupCustom").attr("disabled", false);
+            $("#channelENName").attr("disabled", false);
             $("#btnAddNew").attr("disabled", false);
         })();
 
@@ -574,7 +579,7 @@
             }
         }
 
-        async function addNewVTuber(channelUrl, group, platform) {
+        async function addNewVTuber(channelUrl, group, platform, namae) {
             let apiRes = await fetch("/v2/vtuber/admin/add", {
                 method: "POST",
                 headers: {
@@ -584,7 +589,8 @@
                 body: JSON.stringify({
                     channel: channelUrl,
                     group: group,
-                    platform: platform
+                    platform: platform,
+                    en_name: namae,
                 })
             }).then((res) => res.json());
             if (apiRes.success !== 1) {
@@ -611,24 +617,34 @@
             if (selGroup === "Custom") {
                 selGroup = $("#channelGroupCustom").val();
             }
+            let englishName = $("#channelENName").val();
             $("#btnAddNew").attr("disabled", true);
             $("#btnAddNewSpinner").removeClass("visually-hidden");
 
             if (YOUTUBE_RE.test(channelUrl)) {
                 let channelId = forceMatchChannel(channelUrl, YOUTUBE_RE);
-                await addNewVTuber(channelId, selGroup, "youtube");
+                await addNewVTuber(channelId, selGroup, "youtube", englishName);
             } else if (TWITCASTING_RE.test(channelUrl)) {
                 let channelId = forceMatchChannel(channelUrl, TWITCASTING_RE);
-                await addNewVTuber(channelId, selGroup, "twitcasting");
+                await addNewVTuber(channelId, selGroup, "twitcasting", englishName);
             } else if (TWITCH_RE.test(channelUrl)) {
                 let channelId = forceMatchChannel(channelUrl, TWITCH_RE);
-                await addNewVTuber(channelId, selGroup, "twitch");
+                await addNewVTuber(channelId, selGroup, "twitch", englishName);
             } else {
                 $("#error-modal-text").text("Failed to validate channel URL, please provide proper Youtube/Twitch/Twitcasting Channel URL.");
                 errorModal.show();
             }
             $("#btnAddNewSpinner").addClass("visually-hidden");
             $("#btnAddNew").attr("disabled", false);
+        });
+
+        $("#channelGroup").on("change", function (e) {
+            let m = $(this).find(":selected").text();
+            if (m === "Custom") {
+                $("#channelGroupCustom").attr("disabled", false);
+            } else {
+                $("#channelGroupCustom").attr("disabled", true);
+            }
         });
     </script>
 </body>
