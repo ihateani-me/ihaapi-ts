@@ -1,4 +1,4 @@
-import { Connection, Document, Model, Schema, PaginateModel, model, FilterQuery, PaginateOptions, PaginateResult, Aggregate, AggregatePaginateResult } from 'mongoose';
+import { Connection, Document, Model, Schema, model, FilterQuery, PaginateOptions, PaginateResult, Aggregate, AggregatePaginateResult } from 'mongoose';
 import { Extract } from "ts-mongoose";
 
 import mongoosePaginate from "mongoose-paginate-v2";
@@ -18,7 +18,7 @@ interface PaginateModelCustom<T extends Document> extends Model<T> {
 }
 
 // Original function from ts-mongoose, modified for my own usage
-export function typedPaginatingModel<T extends Schema, S extends {
+export function typedPaginationModel<T extends Schema, S extends {
     [name: string]: Function;
 }>(name: string, schema?: T, collection?: string, skipInit?: boolean, statics?: S & ThisType<Model<Document & Extract<T>>>, connection?: Connection): PaginateModelCustom<Document & Extract<T>> & S {
     if (schema && statics) {
