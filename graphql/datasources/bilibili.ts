@@ -1,6 +1,8 @@
 import { MongoDataSource } from 'apollo-datasource-mongodb'
+import _ from 'lodash';
 import moment from "moment-timezone";
 import { B2ChannelDoc, B2ChannelProps, B2VideoDoc, B2VideoProps } from '../../dbconn/models';
+import { GroupsResults } from '../../utils/models';
 import { is_none } from '../../utils/swissknife';
 import { ChannelStatistics } from '../schemas/vtapi';
 
@@ -93,5 +95,16 @@ export class BiliBiliChannel extends MongoDataSource<B2ChannelDoc> {
             }
         })
         return mapping;
+    }
+
+    async getGroups(): Promise<string[]> {
+        let groups_results: GroupsResults[] = await this.model.aggregate([
+            {
+                "$project": {
+                    "group": 1,
+                }
+            }
+        ])
+        return _.uniq(_.map(groups_results, "group"));
     }
 }

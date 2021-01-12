@@ -169,3 +169,7 @@ export interface ChannelMap<T> {
     channels?: T;
     cached?: boolean;
 }
+
+export interface GroupsResults {
+    group: string
+}

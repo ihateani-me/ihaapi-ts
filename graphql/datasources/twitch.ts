@@ -2,6 +2,7 @@ import { MongoDataSource } from 'apollo-datasource-mongodb'
 import _ from 'lodash';
 import moment from "moment-timezone";
 import { TTVChannelDocs, TTVChannelProps, TTVVideoDocs, TTVVideoProps } from '../../dbconn/models';
+import { GroupsResults } from '../../utils/models';
 import { is_none } from '../../utils/swissknife';
 import { ChannelStatistics } from '../schemas/vtapi';
 
@@ -122,5 +123,16 @@ export class TwitchChannel extends MongoDataSource<TTVChannelDocs> {
             }
         ])
         return _.nth(raw_results, 0);
+    }
+
+    async getGroups(): Promise<string[]> {
+        let groups_results: GroupsResults[] = await this.model.aggregate([
+            {
+                "$project": {
+                    "group": 1,
+                }
+            }
+        ])
+        return _.uniq(_.map(groups_results, "group"));
     }
 }

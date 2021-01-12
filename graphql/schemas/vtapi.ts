@@ -247,6 +247,13 @@ export const VTAPIv2 = gql`
         "Channel pagination info, only used in channels() query"
         pageInfo: PageInfo!
     }
+
+    """
+    Existing groups that exist on the database.
+    """
+    type GroupsResource {
+        items: [String!]! @cacheControl(maxAge: 300)
+    }
 `;
 
 // "Enum"
@@ -359,4 +366,8 @@ export interface ChannelsResource {
     _total: number
     items: ChannelObject[]
     pageInfo: PageInfo
+}
+
+export interface GroupsResource {
+    items: string[]
 }

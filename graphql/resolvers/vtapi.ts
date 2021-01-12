@@ -17,7 +17,8 @@ import {
     LivesResource,
     ChannelsResource,
     SortOrder,
-    ChannelGrowth
+    ChannelGrowth,
+    GroupsResource
 } from "../schemas";
 import {
     YoutubeDocument,
@@ -733,6 +734,24 @@ class VTAPIQuery {
         }
         return defaults;
     }
+
+    @Memoize()
+    async performGroupsFetch(dataSources: VTAPIDataSources): Promise<string[]> {
+        const logger = this.logger.child({fn: "performGroupsFetch"});
+        logger.info("Preparing datasources...");
+        const wrapperForFetch = [dataSources.twitcastingChannels, dataSources.youtubeChannels, dataSources.twitchChannels, dataSources.biliChannels].map((ds) => (
+            ds.getGroups().then((res) => {
+                return res;
+            }).catch((err) => {
+                logger.error(`An error occured while fetching one of the datasources, ${err.toString()}`);
+                console.error(err);
+                return [];
+            })
+        ));
+        logger.info("Fetching groups data...")
+        const stringResults = await Promise.all(wrapperForFetch);
+        return _.uniq(_.flattenDeep(stringResults));
+    }
 }
 
 const VTPrefix = "vtapi-gqlcache";
@@ -1355,6 +1374,32 @@ export const VTAPIv2Resolvers: IResolvers = {
                 };
             }
             final_results["_total"] = total_results;
+            return final_results;
+        },
+        groups: async (_s, _a, ctx: VTAPIContext, info): Promise<GroupsResource> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({maxAge: 300, scope: 'PRIVATE'});
+            const logger = MainLogger.child({fn: "groups"});
+            logger.info("Processing groups()");
+            logger.info("Checking for cache...");
+            let cache_name = "vtapi-groups-data";
+            let [results, ttl]: [string[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            if (!is_none(results)) {
+                logger.info(`Cache hit! --> ${cache_name}`);
+                ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            } else {
+                logger.info("Missing cache, requesting manually...");
+                results = await VTQuery.performGroupsFetch(ctx.dataSources);
+                logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
+                if (results.length > 0) {
+                    // dont cache for reason.
+                    await ctx.cacheServers.setexBetter(cache_name, 300, results);
+                    ctx.res.set("Cache-Control", "private, max-age=300");
+                }
+            }
+            let final_results: GroupsResource = {
+                "items": results
+            };
             return final_results;
         }
     },

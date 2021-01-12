@@ -63,6 +63,8 @@ export const v2Definitions = gql`
             cursor: String
             limit: Int = 25
         ): ChannelsResource @cacheControl(maxAge: 1800)
+        "Get a list of available groups in the database"
+        groups: GroupsResource @cacheControl(maxAge: 300)
     }
 
     """
