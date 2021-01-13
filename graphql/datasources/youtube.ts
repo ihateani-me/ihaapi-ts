@@ -113,17 +113,18 @@ export class YoutubeChannel extends MongoDataSource<YTChannelDocs> {
     }
 
     async getChannelHistory(channel_id: string): Promise<YTChannelProps> {
-        let raw_results = await this.model.aggregate([
-            {
-                "$match": {
-                    "id": { "$eq": channel_id }
-                },
-                "$project": {
-                    "id": 1,
-                    "history": 1,
-                }
+        let historyReq = [{
+            "$match": {
+                "id": {"$eq": channel_id}
             }
-        ])
+        },
+        {
+            "$project": {
+                "id": 1,
+                "history": 1,
+            }
+        }]
+        let raw_results = await this.model.aggregate(historyReq);
         return _.nth(raw_results, 0);
     }
 

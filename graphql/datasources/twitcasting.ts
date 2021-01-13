@@ -106,17 +106,18 @@ export class TwitcastingChannel extends MongoDataSource<TWCastChannelDocs> {
     }
 
     async getChannelHistory(channel_id: string): Promise<TWCastChannelProps> {
-        let raw_results = await this.model.aggregate([
-            {
-                "$match": {
-                    "id": { "$eq": channel_id }
-                },
-                "$project": {
-                    "id": 1,
-                    "history": 1,
-                }
+        let historyReq = [{
+            "$match": {
+                "id": {"$eq": channel_id}
             }
-        ])
+        },
+        {
+            "$project": {
+                "id": 1,
+                "history": 1,
+            }
+        }]
+        let raw_results = await this.model.aggregate(historyReq);
         return _.nth(raw_results, 0);
     }
 

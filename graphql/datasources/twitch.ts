@@ -111,17 +111,18 @@ export class TwitchChannel extends MongoDataSource<TTVChannelDocs> {
     }
 
     async getChannelHistory(channel_id: string): Promise<TTVChannelProps> {
-        let raw_results = await this.model.aggregate([
-            {
-                "$match": {
-                    "id": { "$eq": channel_id }
-                },
-                "$project": {
-                    "id": 1,
-                    "history": 1,
-                }
+        let historyReq = [{
+            "$match": {
+                "id": {"$eq": channel_id}
             }
-        ])
+        },
+        {
+            "$project": {
+                "id": 1,
+                "history": 1,
+            }
+        }]
+        let raw_results = await this.model.aggregate(historyReq);
         return _.nth(raw_results, 0);
     }
 

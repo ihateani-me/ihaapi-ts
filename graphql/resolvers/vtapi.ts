@@ -707,8 +707,8 @@ class VTAPIQuery {
         let defaults: GrowthChannelData = {"subscribersGrowth": null, "viewsGrowth": null};
         const logger = this.logger.child({fn: "performQueryOnChannelGrowth"});
         if (parents.platform === "youtube") {
-            let ytStats = await dataSources.youtubeChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
-                logger.error("Failed to perform parents growth on youtube ID: ", parents.channel_id[0]);
+            let ytStats = await dataSources.youtubeChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
+                logger.error(`Failed to perform parents growth on youtube ID: ${parents.channel_id[0]} (${err.toString()})`);
                 return {"id": parents.channel_id[0], "history": []};
             });
             return mapGrowthData("youtube", ytStats["id"], ytStats["history"]) || defaults;
@@ -720,14 +720,14 @@ class VTAPIQuery {
             // return _.get(biliStats, parents.channel_id[0], defaults);
             return defaults;
         } else if (parents.platform === "twitcasting") {
-            let twStats = await dataSources.twitcastingChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
-                logger.error("Failed to perform parents growth on twitcasting ID: ", parents.channel_id[0]);
+            let twStats = await dataSources.twitcastingChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
+                logger.error(`Failed to perform parents growth on twitcasting ID: ${parents.channel_id[0]} (${err.toString()})`);
                 return {"id": parents.channel_id[0], "history": []};
             });
             return mapGrowthData("twitcasting", twStats["id"], twStats["history"]) || defaults;
         } else if (parents.platform === "twitch") {
-            let ttvStats = await dataSources.twitchChannels.getChannelHistory(parents.channel_id[0]).catch(() => {
-                logger.error("Failed to perform parents growth on twitch ID: ", parents.channel_id[0]);
+            let ttvStats = await dataSources.twitchChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
+                logger.error(`Failed to perform parents growth on twitch ID: ${parents.channel_id[0]} (${err.toString()})`);
                 return {"id": parents.channel_id[0], "history": []};
             });
             return mapGrowthData("twitch", ttvStats["id"], ttvStats["history"]) || defaults;
@@ -796,11 +796,11 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
 
 function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | "stats" | "singlech" | "growth", parent: ChannelObject = null) {
     let final_name = `${VTPrefix}-${type}`;
-    if (type === "stats") {
+    if (type === "stats" || type === "growth") {
         final_name += `-platforms_${parent.platform}-ch_${parent.id}`;
         return final_name;
     }
-    if (type === "singlech" || type === "growth") {
+    if (type === "singlech") {
         // @ts-ignore
         final_name += `-platforms_${parent.platform}-ch_${parent.channel_id}`;
         return final_name;
@@ -1408,17 +1408,25 @@ export const VTAPIv2Resolvers: IResolvers = {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: "PRIVATE"});
             // const logger = MainLogger.child({fn: "ChannelObject.growth"});
+            let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
-            // logger.info(`Querying ${parent.id}`);
             let cache_name = getCacheNameForChannels({}, "growth", parent);
             let [results, ttl]: [GrowthChannelData, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (is_none(results)) {
                 results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources, {
                     // @ts-ignore
                     "channel_id": [parent.id],
+                    "platform": parent.platform
                 });
                 ttl = 1800
-                await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+                if (results.subscribersGrowth !== null || results.viewsGrowth !== null) {
+                    if (!no_cache) {
+                        await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+                    }
+                }
+                if (no_cache) {
+                    ttl = 0;
+                }
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return results;
