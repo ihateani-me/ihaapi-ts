@@ -52,36 +52,14 @@ nijiroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 nijiroutes.get("/live", (req, res) => {
-    const logger = MainLogger.child({fn: "live"});
-    let user_query = req.query;
-    res.header({
-        "Cache-Control": "public, max-age=60, immutable"
-    });
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchVideos("bilibili", get_group("nijisanji"))
-            .then(([live, upcoming, past]) => {
-                logger.info("Parsing Database...");
-                let final_mappings: LiveMap<BilibiliData[]> = {};
-                logger.info("Filtering Database...");
-                // @ts-ignore
-                final_mappings["live"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, live), "startTime");
-                // @ts-ignore
-                final_mappings["upcoming"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, upcoming), "startTime");
-                // @ts-ignore
-                final_mappings["past"] = sortObjectsByKey(bilibili_use_uuids(user_query.uuid, past), "endTime");
-                final_mappings["cached"] = true;
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -151,25 +129,14 @@ nijiroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/channels", (req, res) => {
-    const logger = MainLogger.child({fn: "channels"});
-    let user_query = req.query;
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchChannels("bilibili", get_group("nijisanji"))
-            .then(data_docs => {
-                logger.info("Filtering Database...");
-                let final_mappings = channel_filters(user_query, data_docs);
-                logger.info("Sending...");
-                res.json(final_mappings);
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -252,36 +219,14 @@ nijiroutes.get("/channels", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/youtube/live", (req, res) => {
-    const logger = MainLogger.child({fn: "youtubeLive"});
-    let user_query = req.query;
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    let nijigroups: any[] = get_group("nijisanji");
-    fetchedGroups = fetchedGroups.filter(group => nijigroups.includes(group));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = nijigroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchVideos("youtube", fetchedGroups)
-            .then(([live, upcoming, ended]) => {
-                logger.info("Parsing Database...");
-                // @ts-ignore
-                let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
-                logger.info("Filtering Database...");
-                // @ts-ignore
-                let final_mappings = parse_youtube_live_args(user_query, data_docs);
-                final_mappings["cached"] = true;
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -365,25 +310,14 @@ nijiroutes.get("/youtube/live", (req, res) => {
  *                                  type: boolean
  */
 nijiroutes.get("/youtube/channels", (req, res) => {
-    const logger = MainLogger.child({fn: "youtubeChannels"});
-    let user_query = req.query;
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchChannels("youtube", get_group("nijisanji"))
-            .then(data_docs => {
-                logger.info("Filtering Database...");
-                let final_mappings = channel_filters(user_query, data_docs);
-                logger.info("Sending...");
-                res.json(final_mappings);
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 export { nijiroutes };

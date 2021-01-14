@@ -49,33 +49,14 @@ twitcastroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 twitcastroutes.get("/live", (req, res) => {
-    const logger = MainLogger.child({fn: "live"});
-    let user_query = req.query;
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchVideos("twitcasting", fetchedGroups)
-            .then(([live, _u, ended]) => {
-                let final_mappings: LiveMap<TwitcastingData[]> = {};
-                logger.info("Filtering Database...");
-                final_mappings["live"] = sortObjectsByKey(live, "startTime");
-                final_mappings["ended"] = sortObjectsByKey(ended, "endTime");
-                final_mappings["cached"] = true;
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 /**
@@ -146,30 +127,14 @@ twitcastroutes.get("/live", (req, res) => {
  *                                  type: boolean
  */
 twitcastroutes.get("/channels", (req, res) => {
-    const logger = MainLogger.child({fn: "channels"});
-    let user_query = req.query;
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchChannels("twitcasting", fetchedGroups)
-            .then(data_docs => {
-                logger.info("Filtering Database...");
-                let final_mappings = channel_filters(user_query, data_docs);
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 export { twitcastroutes };

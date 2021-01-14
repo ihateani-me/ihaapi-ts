@@ -52,41 +52,14 @@ othersroutes.use((req, res, next) => {
  *                                  type: boolean
  */
 othersroutes.get("/upcoming", (req, res) => {
-    const logger = MainLogger.child({fn: "upcoming"});
-    let user_query = req.query;
-    res.header({
-        "Cache-Control": "public, max-age=60, immutable"
-    });
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let hologroups: any[] = get_group("holopro");
-    let nijigroups: any[] = get_group("nijisanji");
-    let disallowed: any[] = _.concat(hologroups, nijigroups);
-    allgroups = allgroups.filter(group => !disallowed.includes(group));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchVideos("bilibili", fetchedGroups)
-            .then(([_l, upcoming, _p]) => {
-                let final_mappings: LiveMap<BilibiliData[]> = {};
-                logger.info("Filtering Database...");
-                // @ts-ignore
-                final_mappings["upcoming"] = bilibili_use_uuids(user_query.uuid, upcoming);
-                final_mappings["cached"] = true;
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -156,35 +129,14 @@ othersroutes.get("/upcoming", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/channels", (req, res) => {
-    const logger = MainLogger.child({fn: "channels"});
-    let user_query = req.query;
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let hologroups: any[] = get_group("holopro");
-    let nijigroups: any[] = get_group("nijisanji");
-    let disallowed: any[] = _.concat(hologroups, nijigroups);
-    allgroups = allgroups.filter(group => !disallowed.includes(group));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchChannels("bilibili", fetchedGroups)
-            .then(data_docs => {
-                logger.info("Filtering Database...");
-                let final_mappings = channel_filters(user_query, data_docs);
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -276,40 +228,14 @@ othersroutes.get("/channels", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/youtube/live", (req, res) => {
-    const logger = MainLogger.child({fn: "youtubeLive"});
-    let user_query = req.query;
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let hologroups: any[] = get_group("holopro");
-    let nijigroups: any[] = get_group("nijisanji");
-    let disallowed: any[] = _.concat(hologroups, nijigroups);
-    allgroups = allgroups.filter(group => !disallowed.includes(group));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchVideos("youtube", fetchedGroups)
-            .then(([live, upcoming, ended]) => {
-                logger.info("Parsing Database...");
-                // @ts-ignore
-                let data_docs = _.flattenDeep(_.concat(live, upcoming, ended));
-                logger.info("Filtering Database...")
-                // @ts-ignore
-                let final_mappings = parse_youtube_live_args(user_query, data_docs);
-                final_mappings["cached"] = true;
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 
@@ -402,35 +328,14 @@ othersroutes.get("/youtube/live", (req, res) => {
  *                                  type: boolean
  */
 othersroutes.get("/youtube/channels", (req, res) => {
-    const logger = MainLogger.child({fn: "youtubeChannels"});
-    let user_query = req.query;
-    let allgroups: any[] = _.flattenDeep(Object.values(GROUPS_MAPPINGS));
-    let hologroups: any[] = get_group("holopro");
-    let nijigroups: any[] = get_group("nijisanji");
-    let disallowed: any[] = _.concat(hologroups, nijigroups);
-    allgroups = allgroups.filter(group => !disallowed.includes(group));
-    let fetchedGroups = filter_empty(decodeURIComponent(getValueFromKey(user_query, "group", "")).split(","));
-    fetchedGroups = fetchedGroups.filter(group => allgroups.includes(group));
-    if (fetchedGroups.length < 1) {
-        fetchedGroups = allgroups;
-    }
-    try {
-        logger.info("Fetching Database...");
-        VTDB.fetchChannels("youtube", fetchedGroups)
-            .then(data_docs => {
-                logger.info("Filtering Database...");
-                let final_mappings = channel_filters(user_query, data_docs);
-                logger.info("Sending...");
-                res.json(final_mappings)
-            })
-            .catch(error => {
-                logger.error(error);
-                res.status(500).json({message: "Internal server error occured."});
-            });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({message: "Internal server error occured."});
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 });
 
 export { othersroutes };

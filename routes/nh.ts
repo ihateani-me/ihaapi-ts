@@ -342,25 +342,13 @@ nhroutes.get("/image/:doujin_id/:page_num", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/info/:doujin_id", (req, res) => {
-    const logger = MainLogger.child({fn: "info"});
-    let doujin_id = req.params.doujin_id;
-    nhFetchInfo(doujin_id).then(([final_data, stat_code]) => {
-        if (typeof final_data === "string") {
-            res.status(stat_code).json(
-                {
-                    "message": "Got unknown answer from API",
-                    "error": final_data,
-                    "notice": "this API will be deprecated in favor of v2 API here: /v2/graphql",
-                    "status_code": stat_code
-                }
-            );
-        } else {
-            final_data["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
-            res.json(final_data);
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
         }
-    }).catch((err) => {
-        logger.error(err)
-        res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
 
@@ -577,28 +565,13 @@ nhroutes.get("/info/:doujin_id", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/latest", (req, res) => {
-    const logger = MainLogger.child({fn: "latest"});
-    var req_page = req.query.page;
-    if (is_none(req_page)) {
-        req_page = "1";
-    }
-    // @ts-ignore
-    var page_num = fallbackNaN(parseInt, req_page, 1);
-    if (page_num < 1) {
-        page_num = 1
-    }
-
-    nhLatestDoujin(page_num).then(([doujin_results, stat_code]) => {
-        if (stat_code != 200) {
-            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
-            res.status(stat_code).json(doujin_results);
-        } else {
-            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
-            res.json(doujin_results);
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
         }
-    }).catch((err) => {
-        logger.error(err)
-        res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
     })
 })
 
@@ -836,38 +809,14 @@ nhroutes.get("/latest", (req, res) => {
  *                                  description: HTTP Status code
  */
 nhroutes.get("/search", (req, res) => {
-    const logger = MainLogger.child({fn: "search"});
-    var req_page = req.query.page;
-    if (is_none(req_page)) {
-        req_page = "1";
-    }
-    // @ts-ignore
-    var page_num = fallbackNaN(parseInt, req_page, 1);
-    if (page_num < 1) {
-        page_num = 1
-    }
-
-    var search_query = req.query.q;
-    if (is_none(search_query)) {
-        search_query = req.query.query;
-    }
-    if (is_none(search_query)) {
-        res.status(400).json({"message": "please provide `q` search query args", "status_code": 400});
-    } else {
-        // @ts-ignore
-        search_query = decodeURIComponent(search_query);
-        nhSearchDoujin(search_query, page_num).then(([doujin_results, stat_code]) => {
-            doujin_results["notice"] = "this API will be deprecated in favor of v2 API here: /v2/graphql";
-            if (stat_code != 200) {
-                res.status(stat_code).json(doujin_results);
-            } else {
-                res.json(doujin_results);
-            }
-        }).catch((err) => {
-            logger.error(err)
-            res.status(500).json({"message": "Internal server error", "error": err.toString(), "status_code": 500});
-        })
-    }
+    res.status(410).json({
+        "message": "Deprecated, please use v2 API (/v2/graphql), documentation here: /v2/gql-docs",
+        "error": "DEPRECATED",
+        "code": 410,
+        "info": {
+            "deprecatedSince": "2021-01-14T23:59:59+09:00"
+        }
+    })
 })
 
 nhroutes.get("/unduh", (_, res) => {
