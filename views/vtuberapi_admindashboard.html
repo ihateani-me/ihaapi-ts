@@ -22,22 +22,12 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet" />
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <!-- MDB -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.0.0/mdb.min.css" rel="stylesheet" />
-    <link href="/assets/css/nao-iconsv2.css" rel="stylesheet">
-    <!-- <script defer src="https://use.fontawesome.com/releases/v5.15.1/js/solid.js"
-        integrity="sha384-oKbh94nlFq571cjny1jaIBlQwzTJW4KYExGYjslYSoG/J/w68zUI+KHPRveXB6EY" crossorigin="anonymous">
-    </script>
-    <script defer src="https://use.fontawesome.com/releases/v5.15.1/js/brands.js"
-        integrity="sha384-GUtlu2Qit8cdodM5DbKnbDIWFJA8nWCVEwETZXY2xvKV1TFLtD/AL+bCOsPyh05M" crossorigin="anonymous">
-    </script>
-    <script defer src="https://use.fontawesome.com/releases/v5.15.1/js/fontawesome.js"
-        integrity="sha384-v0OPwyxrMWxEgAVlmUqvjeEr48Eh/SOZ2DRtVYJCx1ZNDfWBfNMWUjwUwBCJgfO4" crossorigin="anonymous"> -->
-    </script>
+    <!-- Custom Icons Font w/ Ligature -->
+    <link href="/assets/css/ihaiconsv2.css" rel="stylesheet">
 
     <style>
         .border-twitch {
@@ -135,21 +125,21 @@
     <nav id="main-nav" class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">VTuber API</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            <button class="navbar-toggler border border-2" style="border-color: #525252 !important;" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarNavDarkDropdown" aria-controls="navbarNavDarkDropdown" aria-expanded="false"
                 aria-label="Toggle navigation">
-                <i class="fas fa-bars text-white"></i>
+                <i class="ihaicon">menu</i>
             </button>
             <div class="collapse navbar-collapse justify-content-between" id="navbarNavDarkDropdown">
                 <div class="navbar-nav">
                     <a class="nav-link" href="/v2/vtuber">Home</a>
                     <a class="nav-link" href="/v2/vtuber/lives">Lives</a>
                     <a class="nav-link" href="/v2/vtuber/schedules">Schedule</a>
-                    <a class="nav-link" href="/v2/graphql"><i class="nico-graphql me-1"></i>Playground</a>
+                    <a class="nav-link" href="/v2/graphql"><i class="ihaicon me-1">graphql_icon</i>Playground</a>
                 </div>
                 <div class="navbar-nav">
-                    <a class="nav-link" href="/v2/vtuber/settings"><i class="fas fa-cog"></i></a>
-                    <a class="nav-link active" aria-current="page" href="/v2/vtuber/logout"><i class="fas fa-sign-out-alt fs-6"></i></a>
+                    <a class="nav-link" href="/v2/vtuber/settings"><i class="ihaicon">settings</i></a>
+                    <a class="nav-link active" aria-current="page" href="/v2/vtuber/logout"><i class="ihaicon">sign_out</i></a>
                 </div>
             </div>
         </div>
@@ -192,10 +182,33 @@
             <div class="d-grid gap-2 d-md-block">
                 <button id="btnAddNew" type="submit" class="btn btn-primary" disabled>
                     <span id="btnAddNewSpinner" class="spinner-grow spinner-grow-sm visually-hidden me-2" role="status" aria-hidden="true"></span>
-                    <i class="fas fa-plus"></i>&nbsp;&nbsp;Add
+                    <i class="ihaicon">plus</i>&nbsp;&nbsp;Add
                 </button>
             </div>
         </form>
+        <div class="text-white mt-3">
+            <p>Find users</p>
+            <div class="col-sm-3 mb-3">
+                <input type="text" class="form-control" id="searchBox" onkeyup="doSearchAndFilter()"
+                    placeholder="Search..." disabled>
+            </div>
+            <p>Platform Filters</p>
+            <div class="form-check form-check-inline form-switch">
+                <input class="form-check-input" type="checkbox" name="inlineRadioOptions" id="ytPlatFilter" value="youtube"
+                    checked disabled>
+                <label class="form-check-label" for="ytPlatFilter"><i class="ihaicon text-danger fs-4">youtube_icon</i></label>
+            </div>
+            <div class="form-check form-check-inline form-switch">
+                <input class="form-check-input" type="checkbox" name="inlineRadioOptions" id="ttvPlatFilter" value="twitch"
+                    checked disabled>
+                <label class="form-check-label" for="ttvPlatFilter"><i class="ihaicon text-twitch fs-4">twitch_icon</i></label>
+            </div>
+            <div class="form-check form-check-inline form-switch">
+                <input class="form-check-input" type="checkbox" name="inlineRadioOptions" id="twcastPlatFilter"
+                    value="twitcasting" checked disabled>
+                <label class="form-check-label" for="twcastPlatFilter"><i class="ihaicon text-twcast fs-4">twitcasting_icon</i></label>
+            </div>
+        </div>
         <hr>
         <div id="loading-signal" class="text-center">
             <div class="spinner-grow text-white" role="status">
@@ -234,8 +247,8 @@
         </div>
         <button id="group-btn-modal" type="button" data-bs-toggle="modal" data-bs-target="#group-modal"
             class="floating-btn">
-            <i class="nico-users"></i>
-            </a>
+            <i class="ihaicon">peoples</i>
+        </button>
     </div>
     <footer class="text-center text-lg-start text-muted">
         <hr>
@@ -425,32 +438,77 @@
 
         const PLACEHOLDER_IMG = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAH0CAIAAABEtEjdAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAawSURBVHhe7dQBDQAADMOgq5l/iffRgAhuAOTIHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgcIkjtAkNwBguQOECR3gCC5AwTJHSBI7gBBcgfI2R6HZ/mPRPpNAQAAAABJRU5ErkJggg==`;
 
+        function doReadjustAfterFilter() {
+            console.log("Called!");
+            $(".vtubers-group").each((i, elem) => {
+                let $elem = $(elem);
+                let vtid = $elem.attr("id");
+                let $modalbtn = $(`#${vtid}-modal-btn`);
+                let visible = [];
+                $elem.find(".vtubers-card").each((v, e2) => {
+                    if ($(e2).attr("data-hidden") === "false") {
+                        visible.push(v);
+                    }
+                });
+                let amountStr = visible.length.toString();
+                if (visible.length === 0) {
+                    $elem.hide();
+                    $modalbtn.hide();
+                } else {
+                    $elem.show();
+                    $elem.children("h2").children("span").text(amountStr);
+                    $modalbtn.children("span").text(amountStr);
+                    $modalbtn.show();
+                }
+            })
+        }
+
+        function doSearchAndFilter() {
+            let $vtcards = $(".vtubers-card");
+            if ($vtcards.length < 1) {
+                return;
+            }
+            let filter = $("#searchBox").val().toLowerCase();
+            let match = $vtcards.each((i, elem) => {
+                let $elem = $(elem);
+                let val = $elem.attr("data-search");
+                if (val.toLowerCase().indexOf(filter) > -1) {
+                    $elem.attr("data-hidden", "false");
+                    $elem.fadeIn();
+                } else {
+                    $elem.fadeOut();
+                    $elem.attr("data-hidden", "true");
+                }
+            });
+            doReadjustAfterFilter();
+        }
+
         function createCard(channelInfo) {
             let chanStats = channelInfo.statistics;
             // console.log(channelInfo);
-            let $chanCol = $(`<div id="${channelInfo.id}-${channelInfo.platform}" class="col" />`);
+            let $chanCol = $(`<div id="${channelInfo.id}-${channelInfo.platform}" class="col vtubers-card" data-search="${channelInfo.name}" data-hidden="false" />`);
             let $cardMain, border;
             if (channelInfo.platform === "youtube") {
                 border = "border-danger";
-                $cardMain = $(`<div class="card border-danger text-white bg-dark" />`);
+                $cardMain = $(`<div class="card border border-danger text-white bg-dark" />`);
             } else if (channelInfo.platform === "twitch") {
                 border = "border-twitch";
-                $cardMain = $(`<div class="card border-twitch text-white bg-dark" />`);
+                $cardMain = $(`<div class="card border border-twitch text-white bg-dark" />`);
             } else if (channelInfo.platform === "twitcasting") {
                 border = "border-twcast";
-                $cardMain = $(`<div class="card border-twcast text-white bg-dark" />`);
+                $cardMain = $(`<div class="card border border-twcast text-white bg-dark" />`);
             }
             $cardMain.append($(`<img class="card-img-top lazy" />`).attr("data-src", channelInfo.image).attr("alt",
                 "Profile Picture").attr("src", PLACEHOLDER_IMG));
             let $titleCard = $(`<div class="card-body text-center" />`);
             if (channelInfo.platform === "youtube") {
-                $titleCard.append($(`<i class="nico-youtube mx-1 text-danger" />`));
+                $titleCard.append($(`<i class="ihaicon mx-1 text-danger" />`).text("youtube_icon"));
                 $titleCard.append($(`<span />`).text("YouTube"));
             } else if (channelInfo.platform === "twitch") {
-                $titleCard.append($(`<i class="nico-twitch mx-1 text-twitch" />`));
+                $titleCard.append($(`<i class="ihaicon mx-1 text-twitch" />`).text("twitch_icon"));
                 $titleCard.append($(`<span />`).text("Twitch"));
             } else if (channelInfo.platform === "twitcasting") {
-                $titleCard.append($(`<i class="nico-twitcasting mx-1 text-twcast" />`));
+                $titleCard.append($(`<i class="ihaicon mx-1 text-twcast" />`).text("twitcasting_icon"));
                 $titleCard.append($(`<span />`).text("Twitcasting"));
             }
 
@@ -484,7 +542,7 @@
         }
 
         function generateColumn(groupName, groupData) {
-            let $topDiv = $(`<div id="${groupName}" class="container-fluid pb-3" />`);
+            let $topDiv = $(`<div id="${groupName}" class="container-fluid pb-3 vtubers-group" />`);
             $topDiv.append($(
                 `<h2 class="text-white py-3">${get(GROUPS_NAME_MAP, groupName, groupName)} <span class="badge bg-danger fs-5 fw-normal">${groupData.length}</span></h2>`
             ));
@@ -530,7 +588,7 @@
 
             Object.keys(groupedData).sort().forEach(function (group) {
                 $gridModal.append($(
-                    `<a class="btn btn-dark btn-darkgrey" href="#${group}" role="button">${get(GROUPS_NAME_MAP, group, group)} <span class="badge bg-danger mx-1 rounded-0">${groupedData[group].length}</span></a>`
+                    `<a id="${group}-modal-btn" class="btn btn-dark btn-darkgrey" href="#${group}" role="button">${get(GROUPS_NAME_MAP, group, group)} <span class="badge bg-danger mx-1 rounded-0">${groupedData[group].length}</span></a>`
                 ));
                 $("#channelGroup").append($(
                     `<option value="${group}" />`
@@ -556,6 +614,11 @@
             $("#channelGroupCustom").attr("disabled", false);
             $("#channelENName").attr("disabled", false);
             $("#btnAddNew").attr("disabled", false);
+
+            $("#searchBox").attr("disabled", false);
+            $("#ytPlatFilter").attr("disabled", false);
+            $("#ttvPlatFilter").attr("disabled", false);
+            $("#twcastPlatFilter").attr("disabled", false);
         })();
 
         async function removeVTuber(channelId, platform) {
@@ -646,6 +709,102 @@
                 $("#channelGroupCustom").attr("disabled", true);
             }
         });
+
+        $("#ytPlatFilter").change(function () {
+            let is_checked = $(this).prop("checked");
+            if (is_checked) {
+                let showedThings = [];
+                $(".vtubers-card > .border-danger").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "false");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!showedThings.includes(fpId)) {
+                        showedThings.push(fpId);
+                        $fp.parent().fadeIn();
+                    }
+                    $elem.fadeIn();
+                });
+            } else {
+                let hiddenThings = [];
+                $(".vtubers-card > .border-danger").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "true");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!hiddenThings.includes(fpId)) {
+                        hiddenThings.push(fpId);
+                        $fp.parent().fadeOut();
+                    }
+                    $elem.fadeOut();
+                });
+            }
+            doReadjustAfterFilter();
+        });
+
+        $("#ttvPlatFilter").change(function () {
+            let is_checked = $(this).prop("checked");
+            if (is_checked) {
+                let showedThings = [];
+                $(".vtubers-card > .border-twitch").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "false");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!showedThings.includes(fpId)) {
+                        showedThings.push(fpId);
+                        $fp.parent().fadeIn();
+                    }
+                    $elem.fadeIn();
+                });
+            } else {
+                let hiddenThings = [];
+                $(".vtubers-card > .border-twitch").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "true");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!hiddenThings.includes(fpId)) {
+                        hiddenThings.push(fpId);
+                        $fp.parent().fadeOut();
+                    }
+                    $elem.fadeOut();
+                });
+            }
+            doReadjustAfterFilter();
+        });
+
+        $("#twcastPlatFilter").change(function () {
+            let is_checked = $(this).prop("checked");
+            if (is_checked) {
+                let showedThings = [];
+                $(".vtubers-card > .border-twcast").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "false");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!showedThings.includes(fpId)) {
+                        showedThings.push(fpId);
+                        $fp.parent().fadeIn();
+                    }
+                    $elem.fadeIn();
+                });
+            } else {
+                let hiddenThings = [];
+                $(".vtubers-card > .border-twcast").each(function (i, elem) {
+                    let $elem = $(elem);
+                    let $fp = $elem.parent();
+                    $fp.attr("data-hidden", "true");
+                    let fpId = $fp.parent().parent().attr("id");
+                    if (!hiddenThings.includes(fpId)) {
+                        hiddenThings.push(fpId);
+                        $fp.parent().fadeOut();
+                    }
+                    $elem.fadeOut();
+                });
+            }
+            doReadjustAfterFilter();
+        });        
     </script>
 </body>
 

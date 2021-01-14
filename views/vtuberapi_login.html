@@ -53,45 +53,14 @@
             color: #fff;
         }
 
-        .header-text {
-            color: #c9d5f7;
-            font-weight: 700;
-        }
-
-        a,
-        a:hover,
-        a:active,
-        a:visited {
-            color: #fff8a0;
-        }
-
         b {
             color: #93ffdc;
         }
 
-        .cb-example {
-            background-color: #656565a8;
-            color: #abff97;
-            padding: 0.2rem;
-            margin-top: 0.4rem;
-            margin-bottom: 0.4rem;
-            margin-left: 1.25rem;
-        }
-
-        input {
-            background-color: #656565;
-            color: #00ff20;
-        }
-
-        .text-in {
-            border: 0px;
-            padding: 0.2rem;
-        }
-
-        .btn-in {
-            border: 0px;
-            padding: 0.2rem 0.4rem;
-            font-weight: bolder;
+        input.form-control,
+        input.form-control:focus {
+            background-color: #1b1b1b;
+            color: #bdbdbd;
         }
     </style>
 </head>
@@ -105,7 +74,7 @@
             <input type="password" id="vtpass" class="form-control" aria-describedby="passwordHelpBlock"
                 name="password">
             <div class="d-grid gap-2 col-6 mx-auto pt-3">
-                <button type="submit" class="btn btn-dark">Enter</button>
+                <button type="submit" class="btn btn-dark"><span class="monospace">Enter</span></button>
             </div>
             {% if ERROR_MSG %}
             <code class="smaller">{{ ERROR_MSG }}</code>
