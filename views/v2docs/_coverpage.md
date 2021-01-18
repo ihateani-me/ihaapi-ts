@@ -2,7 +2,7 @@
 
 ![logo](/assets/img/apple-icon-152x152.png)
 
-# ihAPI <small>v2.3.0</small>
+# ihAPI <small>v2.3.4</small>
 
 > A simple API made with GraphQL
 
