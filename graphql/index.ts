@@ -14,11 +14,14 @@ import {
     TwitchVideo,
     TwitcastingChannel as TWCastChannel,
     TwitcastingVideo,
+    MildomChannel as NonoChannel,
+    MildomVideo,
 } from "../dbconn/models";
 import { BiliBiliChannel, BiliBiliLive } from "./datasources/bilibili";
 import { YoutubeChannel, YoutubeLive } from "./datasources/youtube";
 import { TwitcastingLive, TwitcastingChannel } from "./datasources/twitcasting";
 import { TwitchLive, TwitchChannel } from "./datasources/twitch";
+import { MildomChannel, MildomLive } from "./datasources/mildom";
 import { IQDBAPI, SauceNAOAPI } from "./datasources";
 
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
@@ -64,6 +67,10 @@ export const GQLAPIv2Server = new ApolloServer({
         twitcastingLive: new TwitcastingLive(TwitcastingVideo),
         // @ts-ignore
         twitcastingChannels: new TwitcastingChannel(TWCastChannel),
+        // @ts-ignore
+        mildomLive: new MildomLive(MildomVideo),
+        // @ts-ignore
+        mildomChannels: new MildomChannel(NonoChannel),
         saucenao: new SauceNAOAPI(),
         iqdb: new IQDBAPI(),
     }),

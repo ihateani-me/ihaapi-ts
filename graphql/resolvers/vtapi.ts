@@ -309,8 +309,8 @@ class VTAPIQuery {
 
     @Memoize()
     async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<LiveObject[]> {
-        const logger = this.logger.child({fn: "performQueryOnLive"});
-        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+        // const logger = this.logger.child({fn: "performQueryOnLive"});
+        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
         let groups_choices: string[] = getValueFromKey(args, "groups", null);
         let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
         if (!Array.isArray(allowed_users)) {
@@ -440,6 +440,35 @@ class VTAPIQuery {
             })
             main_results = _.concat(main_results, ttvMapped);
         }
+        if (platforms_choices.includes("mildom") && ["live", "past"].includes(type)) {
+            let mildomLiveFetch = await dataSources.mildomLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
+            let mildomMapped = mildomLiveFetch.map((res) => {
+                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
+                let remap: LiveObject = {
+                    "id": res["id"],
+                    "title": res["title"],
+                    // @ts-ignore
+                    "status": res["status"],
+                    "timeData": {
+                        "startTime": res["timedata"]["startTime"],
+                        "endTime": res["timedata"]["endTime"],
+                        "publishedAt": res["timedata"]["publishedAt"],
+                        "duration": duration,
+                    },
+                    "channel_id": res["channel_id"],
+                    "viewers": res["viewers"],
+                    "peakViewers": res["peakViewers"],
+                    "averageViewers": _.get(res, "averageViewers", null),
+                    "thumbnail": res["thumbnail"],
+                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
+                    "group": res["group"],
+                    "platform": "mildom"
+                }
+                return remap;
+            })
+            main_results = _.concat(main_results, mildomMapped);
+        }
         return main_results;
     }
 
@@ -549,10 +578,32 @@ class VTAPIQuery {
                     return remap;
                 })
                 return remappedData;
+            } else if (parents.platform === "mildom") {
+                let mildomUsers = await dataSources.mildomChannels.getChannels(user_ids_limit);
+                let remappedData: ChannelObject[] = mildomUsers.map((res) => {
+                    let remap: ChannelObject = {
+                        id: res["id"],
+                        name: res["name"],
+                        en_name: res["en_name"],
+                        description: res["description"],
+                        statistics: {
+                            subscriberCount: res["followerCount"],
+                            videoCount: res["videoCount"],
+                            viewCount: null,
+                            level: res["level"]
+                        },
+                        growth: mapGrowthData("mildom", res["id"], res["history"]),
+                        image: res["thumbnail"],
+                        group: res["group"],
+                        platform: "mildom"
+                    }
+                    return remap;
+                })
+                return remappedData;
             }
         }
 
-        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
 
         let combined_channels: ChannelObject[] = [];
         if (platforms_choices.includes("youtube")) {
@@ -656,50 +707,32 @@ class VTAPIQuery {
             })
             combined_channels = _.concat(combined_channels, remappedData);
         }
-        return combined_channels;
-    }
-
-    @Memoize()
-    async performQueryOnChannelStats(dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelStatistics> {
-        const logger = this.logger.child({fn: "performQueryOnChannelStats"});
-        if (parents.platform === "youtube") {
-            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
-            let ytStats = await dataSources.youtubeChannels.getChannelStats(parents.channel_id).catch(() => {
-                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                let ret: YoutubeDocument<ChannelStatistics> = {};
-                ret[parents.channel_id[0]] = defaults;
-                return ret;
-            });
-            return _.get(ytStats, parents.channel_id[0], defaults);
-        } else if (parents.platform === "bilibili") {
-            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
-            let biliStats = await dataSources.biliChannels.getChannelStats(parents.channel_id).catch(() => {
-                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                let ret: YoutubeDocument<ChannelStatistics> = {};
-                ret[parents.channel_id[0]] = defaults;
-                return ret;
-            });
-            return _.get(biliStats, parents.channel_id[0], defaults);
-        } else if (parents.platform === "twitcasting") {
-            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
-            let twStats = await dataSources.twitcastingChannels.getChannelStats(parents.channel_id).catch(() => {
-                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                let ret: YoutubeDocument<ChannelStatistics> = {};
-                ret[parents.channel_id[0]] = defaults;
-                return ret;
-            });
-            return _.get(twStats, parents.channel_id[0], defaults);
-        } else if (parents.platform === "twitch") {
-            let defaults: ChannelStatistics = {subscriberCount: 0, viewCount: null, videoCount: null, level: 0};
-            let ttvStats = await dataSources.twitchChannels.getChannelStats(parents.channel_id).catch(() => {
-                logger.error("Failed to perform parents statistics on youtube ID: ", parents.channel_id[0]);
-                let ret: YoutubeDocument<ChannelStatistics> = {};
-                ret[parents.channel_id[0]] = defaults;
-                return ret;
-            });
-            return _.get(ttvStats, parents.channel_id[0], defaults);
+        if (platforms_choices.includes("mildom")) {
+            logger.info("fetching mildom channels staats...");
+            let mildomUsers = await dataSources.mildomChannels.getChannels(user_ids_limit);
+            logger.info("processing mildom channels staats...");
+            let remappedData: ChannelObject[] = mildomUsers.map((res) => {
+                let remap: ChannelObject = {
+                    id: res["id"],
+                    name: res["name"],
+                    en_name: res["en_name"],
+                    description: res["description"],
+                    statistics: {
+                        subscriberCount: res["followerCount"],
+                        videoCount: res["videoCount"],
+                        viewCount: null,
+                        level: res["level"]
+                    },
+                    growth: mapGrowthData("mildom", res["id"], res["history"]),
+                    image: res["thumbnail"],
+                    group: res["group"],
+                    platform: "mildom"
+                }
+                return remap;
+            })
+            combined_channels = _.concat(combined_channels, remappedData);
         }
-        return null;
+        return combined_channels;
     }
 
     @Memoize()
@@ -731,6 +764,12 @@ class VTAPIQuery {
                 return {"id": parents.channel_id[0], "history": []};
             });
             return mapGrowthData("twitch", ttvStats["id"], ttvStats["history"]) || defaults;
+        } else if (parents.platform === "mildom") {
+            let mildomStats = await dataSources.mildomChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
+                logger.error(`Failed to perform parents growth on twitch ID: ${parents.channel_id[0]} (${err.toString()})`);
+                return {"id": parents.channel_id[0], "history": []};
+            })
+            return mapGrowthData("mildom", mildomStats["id"], mildomStats["history"]) || defaults;
         }
         return defaults;
     }
@@ -758,7 +797,7 @@ const VTPrefix = "vtapi-gqlcache";
 function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
     let groups_filters: string[] = getValueFromKey(args, "groups", []);
     let channels_filters: string[] = getValueFromKey(args, "channel_id", []);
-    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
     let final_name = `${VTPrefix}-${type}`;
     if (groups_filters.length < 1) {
         final_name += "-nogroups";
@@ -773,7 +812,7 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
     if (platforms.length < 1) {
         // not possible to get but okay.
         final_name += "-noplatforms";
-    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting")) {
+    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting") && platforms.includes("mildom")) {
         final_name += "-allplatforms";
     } else {
         final_name += "-platforms_";
@@ -788,6 +827,9 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         }
         if (platforms.includes("twitcasting")) {
             final_name += "twcast_";
+        }
+        if (platforms.includes("mildom")) {
+            final_name += "mildom_";
         }
         final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
     }
@@ -807,7 +849,7 @@ function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | 
     }
     let groups_filters: string[] = getValueFromKey(args, "groups", []);
     let channels_filters: string[] = getValueFromKey(args, "id", []);
-    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting"]);
+    let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
     if (groups_filters.length < 1) {
         final_name += "-nogroups";
     } else {
@@ -821,7 +863,7 @@ function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | 
     if (platforms.length < 1) {
         // not possible to get but okay.
         final_name += "-noplatforms";
-    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting")) {
+    } else if (platforms.includes("youtube") && platforms.includes("bilibili") && platforms.includes("twitch") && platforms.includes("twitcasting") && platforms.includes("mildom")) {
         final_name += "-allplatforms";
     } else {
         final_name += "-platforms_";
@@ -836,6 +878,9 @@ function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | 
         }
         if (platforms.includes("twitcasting")) {
             final_name += "twcast_";
+        }
+        if (platforms.includes("mildom")) {
+            final_name += "mildom_";
         }
         final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
     }

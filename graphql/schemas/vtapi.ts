@@ -43,6 +43,7 @@ export const VTAPIv2 = gql`
         bilibili
         twitch
         twitcasting
+        mildom
     }
 
     """
@@ -259,7 +260,7 @@ export const VTAPIv2 = gql`
 // "Enum"
 export type SortOrder = | "ascending" | "descending" | "asc" | "desc";
 export type LiveStatus = | "live" | "upcoming" | "past" | "video";
-export type PlatformName = | "youtube" | "bilibili" | "twitch" | "twitcasting";
+export type PlatformName = | "youtube" | "bilibili" | "twitch" | "twitcasting" | "mildom";
 
 // Return-type
 export interface PageInfo {
