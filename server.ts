@@ -1,6 +1,7 @@
 require('dotenv').config();
 import express from "express";
 import * as cons from "consolidate";
+import cors from "cors";
 import mongoose from 'mongoose';
 import * as Routes from "./routes";
 import moment = require('moment-timezone');
@@ -45,6 +46,7 @@ mongoose.connection.on("open", () => {
 })
 
 const app = express();
+app.use(cors());
 const app_version = packageJson["version"];
 
 app.use(expressLogger)
