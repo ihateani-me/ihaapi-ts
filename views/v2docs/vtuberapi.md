@@ -11,7 +11,7 @@ You could contact me at **Discord: *N4O#8868***<br>
 If you need more Other VTubers to add to the list.<br>
 After you add me, please Send Message directly so I'll know.
 
-You could also check Channels Data, Currently Live Streams, Upcoming Streams right here: <a href="/v2/vtuber" target="_blank" rel="noopener">VTuber API Frontend</a>
+?> You could also check Channels Data, Currently Live Streams, Upcoming Streams right here: <a href="https://vtuber.ihateani.me/" target="_blank" rel="noopener">VTuber API Frontend</a>
 
 Currently registered groups:
 * holopro: Hololive Production
