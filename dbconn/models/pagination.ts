@@ -1,25 +1,29 @@
 import _ from "lodash";
-import { Model, Document, Schema, FilterQuery, Types } from "mongoose";
-import { Extract } from "ts-mongoose";
+import { Document, FilterQuery, Types } from "mongoose";
+
+import { SortOrder } from "../../graphql/schemas";
 import { fallbackNaN } from "../../utils/swissknife";
 
 export interface IPaginateOptions {
-    limit: number
-    project: {}
-    cursor: string
+    limit?: number
+    project?: {}
+    sortBy?: string
+    sortOrder?: SortOrder
+    cursor?: string
+}
+
+export interface IPaginationInfo {
+    totalData?: number
+    hasNextPage: boolean
+    nextCursor?: string
 }
 
 export interface IPaginateResults<T> {
-    // @ts-ignore
     docs: T[]
-    pageInfo: {
-        totalData?: number
-        hasNextPage: boolean
-        nextCursor?: string
-    }
+    pageInfo: IPaginationInfo
 }
 
-export async function pagination<T extends Schema, S extends Document>(this: Model<Document & Extract<T>>, query: FilterQuery<S>, options?: IPaginateOptions) {
+export async function pagination<S extends Document>(query: FilterQuery<S>, options?: IPaginateOptions) {
     // @ts-ignore
     let cursor = _.get(options, "cursor", undefined);
     let limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25) + 1;
@@ -27,7 +31,7 @@ export async function pagination<T extends Schema, S extends Document>(this: Mod
     let aggregateShits = [];
     aggregateShits.push({
         "$sort": {
-            "_id": 1
+            "_id": ["asc", "ascending"].includes(_.get(options, "sortOrder", "asc").toLowerCase()) ? 1 : -1
         }
     })
     let cleanQuery = _.cloneDeep(query);
@@ -46,7 +50,6 @@ export async function pagination<T extends Schema, S extends Document>(this: Mod
     aggregateShits.push({
         "$limit": limit
     })
-    console.log(aggregateShits, cleanQuery, query);
     let promises = [{fn: this.aggregate.bind(this), name: "docs"}, {fn: this.countDocuments.bind(this), "name": "count"}].map((req) => (
         // @ts-ignore
         req.fn(req.name === "count" ? query : aggregateShits)
@@ -80,5 +83,59 @@ export async function pagination<T extends Schema, S extends Document>(this: Mod
             "nextCursor": nextCursor
         }
     }
+}
 
+const VideoDBMap = {
+    "id": "id",
+    "title": "title",
+    "status": "status",
+    "scheduledStartTime": "timedata.scheduledStartTime",
+    "timedata.scheduledStartTime": "timedata.scheduledStartTime",
+    "timeData.scheduledStartTime": "timedata.scheduledStartTime",
+    "startTime": "timedata.startTime",
+    "timedata.startTime": "timedata.startTime",
+    "timeData.startTime": "timedata.startTime",
+    "endTime": "timedata.endTime",
+    "timedata.endTime": "timedata.endTime",
+    "timeData.endTime": "timedata.endTime",
+    "lateBy": "timedata.lateTime",
+    "timedata.lateBy": "timedata.lateTime",
+    "timeData.lateBy": "timedata.lateTime",
+    "duration": "timedata.duration",
+    "timedata.duration": "timedata.duration",
+    "timeData.duration": "timedata.duration",
+    "publishedAt": "timedata.publishedAt",
+    "timedata.publishedAt": "timedata.publishedAt",
+    "timeData.publishedAt": "timedata.publishedAt",
+    "viewers": "viewers",
+    "peakViewers": "peakViewers",
+    "averageViewers": "averageViewers",
+    "channel_id": "channel_id",
+    "platform": "platform"
+}
+
+const ChannelDBMap = {
+    "id": "id",
+    "name": "name",
+    "en_name": "en_name",
+    "description": "description",
+    "publishedAt": "publishedAt",
+    "image": "thumbnail",
+    "group": "group",
+    "statistics.subscriberCount": "subscriberCount",
+    "statistics.viewCount": "viewCount",
+    "statistics.videoCount": "videoCount",
+    "statistics.followerCount": "followerCount",
+    "platform": "platform"
+}
+
+export function remapSchemaToDatabase(key: string, type: "v" | "ch", defaults?: string): string {
+    if (type === "v") {
+        let mapped = _.get(VideoDBMap, key, typeof defaults === "string" ? defaults : "_id");
+        return mapped;
+    } else if (type == "ch") {
+        let mapped = _.get(ChannelDBMap, key, typeof defaults === "string" ? defaults : "_id");
+        return mapped;
+    }
+    return "_id";
 }

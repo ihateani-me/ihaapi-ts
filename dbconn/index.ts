@@ -1,4 +1,4 @@
-import { VTDB, MongoConnection } from './mongo_client';
+import { MongoConnection } from './mongo_client';
 import { RedisDB } from './redis_client';
 
-export { VTDB, RedisDB, MongoConnection };
+export { RedisDB, MongoConnection };
