@@ -142,9 +142,9 @@
             <br>
             Current time: <span class="nicerbold" id="current_dt">{{ MOMENT_TEMPLATE_TIME }}</span><br>
             Detailed API Documentation<br>
-            --&gt; <a href="/api-docs">API Docs</a> (ReDoc UI)<br>
+            --&gt; <a href="/api-docs">v1 API Docs</a> (ReDoc UI)<br>
             --&gt; <a href="/changelog">Website Changelog</a><br>
-            --&gt; <a href="/v2/vtuber/lives">VTuber Live/Schedules</a>
+            --&gt; <a href="https://vtuber.ihateani.me">VTuber Live/Schedules</a>
             <p>
                 This API focus was for BiliBili but was improved to support Youtube channels as well.<br>
                 Starting from <span class="nicerbold">version 0.8.5</span> this API support all Nijisanji VTubers that
@@ -153,40 +153,16 @@
                 <span class="nicerbold">Please note</span>: Not all of the deployed code in this web are available in
                 the source code.
             </p>
-            <span class="nicerbold">Deprecation Notice</span><br>
-            Version 1.0 of the VTuber API will be deprecated at <span class="nicerbold">31st January 2021</span><br>
-            Please start using the VTuber v2 API here: <a href="/v2">`/v2`</a><br>
-            This version 2.0 API use GraphQL.<br>
-            <br>
             <span class="nicerbold">Endpoint:</span><br>
-            <span class="nicerbold">&gt;&gt; Hololive &lt;&lt;</span><br>
-            - <a href="/live">`/live`</a> for Hololivers Live/Upcoming Bili streams<br>
-            - <a href="/channels">`/channels`</a> for Hololivers BiliBili channels stats<br>
+            <span class="nicerbold">&gt;&gt; v1 API &lt;&lt;</span><br>
+            - <a href="/v1/games">`/v1/games`</a> Endpoint for Games API (Steam, SteamDB, HowLongToBeat)<br>
+            - <a href="/v1/u2">`/v1/u2`</a> U2 Private Tracker API for latest torrents and offers<br>
+            <br>            
+            <span class="nicerbold">&gt;&gt; v2 API &lt;&lt;</span><br>
+            - <a href="/v2/graphql">`/v2/graphql`</a> Endpoint for VTubers API, nHentai API, and Sauce API<br>
+            - <a href="/v2/gql-docs">`/v2/gql-docs`</a> v2 API Documentation<br>
             <br>
-            <span class="nicerbold">&gt;&gt; Nijisanji &lt;&lt;</span><br>
-            - <a href="/nijisanji/live">`/nijisanji/live`</a> for Nijisanji Live/Upcoming Bili
-            streams<br>
-            - <a href="/nijisanji/channels">`/nijisanji/channels`</a> for Nijisanji BiliBili channels
-            stats<br>
-            - <a href="/nijisanji/youtube/live">`/nijisanji/youtube/live`</a> for Nijisanji Live/Upcoming Youtube
-            streams<br>
-            - <a href="/nijisanji/youtube/channels">`/nijisanji/youtube/channels`</a> for Nijisanji Youtube channels
-            stats<br>
-            <br>
-            <span class="nicerbold">&gt;&gt; Others &lt;&lt;</span><br>
-            - <a href="/other/upcoming">`/other/upcoming`</a> for Other VTuber<br>
-            - <a href="/other/channels">`/other/channels`</a> to check supported "Other VTuber"<br>
-            - <a href="/other/youtube/live">`/other/youtube/live`</a> to see upcoming/live for some other
-            vtuber.<br>
-            - <a href="/other/youtube/channels">`/other/youtube/channels`</a> to see supported channels for
-            youtube version of other vtuber.<br>
-            <br>
-            <span class="nicerbold">&gt;&gt; Others Platform &lt;&lt;</span><br>
-            - <a href="/twitcasting/live">`/twitcasting/live`</a> for Twitcasting streams<br>
-            - <a href="/twitcasting/channels">`/twitcasting/channels`</a> for Twitcaster channels
-            stats<br>
-            - <a href="/twitch/live">`/twitch/live`</a> for Twitch streams<br>
-            - <a href="/twitch/channels">`/twitch/channels`</a> for Twitch channels stats<br>
+            - <a href="https://vtuber.ihateani.me">`vtuber.ihateani.me`</a> VTuber API "Frontend" Implementation (Channels, Lives, Schedules)<br>
             <br>
             <span class="nicerbold">Dataset Used:</span><br>
             - vtbs.moe<br>
