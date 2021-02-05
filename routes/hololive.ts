@@ -1,10 +1,5 @@
 import * as express from "express";
-import { VTDB } from "../dbconn";
-import { bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
-import { sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, BilibiliData } from "../utils/models";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.Hololive"});
+
 const holoroutes = express.Router();
 
 holoroutes.use((req, res, next) => {

@@ -1,9 +1,10 @@
-import axios, { AxiosInstance } from 'axios';
 import cheerio from "cheerio";
-import qs = require('qs');
+import qs from "qs";
+import winston from "winston";
+import axios, { AxiosInstance } from 'axios';
+
 import { getValueFromKey, is_none } from './swissknife';
 import { logger as MainLogger } from "./logger";
-import winston = require('winston');
 
 interface HLTBData {
     title: string

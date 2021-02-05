@@ -1,7 +1,8 @@
 import * as express from "express";
-import { nhFetchInfo, nhImagePathProxy, nhImageProxy, nhLatestDoujin, nhSearchDoujin } from "../utils/nh";
-import { is_none, fallbackNaN } from "../utils/swissknife";
+
+import { nhImagePathProxy, nhImageProxy } from "../utils/nh";
 import { logger as TopLogger } from "../utils/logger";
+
 const MainLogger = TopLogger.child({cls: "Routes.nHentai"});
 const nhroutes = express.Router();
 

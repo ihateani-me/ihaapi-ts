@@ -1,11 +1,5 @@
 import * as express from "express";
-import { VTDB } from "../dbconn";
-import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
-import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, TwitchData } from "../utils/models";
-import _ from "lodash";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.Twitch"});
+
 const twitchroutes = express.Router()
 
 twitchroutes.use((req, res, next) => {

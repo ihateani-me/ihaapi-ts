@@ -1,11 +1,5 @@
 import * as express from "express";
-import { VTDB } from "../dbconn";
-import { parse_youtube_live_args, bilibili_use_uuids, channel_filters, get_group } from "../utils/filters";
-import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, BilibiliData } from "../utils/models";
-import _ from "lodash";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.Nijisanji"});
+
 const nijiroutes = express.Router()
 
 nijiroutes.use((req, res, next) => {

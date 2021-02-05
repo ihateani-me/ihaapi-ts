@@ -1,9 +1,8 @@
 import * as express from "express";
+
 import { hltb_search } from "../utils/hltb";
 import { do_search_on_steam, do_steamdb_search, fetch_steam_game_info, fetch_steam_user_info } from "../utils/steam";
 import { fallbackNaN, is_none, map_bool } from "../utils/swissknife";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.GamesAPI"});
 
 const gamesroutes = express.Router();
 

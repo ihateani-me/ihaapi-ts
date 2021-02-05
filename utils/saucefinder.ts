@@ -1,11 +1,13 @@
-import axios, { AxiosInstance } from 'axios';
-import xml2js from "xml2js";
 import cheerio from "cheerio";
-import FormData = require('form-data');
+import FormData from 'form-data';
+import xml2js from "xml2js";
+import winston from 'winston';
+import axios, { AxiosInstance } from 'axios';
+
 import { logger as MainLogger } from "./logger";
 import { fallbackNaN, getValueFromKey, hasKey, is_none, map_bool, sortObjectsByKey } from './swissknife';
-import winston = require('winston');
-const packageJson = require("../package.json");
+
+import packageJson from "../package.json";
 
 const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
 

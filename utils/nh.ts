@@ -1,10 +1,12 @@
-import axios, { AxiosInstance } from 'axios';
 import moment from "moment-timezone";
-import { RedisDB } from "../dbconn/redis_client";
-import { getValueFromKey, is_none, removeKeyFromObjects, sortObjectsByKey } from "./swissknife";
-import getMimeType = require('mime-type-check');
+import getMimeType from 'mime-type-check';
+import axios, { AxiosInstance } from 'axios';
 import { basename } from 'path';
+
 import { logger as TopLogger } from "./logger";
+import { getValueFromKey, is_none, removeKeyFromObjects, sortObjectsByKey } from "./swissknife";
+
+import { RedisDB } from "../dbconn/redis_client";
 
 const MainLogger = TopLogger.child({cls: "nHentai"});
 

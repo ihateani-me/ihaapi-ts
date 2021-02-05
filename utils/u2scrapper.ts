@@ -1,10 +1,12 @@
-import axios, { AxiosInstance } from 'axios';
-import FeedParser = require('feedparser');
 import cheerio from "cheerio";
-import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
-import moment = require('moment-timezone');
+import FeedParser from 'feedparser';
+import moment from 'moment-timezone';
 import stringToStream from "string-to-stream";
+import axios, { AxiosInstance } from 'axios';
+
+import { filter_empty, is_none, sortObjectsByKey } from './swissknife';
 import { logger as MainLogger } from "./logger";
+
 import { MongoConnection } from "../dbconn/mongo_client";
 
 const U2_DATABASE = new MongoConnection("u2db");

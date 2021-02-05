@@ -1,8 +1,5 @@
 import * as express from "express";
-import { ASCII2D, IQDB, SauceNAO, multiSauceFinder } from "../utils/saucefinder";
-import { fallbackNaN, getValueFromKey, is_none, map_bool } from "../utils/swissknife";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.SauceFinder"});
+
 const sauceroutes = express.Router()
 
 sauceroutes.use((req, res, next) => {

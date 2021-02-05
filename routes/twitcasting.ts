@@ -1,11 +1,5 @@
 import * as express from "express";
-import { VTDB } from "../dbconn";
-import { channel_filters, GROUPS_MAPPINGS } from "../utils/filters";
-import { filter_empty, getValueFromKey, sortObjectsByKey } from "../utils/swissknife";
-import { LiveMap, TwitcastingData } from "../utils/models";
-import _ from "lodash";
-import { logger as TopLogger } from "../utils/logger";
-const MainLogger = TopLogger.child({cls: "Routes.Twitcasting"});
+
 const twitcastroutes = express.Router()
 
 twitcastroutes.use((req, res, next) => {
