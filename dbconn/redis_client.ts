@@ -1,7 +1,8 @@
 import Redis from "ioredis";
+import winston from "winston";
+
 import { fallbackNaN, is_none } from "../utils/swissknife";
 import { logger as MainLogger } from "../utils/logger";
-import winston from "winston";
 
 export class RedisDB {
     client: Redis.Redis
