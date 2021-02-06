@@ -86,5 +86,8 @@
     ],
     "2.3.5": [
         "Deprecated 3 API, VTuber API, nHentai API, Sauce Finder API on v1 endpoint in favor for v2 API"
+    ],
+    "2.4.0": [
+        "Use the new Database schemas, this also introduce a much longer cursor"
     ]
 }
