@@ -1,28 +1,19 @@
 import { ApolloServer } from "apollo-server-express";
 import { ApolloServerPluginInlineTraceDisabled  } from "apollo-server-core";
-import { CustomRedisCache } from "./caches/redis";
 
+import { CustomRedisCache } from "./caches/redis";
 import { nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
 import { v2Resolvers } from "./resolvers";
 import { is_none } from "../utils/swissknife";
-import {
-    YoutubeChannel as YTChannel,
-    YoutubeVideo,
-    BilibiliChannel as B2Channel,
-    BilibiliVideo,
-    TwitchChannel as TTVChannel,
-    TwitchVideo,
-    TwitcastingChannel as TWCastChannel,
-    TwitcastingVideo,
-    MildomChannel as NonoChannel,
-    MildomVideo,
-} from "../dbconn/models";
-import { BiliBiliChannel, BiliBiliLive } from "./datasources/bilibili";
-import { YoutubeChannel, YoutubeLive } from "./datasources/youtube";
-import { TwitcastingLive, TwitcastingChannel } from "./datasources/twitcasting";
-import { TwitchLive, TwitchChannel } from "./datasources/twitch";
-import { MildomChannel, MildomLive } from "./datasources/mildom";
+
 import { IQDBAPI, SauceNAOAPI } from "./datasources";
+import { VTAPIVideos, VTAPIChannels, VTAPIChannelStatsHist } from "./datasources/vtapi";
+
+import {
+    VideosData,
+    ChannelStatsHistData,
+    ChannelsData
+} from "../dbconn/models"
 
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_HOST = process.env.REDIS_HOST;
@@ -51,26 +42,9 @@ export const GQLAPIv2Server = new ApolloServer({
         req, res, cacheServers
     }),
     dataSources: () => ({
-        // @ts-ignore
-        biliLive: new BiliBiliLive(BilibiliVideo),
-        // @ts-ignore
-        biliChannels: new BiliBiliChannel(B2Channel),
-        // @ts-ignore
-        youtubeLive: new YoutubeLive(YoutubeVideo),
-        // @ts-ignore
-        youtubeChannels: new YoutubeChannel(YTChannel),
-        // @ts-ignore
-        twitchLive: new TwitchLive(TwitchVideo),
-        // @ts-ignore
-        twitchChannels: new TwitchChannel(TTVChannel),
-        // @ts-ignore
-        twitcastingLive: new TwitcastingLive(TwitcastingVideo),
-        // @ts-ignore
-        twitcastingChannels: new TwitcastingChannel(TWCastChannel),
-        // @ts-ignore
-        mildomLive: new MildomLive(MildomVideo),
-        // @ts-ignore
-        mildomChannels: new MildomChannel(NonoChannel),
+        videos: new VTAPIVideos(VideosData),
+        channels: new VTAPIChannels(ChannelsData),
+        statsHist: new VTAPIChannelStatsHist(ChannelStatsHistData),
         saucenao: new SauceNAOAPI(),
         iqdb: new IQDBAPI(),
     }),

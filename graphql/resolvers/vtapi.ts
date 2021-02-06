@@ -1,14 +1,14 @@
 import _ from "lodash";
 import 'apollo-cache-control';
+import express from "express";
+import moment from "moment-timezone";
+import { IResolvers } from "apollo-server-express";
+import { Buffer } from "buffer";
 
 // Import models
-import { Memoize } from "../../utils/decorators";
-import { get_group } from "../../utils/filters";
-import { IResolvers } from "apollo-server-express";
 import {
     LiveObject,
     ChannelObject,
-    ChannelStatistics,
     LiveObjectParams,
     ChannelObjectParams,
     LiveStatus,
@@ -18,18 +18,21 @@ import {
     ChannelsResource,
     SortOrder,
     ChannelGrowth,
-    GroupsResource
+    GroupsResource,
+    ChannelGrowthObject,
 } from "../schemas";
+import { VTAPIDataSources } from "../datasources";
+
 import {
-    YoutubeDocument,
-    VTAPIDataSources
-} from "../datasources";
+    VideoProps,
+    ChannelsProps
+} from "../../dbconn/models"
 import { CustomRedisCache } from "../caches/redis";
+import { Memoize } from "../../utils/decorators";
+import { get_group } from "../../utils/filters";
 import { fallbackNaN, filter_empty, getValueFromKey, is_none, map_bool, sortObjectsByKey } from "../../utils/swissknife";
-import { Buffer } from "buffer";
-import express from "express";
-import moment from "moment-timezone";
 import { logger as TopLogger } from "../../utils/logger";
+import { IPaginateOptions, IPaginateResults } from "../../dbconn/models/pagination";
 
 const MainLogger = TopLogger.child({cls: "GQLVTuberAPI"});
 
@@ -57,11 +60,6 @@ interface HistoryGrowthData {
     videoCount?: number
     followerCount?: number
     level?: number
-}
-
-interface GrowthChannelData {
-    subscribersGrowth?: ChannelGrowth
-    viewsGrowth?: ChannelGrowth
 }
 
 function fallbackGrowthMakeSure(historyData?: HistoryGrowthData): HistoryGrowthData {
@@ -116,7 +114,7 @@ function fallbackGrowthIfNaN(growth: ChannelGrowth): ChannelGrowth {
     }
 }
 
-function mapGrowthData(platform: PlatformName, channelId: string, historyData?: HistoryGrowthData[]): GrowthChannelData {
+function mapGrowthData(platform: PlatformName, channelId: string, historyData?: HistoryGrowthData[]): ChannelGrowthObject {
     const logger = MainLogger.child({fn: "mapGrowthData"});
     if (typeof historyData === "undefined") {
         return null;
@@ -300,19 +298,82 @@ class VTAPIQuery {
         let allowedGroups = groups.map((group) => {
             let map: any[] = get_group(group);
             if (is_none(map)) {
-                return [];
+                return [group];
             }
             return map;
         });
         return _.uniq(_.flattenDeep(allowedGroups));
     }
 
+    private mapLiveResultToSchema(res: VideoProps): LiveObject {
+        let timeObject = _.get(res, "timedata", {});
+        let duration = calcDuration(_.get(timeObject, "duration", NaN), timeObject["startTime"], timeObject["endTime"]);
+        let remapped: LiveObject = {
+            id: res["id"],
+            room_id: _.get(res, "room_id", null),
+            title: res["title"],
+            status: res["status"],
+            timeData: {
+                scheduledStartTime: is_none(_.get(timeObject, "scheduledStartTime", null)) ? null : timeObject["scheduledStartTime"],
+                startTime: is_none(_.get(timeObject, "startTime", null)) ? null : timeObject["startTime"],
+                endTime: is_none(_.get(timeObject, "endTime", null)) ? null : timeObject["endTime"],
+                duration: duration,
+                publishedAt: is_none(_.get(timeObject, "publishedAt", null)) ? null : timeObject["publishedAt"],
+                lateBy: is_none(_.get(timeObject, "lateTime", null)) ? null : timeObject["lateTime"],
+            },
+            channel_id: res["channel_id"],
+            viewers: is_none(_.get(res, "viewers", null)) ? null : res["viewers"],
+            peakViewers: is_none(_.get(res, "peakViewers", null)) ? null : res["peakViewers"],
+            averageViewers: is_none(_.get(res, "averageViewers", null)) ? null : res["averageViewers"],
+            thumbnail: res["thumbnail"],
+            group: res["group"],
+            platform: res["platform"],
+            is_missing: is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
+            is_premiere: is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
+            is_member: is_none(_.get(res, "is_member", null)) ? null : res["is_member"],
+        }
+        return remapped;
+    }
+
+    private mapChannelResultToSchema(res: ChannelsProps): ChannelObject {
+        let subsCount = ["twitch", "twitcasting", "mildom"].includes(res["platform"]) ? res["followerCount"] : res["subscriberCount"];
+        subsCount = is_none(subsCount) ? null : subsCount;
+        let remapped: ChannelObject = {
+            id: res["id"],
+            room_id: is_none(_.get(res, "room_id", null)) ? null : res["room_id"],
+            user_id: is_none(_.get(res, "user_id", null)) ? null : res["user_id"],
+            name: res["name"],
+            en_name: res["en_name"],
+            description: res["description"],
+            publishedAt: is_none(res["publishedAt"]) ? null : res["publishedAt"],
+            image: res["thumbnail"],
+            group: res["group"],
+            statistics: {
+                subscriberCount: subsCount,
+                viewCount: is_none(res["viewCount"]) ? null : res["viewCount"],
+                videoCount: is_none(res["videoCount"]) ? null : res["videoCount"],
+                level: is_none(res["level"]) ? null : res["level"],
+            },
+            is_live: is_none(res["is_live"]) ? null : res["is_live"],
+            platform: res["platform"]
+        }
+        return remapped;
+    }
+
     @Memoize()
-    async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<LiveObject[]> {
+    async performQueryOnLive(args: LiveObjectParams, type: LiveStatus, dataSources: VTAPIDataSources): Promise<IPaginateResults<LiveObject>> {
         // const logger = this.logger.child({fn: "performQueryOnLive"});
         let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
+        if (!Array.isArray(platforms_choices)) {
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+        }
         let groups_choices: string[] = getValueFromKey(args, "groups", null);
         let allowed_users: string[] = getValueFromKey(args, "channel_id", null);
+        let max_lookforward = fallbackNaN(parseFloat, getValueFromKey(args, "max_scheduled_time", undefined), undefined);
+        let max_lookback = fallbackNaN(parseInt, getValueFromKey(args, "max_lookback", 24), 24);
+        if (max_lookback < 0 || max_lookback > 24) {
+            max_lookback = 24;
+        }
         if (!Array.isArray(allowed_users)) {
             allowed_users = null;
         } else if (Array.isArray(allowed_users)) {
@@ -320,162 +381,39 @@ class VTAPIQuery {
                 allowed_users = null;
             }
         }
-        let main_results: LiveObject[] = [];
-        if (platforms_choices.includes("youtube")) {
-            let youtubeLiveFetch = await dataSources.youtubeLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
-            let ytMapped = youtubeLiveFetch.map((res) => {
-                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
-                let remap: LiveObject = {
-                    "id": res["id"],
-                    "title": res["title"],
-                    // @ts-ignore
-                    "status": res["status"],
-                    "timeData": {
-                        "startTime": res["timedata"]["startTime"],
-                        "endTime": res["timedata"]["endTime"],
-                        "publishedAt": res["timedata"]["publishedAt"],
-                        "scheduledStartTime": res["timedata"]["scheduledStartTime"],
-                        "duration": duration,
-                        "lateBy": res["timedata"]["lateTime"],
-                    },
-                    "channel_id": res["channel_id"],
-                    "viewers": type === "video" ? null : res["viewers"], // force null
-                    "peakViewers": res["peakViewers"],
-                    "averageViewers": _.get(res, "averageViewers", null),
-                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
-                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
-                    "is_member": is_none(_.get(res, "is_member", null)) ? null : res["is_member"],
-                    "thumbnail": res["thumbnail"],
-                    "group": res["group"],
-                    "platform": "youtube"
-                };
-                return remap;
-            })
-            main_results = _.concat(main_results, ytMapped);
+        let pageOpts: IPaginateOptions = {
+            limit: fallbackNaN(parseInt, _.get(args, "limit", 25), 25),
+            cursor: _.get(args, "cursor", undefined),
+            sortBy: _.get(args, "sort_by", "timeData.startTime"),
+            sortOrder: _.get(args, "sort_order", "asc"),
         }
-        if (platforms_choices.includes("bilibili")) {
-            let b2LiveFetch = await dataSources.biliLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
-            let b2Mapped = b2LiveFetch.map((res) => {
-                let duration = calcDuration(NaN, res["startTime"], res["endTime"]);
-                let remap: LiveObject = {
-                    "id": res["id"],
-                    "room_id": res["room_id"],
-                    "title": res["title"],
-                    // @ts-ignore
-                    "status": res["status"],
-                    "timeData": {
-                        "startTime": res["startTime"],
-                        "endTime": res["endTime"],
-                        "duration": duration,
-                    },
-                    "channel_id": res["channel_id"],
-                    "viewers": res["viewers"],
-                    "peakViewers": res["peakViewers"],
-                    "thumbnail": res["thumbnail"],
-                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
-                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
-                    "group": res["group"],
-                    "platform": "bilibili"
-                }
-                return remap;
-            })
-            main_results = _.concat(main_results, b2Mapped);
+        
+        let raw_results = await dataSources.videos.getVideos(
+            platforms_choices,
+            type,
+            {
+                groups: this.remapGroupsData(groups_choices),
+                channel_ids: allowed_users,
+                max_lookforward: max_lookforward,
+                max_lookback: max_lookback,
+            },
+            pageOpts
+        );
+        let main_results = raw_results.docs.map(this.mapLiveResultToSchema);
+        let newPaged: IPaginateResults<LiveObject> = {
+            docs: main_results,
+            pageInfo: raw_results.pageInfo,
         }
-        if (platforms_choices.includes("twitcasting") && ["live", "past"].includes(type)) {
-            let twcastLiveFetch = await dataSources.twitcastingLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
-            let twMapped = twcastLiveFetch.map((res) => {
-                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
-                let remap: LiveObject = {
-                    "id": res["id"],
-                    "title": res["title"],
-                    // @ts-ignore
-                    "status": res["status"],
-                    "timeData": {
-                        "startTime": res["timedata"]["startTime"],
-                        "endTime": res["timedata"]["endTime"],
-                        "publishedAt": res["timedata"]["publishedAt"],
-                        "duration": duration,
-                    },
-                    "channel_id": res["channel_id"],
-                    "viewers": res["viewers"],
-                    "peakViewers": res["peakViewers"],
-                    "averageViewers": _.get(res, "averageViewers", null),
-                    "thumbnail": res["thumbnail"],
-                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
-                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
-                    "is_member": is_none(_.get(res, "is_member", null)) ? null : res["is_member"],
-                    "group": res["group"],
-                    "platform": "twitcasting"
-                }
-                return remap;
-            })
-            main_results = _.concat(main_results, twMapped);
-        }
-        if (platforms_choices.includes("twitch") && ["live", "past"].includes(type)) {
-            let ttvLiveFetch = await dataSources.twitchLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
-            let ttvMapped = ttvLiveFetch.map((res) => {
-                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
-                let remap: LiveObject = {
-                    "id": res["id"],
-                    "title": res["title"],
-                    // @ts-ignore
-                    "status": res["status"],
-                    "timeData": {
-                        "startTime": res["timedata"]["startTime"],
-                        "endTime": res["timedata"]["endTime"],
-                        "publishedAt": res["timedata"]["publishedAt"],
-                        "duration": duration,
-                    },
-                    "channel_id": res["channel_id"],
-                    "viewers": res["viewers"],
-                    "peakViewers": res["peakViewers"],
-                    "averageViewers": _.get(res, "averageViewers", null),
-                    "thumbnail": res["thumbnail"],
-                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
-                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
-                    "group": res["group"],
-                    "platform": "twitch"
-                }
-                return remap;
-            })
-            main_results = _.concat(main_results, ttvMapped);
-        }
-        if (platforms_choices.includes("mildom") && ["live", "past"].includes(type)) {
-            let mildomLiveFetch = await dataSources.mildomLive.getLive(type, allowed_users, this.remapGroupsData(groups_choices));
-            let mildomMapped = mildomLiveFetch.map((res) => {
-                let duration = calcDuration(res["timedata"]["duration"], res["timedata"]["startTime"], res["timedata"]["endTime"]);
-                let remap: LiveObject = {
-                    "id": res["id"],
-                    "title": res["title"],
-                    // @ts-ignore
-                    "status": res["status"],
-                    "timeData": {
-                        "startTime": res["timedata"]["startTime"],
-                        "endTime": res["timedata"]["endTime"],
-                        "publishedAt": res["timedata"]["publishedAt"],
-                        "duration": duration,
-                    },
-                    "channel_id": res["channel_id"],
-                    "viewers": res["viewers"],
-                    "peakViewers": res["peakViewers"],
-                    "averageViewers": _.get(res, "averageViewers", null),
-                    "thumbnail": res["thumbnail"],
-                    "is_missing": is_none(_.get(res, "is_missing", null)) ? null : res["is_missing"],
-                    "is_premiere": is_none(_.get(res, "is_premiere", null)) ? null : res["is_premiere"],
-                    "group": res["group"],
-                    "platform": "mildom"
-                }
-                return remap;
-            })
-            main_results = _.concat(main_results, mildomMapped);
-        }
-        return main_results;
+        return newPaged;
     }
 
     @Memoize()
-    async performQueryOnChannel(args: ChannelObjectParams, dataSources: VTAPIDataSources, parents: ChannelParents): Promise<ChannelObject[]> {
-        const logger = this.logger.child({fn: "performQueryOnChannel"});
+    async performQueryOnChannel(args: ChannelObjectParams, dataSources: VTAPIDataSources, parents: ChannelParents): Promise<IPaginateResults<ChannelObject>> {
         let user_ids_limit: string[] = getValueFromKey(parents, "channel_id", null) || getValueFromKey(args, "id", null);
+        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
+        if (!Array.isArray(platforms_choices)) {
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+        }
         if (!Array.isArray(user_ids_limit)) {
             user_ids_limit = null;
         } else if (Array.isArray(user_ids_limit)) {
@@ -486,310 +424,62 @@ class VTAPIQuery {
         let groups_choices: string[] = getValueFromKey(args, "groups", null);
 
         if (parents.force_single) {
-            if (parents.platform === "youtube") {
-                let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit);
-                let remappedData: ChannelObject[] = ytUsers.map((res) => {
-                    let remap: ChannelObject = {
-                        id: res["id"],
-                        name: res["name"],
-                        en_name: res["en_name"],
-                        description: res["description"],
-                        publishedAt: res["publishedAt"],
-                        image: res["thumbnail"],
-                        group: res["group"],
-                        statistics: {
-                            subscriberCount: res["subscriberCount"],
-                            viewCount: res["viewCount"],
-                            videoCount: res["videoCount"],
-                            level: null
-                        },
-                        growth: mapGrowthData("youtube", res["id"], res["history"]),
-                        platform: "youtube"
-                    }
-                    return remap;
-                })
-                return remappedData;
-            } else if (parents.platform === "bilibili") {
-                let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit);
-                let remappedData: ChannelObject[] = biliUsers.map((res) => {
-                    let remap: ChannelObject = {
-                        id: res["id"],
-                        room_id: res["room_id"],
-                        name: res["name"],
-                        description: res["description"],
-                        publishedAt: res["publishedAt"],
-                        image: res["thumbnail"],
-                        statistics: {
-                            subscriberCount: res["subscriberCount"],
-                            viewCount: res["viewCount"],
-                            videoCount: res["videoCount"],
-                            level: null
-                        },
-                        is_live: res["live"],
-                        group: res["group"],
-                        platform: "bilibili"
-                    }
-                    return remap;
-                })
-                return remappedData;
-            } else if (parents.platform === "twitcasting") {
-                let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit);
-                let remappedData: ChannelObject[] = twUsers.map((res) => {
-                    let remap: ChannelObject = {
-                        id: res["id"],
-                        name: res["name"],
-                        en_name: res["en_name"],
-                        description: res["description"],
-                        statistics: {
-                            subscriberCount: res["followerCount"],
-                            viewCount: null,
-                            videoCount: null,
-                            level: res["level"]
-                        },
-                        growth: mapGrowthData("twitcasting", res["id"], res["history"]),
-                        image: res["thumbnail"],
-                        group: res["group"],
-                        platform: "twitcasting"
-                    }
-                    return remap;
-                })
-                return remappedData;
-            } else if (parents.platform === "twitch") {
-                let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
-                let remappedData: ChannelObject[] = ttvUsers.map((res) => {
-                    let remap: ChannelObject = {
-                        id: res["id"],
-                        user_id: res["user_id"],
-                        name: res["name"],
-                        en_name: res["en_name"],
-                        description: res["description"],
-                        publishedAt: res["publishedAt"],
-                        statistics: {
-                            subscriberCount: res["followerCount"],
-                            viewCount: res["viewCount"],
-                            videoCount: res["videoCount"],
-                            level: null
-                        },
-                        growth: mapGrowthData("twitch", res["id"], res["history"]),
-                        image: res["thumbnail"],
-                        group: res["group"],
-                        platform: "twitch"
-                    }
-                    return remap;
-                })
-                return remappedData;
-            } else if (parents.platform === "mildom") {
-                let mildomUsers = await dataSources.mildomChannels.getChannels(user_ids_limit);
-                let remappedData: ChannelObject[] = mildomUsers.map((res) => {
-                    let remap: ChannelObject = {
-                        id: res["id"],
-                        name: res["name"],
-                        en_name: res["en_name"],
-                        description: res["description"],
-                        statistics: {
-                            subscriberCount: res["followerCount"],
-                            videoCount: res["videoCount"],
-                            viewCount: null,
-                            level: res["level"]
-                        },
-                        growth: mapGrowthData("mildom", res["id"], res["history"]),
-                        image: res["thumbnail"],
-                        group: res["group"],
-                        platform: "mildom"
-                    }
-                    return remap;
-                })
-                return remappedData;
+            let singleChResult = await dataSources.channels.getChannels(
+                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                {
+                    channel_ids: user_ids_limit
+                },
+                {
+                    sortBy: _.get(args, "sort_by", "publishedAt"),
+                    sortOrder: _.get(args, "sort_order", "asc"),
+                    limit: 5
+                }
+            )
+            let singleChResMap = singleChResult.docs.map(this.mapChannelResultToSchema);
+            return {
+                docs: singleChResMap,
+                pageInfo: singleChResult.pageInfo
             }
         }
 
-        let platforms_choices: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
+        let pageOpts: IPaginateOptions = {
+            limit: fallbackNaN(parseInt, _.get(args, "limit", 25), 25),
+            cursor: _.get(args, "cursor", undefined),
+            sortBy: _.get(args, "sort_by", "timeData.startTime"),
+            sortOrder: _.get(args, "sort_order", "asc"),
+        }
 
-        let combined_channels: ChannelObject[] = [];
-        if (platforms_choices.includes("youtube")) {
-            logger.info("fetching youtube channels stats...");
-            let ytUsers = await dataSources.youtubeChannels.getChannel(user_ids_limit, this.remapGroupsData(groups_choices));
-            logger.info("processing youtube channels stats...");
-            let remappedData: ChannelObject[] = ytUsers.map((res) => {
-                let remap: ChannelObject = {
-                    id: res["id"],
-                    name: res["name"],
-                    en_name: res["en_name"],
-                    description: res["description"],
-                    publishedAt: res["publishedAt"],
-                    statistics: {
-                        subscriberCount: res["subscriberCount"],
-                        viewCount: res["viewCount"],
-                        videoCount: res["videoCount"],
-                        level: null
-                    },
-                    image: res["thumbnail"],
-                    group: res["group"],
-                    platform: "youtube"
-                }
-                return remap;
-            })
-            combined_channels = _.concat(combined_channels, remappedData);
+        let raw_results = await dataSources.channels.getChannels(
+            platforms_choices,
+            {
+                channel_ids: user_ids_limit,
+                groups: this.remapGroupsData(groups_choices),
+            },
+            pageOpts
+        )
+        let main_results = raw_results.docs.map(this.mapChannelResultToSchema);
+        return {
+            docs: main_results,
+            pageInfo: raw_results.pageInfo,
         }
-        if (platforms_choices.includes("bilibili")) {
-            logger.info("fetching bilibili channels staats...");
-            let biliUsers = await dataSources.biliChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
-            logger.info("processing bilibili channels staats...");
-            let remappedData: ChannelObject[] = biliUsers.map((res) => {
-                let remap: ChannelObject = {
-                    id: res["id"],
-                    room_id: res["room_id"],
-                    name: res["name"],
-                    description: res["description"],
-                    statistics: {
-                        subscriberCount: res["subscriberCount"],
-                        viewCount: res["viewCount"],
-                        videoCount: res["videoCount"],
-                        level: null
-                    },
-                    publishedAt: res["publishedAt"],
-                    image: res["thumbnail"],
-                    is_live: res["live"],
-                    group: res["group"],
-                    platform: "bilibili"
-                }
-                return remap;
-            })
-            combined_channels = _.concat(combined_channels, remappedData);
-        }
-        if (platforms_choices.includes("twitcasting")) {
-            logger.info("fetching twitcasting channels staats...");
-            let twUsers = await dataSources.twitcastingChannels.getChannels(user_ids_limit, this.remapGroupsData(groups_choices));
-            logger.info("processing twitcasting channels staats...");
-            let remappedData: ChannelObject[] = twUsers.map((res) => {
-                let remap: ChannelObject = {
-                    id: res["id"],
-                    name: res["name"],
-                    en_name: res["en_name"],
-                    description: res["description"],
-                    statistics: {
-                        subscriberCount: res["followerCount"],
-                        viewCount: null,
-                        videoCount: null,
-                        level: res["level"]
-                    },
-                    image: res["thumbnail"],
-                    group: res["group"],
-                    platform: "twitcasting"
-                }
-                return remap;
-            })
-            combined_channels = _.concat(combined_channels, remappedData);
-        }
-        if (platforms_choices.includes("twitch")) {
-            logger.info("fetching twitch channels staats...");
-            let ttvUsers = await dataSources.twitchChannels.getChannels(user_ids_limit);
-            logger.info("processing twitch channels staats...");
-            let remappedData: ChannelObject[] = ttvUsers.map((res) => {
-                let remap: ChannelObject = {
-                    id: res["id"],
-                    user_id: res["user_id"],
-                    name: res["name"],
-                    en_name: res["en_name"],
-                    description: res["description"],
-                    publishedAt: res["publishedAt"],
-                    statistics: {
-                        subscriberCount: res["followerCount"],
-                        viewCount: res["viewCount"],
-                        videoCount: res["videoCount"],
-                        level: null
-                    },
-                    image: res["thumbnail"],
-                    group: res["group"],
-                    platform: "twitch"
-                }
-                return remap;
-            })
-            combined_channels = _.concat(combined_channels, remappedData);
-        }
-        if (platforms_choices.includes("mildom")) {
-            logger.info("fetching mildom channels staats...");
-            let mildomUsers = await dataSources.mildomChannels.getChannels(user_ids_limit);
-            logger.info("processing mildom channels staats...");
-            let remappedData: ChannelObject[] = mildomUsers.map((res) => {
-                let remap: ChannelObject = {
-                    id: res["id"],
-                    name: res["name"],
-                    en_name: res["en_name"],
-                    description: res["description"],
-                    statistics: {
-                        subscriberCount: res["followerCount"],
-                        videoCount: res["videoCount"],
-                        viewCount: null,
-                        level: res["level"]
-                    },
-                    growth: mapGrowthData("mildom", res["id"], res["history"]),
-                    image: res["thumbnail"],
-                    group: res["group"],
-                    platform: "mildom"
-                }
-                return remap;
-            })
-            combined_channels = _.concat(combined_channels, remappedData);
-        }
-        return combined_channels;
     }
 
     @Memoize()
     async performQueryOnChannelGrowth(dataSources: VTAPIDataSources, parents: ChannelParents) {
-        let defaults: GrowthChannelData = {"subscribersGrowth": null, "viewsGrowth": null};
         const logger = this.logger.child({fn: "performQueryOnChannelGrowth"});
-        if (parents.platform === "youtube") {
-            let ytStats = await dataSources.youtubeChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
-                logger.error(`Failed to perform parents growth on youtube ID: ${parents.channel_id[0]} (${err.toString()})`);
-                return {"id": parents.channel_id[0], "history": []};
-            });
-            return mapGrowthData("youtube", ytStats["id"], ytStats["history"]) || defaults;
-        } else if (parents.platform === "bilibili") {
-            // let biliStats = await dataSources.biliChannels.getChannelStats(parents.channel_id).catch(() => {
-            //     logger.error("Failed to perform parents growth on bilibili ID: ", parents.channel_id[0]);
-            //     return defaults;
-            // });
-            // return _.get(biliStats, parents.channel_id[0], defaults);
-            return defaults;
-        } else if (parents.platform === "twitcasting") {
-            let twStats = await dataSources.twitcastingChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
-                logger.error(`Failed to perform parents growth on twitcasting ID: ${parents.channel_id[0]} (${err.toString()})`);
-                return {"id": parents.channel_id[0], "history": []};
-            });
-            return mapGrowthData("twitcasting", twStats["id"], twStats["history"]) || defaults;
-        } else if (parents.platform === "twitch") {
-            let ttvStats = await dataSources.twitchChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
-                logger.error(`Failed to perform parents growth on twitch ID: ${parents.channel_id[0]} (${err.toString()})`);
-                return {"id": parents.channel_id[0], "history": []};
-            });
-            return mapGrowthData("twitch", ttvStats["id"], ttvStats["history"]) || defaults;
-        } else if (parents.platform === "mildom") {
-            let mildomStats = await dataSources.mildomChannels.getChannelHistory(parents.channel_id[0]).catch((err) => {
-                logger.error(`Failed to perform parents growth on twitch ID: ${parents.channel_id[0]} (${err.toString()})`);
-                return {"id": parents.channel_id[0], "history": []};
-            })
-            return mapGrowthData("mildom", mildomStats["id"], mildomStats["history"]) || defaults;
-        }
-        return defaults;
+        let histStats = await dataSources.statsHist.getChannelHistory(parents.channel_id[0]).catch((err: any) => {
+            logger.error(`Failed to perform parents growth on a ${parents.platform} ID: ${parents.channel_id[0]} (${err.toString()})`);
+            return {"id": parents.channel_id[0], "history": [], "platform": parents.platform};
+        });
+        return mapGrowthData(parents.platform, histStats["id"], histStats["history"]);
     }
 
     @Memoize()
     async performGroupsFetch(dataSources: VTAPIDataSources): Promise<string[]> {
         const logger = this.logger.child({fn: "performGroupsFetch"});
-        logger.info("Preparing datasources...");
-        const wrapperForFetch = [dataSources.twitcastingChannels, dataSources.youtubeChannels, dataSources.twitchChannels, dataSources.biliChannels].map((ds) => (
-            ds.getGroups().then((res) => {
-                return res;
-            }).catch((err) => {
-                logger.error(`An error occured while fetching one of the datasources, ${err.toString()}`);
-                console.error(err);
-                return [];
-            })
-        ));
         logger.info("Fetching groups data...")
-        const stringResults = await Promise.all(wrapperForFetch);
-        return _.uniq(_.flattenDeep(stringResults));
+        const stringResults = await dataSources.channels.getGroups();
+        return stringResults;
     }
 }
 
@@ -798,6 +488,30 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
     let groups_filters: string[] = getValueFromKey(args, "groups", []);
     let channels_filters: string[] = getValueFromKey(args, "channel_id", []);
     let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
+    let sortBy: string = "-sort_" + getValueFromKey(args, "sort_by", ["live", "upcoming"].includes(type) ? "timeData.startTime" : (type === "past" ? "timeData.endTime" : "timeData.publishedAt"));
+    let sortOrder: SortOrder = getValueFromKey(args, "sort_order", "asc").toLowerCase();
+    let curr: string = getValueFromKey(args, "cursor", "nocursor");
+    let lookback: string = ""
+    if (type === "past") {
+        lookback = "-lb_" + fallbackNaN(parseInt, getValueFromKey(args, "max_lookback", 24), 24).toString();
+    }
+    let lookforward: string = ""
+    if (type === "upcoming") {
+        let lfData = fallbackNaN(parseInt, getValueFromKey(args, "max_scheduled_time", null), null);
+        if (typeof lfData === "number") {
+            lookforward = "-lf_" + lfData.toString();
+        } else {
+            lookforward = "-lf_nomax"
+        }
+    }
+    if (curr.length < 1 || curr === " ") {
+        curr = "nocursor";
+    }
+    curr = "-cur_" + curr;
+    let limit: string = "-l" + fallbackNaN(parseInt, getValueFromKey(args, "limit", 25), 25).toString();
+    if (!["asc", "ascending", "desc", "descending"].includes(sortOrder)) {
+        sortOrder = "asc";
+    }
     let final_name = `${VTPrefix}-${type}`;
     if (groups_filters.length < 1) {
         final_name += "-nogroups";
@@ -833,6 +547,7 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         }
         final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
     }
+    final_name += sortBy + "-ord_" + sortOrder + limit + lookforward + lookback + curr;
     return final_name;
 }
 
@@ -850,6 +565,13 @@ function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | 
     let groups_filters: string[] = getValueFromKey(args, "groups", []);
     let channels_filters: string[] = getValueFromKey(args, "id", []);
     let platforms: string[] = getValueFromKey(args, "platforms", ["youtube", "bilibili", "twitch", "twitcasting", "mildom"]);
+    let sortBy: string = "-sort_" + getValueFromKey(args, "sort_by", "publishedAt");
+    let sortOrder: SortOrder = getValueFromKey(args, "sort_order", "asc").toLowerCase();
+    let curr: string = "-cur_" + getValueFromKey(args, "cursor", "nocursor");
+    let limit: string = "-l" + fallbackNaN(parseInt, getValueFromKey(args, "limit", 25), 25).toString();
+    if (!["asc", "ascending", "desc", "descending"].includes(sortOrder)) {
+        sortOrder = "asc";
+    }
     if (groups_filters.length < 1) {
         final_name += "-nogroups";
     } else {
@@ -884,6 +606,7 @@ function getCacheNameForChannels(args: ChannelObjectParams, type: | "channel" | 
         }
         final_name = _.truncate(final_name, {omission: "", length: final_name.length - 1});
     }
+    final_name += sortBy + "-ord_" + sortOrder + limit + curr;
     return final_name;
 }
 
@@ -895,7 +618,6 @@ export const VTAPIv2Resolvers: IResolvers = {
     Query: {
         live: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             const logger = MainLogger.child({fn: "live"});
-            let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
@@ -905,7 +627,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "live");
             // @ts-ignore
-            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -914,93 +636,31 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "live", ctx.dataSources);
                 logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 20, results);
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
-            results = await VTQuery.filterAndSortQueryResults(
-                results,
-                args,
-                "live"
-            )
-            // @ts-ignore
-            let final_results: LivesResource = {};
-            let total_results = results.length;
-            const b64 = new Base64();
-            if (cursor !== "") {
-                logger.info("Using cursor to filter results...");
-                let unbase64cursor = b64.decode(cursor);
-                logger.info(`Finding cursor index: ${unbase64cursor}`);
-                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                logger.info(`Using cursor index: ${findIndex}`);
-                let limitres = results.length;
-                let max_limit = findIndex + limit;
-                let hasnextpage = true;
-                let next_cursor = null;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
-                    
-                }
-                results = _.slice(results, findIndex, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
+            let final_results: LivesResource = {
+                _total: results.pageInfo.totalData,
+                items: results.docs,
+                pageInfo: {
+                    total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            } else {
-                logger.info(`Starting cursor from zero.`);
-                let limitres = results.length;
-                let hasnextpage = true;
-                let next_cursor: string = null;
-                let max_limit = limit;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
+                    nextCursor: results.pageInfo.nextCursor,
+                    hasNextPage: results.pageInfo.hasNextPage,
                 }
-                results = _.slice(results, 0, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
-                    results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            }
+            };
+
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
-            final_results["_total"] = total_results;
             return final_results;
         },
         upcoming: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 20, scope: 'PRIVATE'});
             const logger = MainLogger.child({fn: "upcoming"});
-            let cursor = getValueFromKey(args, "cursor", "");
             let limit = getValueFromKey(args, "limit", 25);
             if (limit >= 75) {
                 limit = 75;
@@ -1009,8 +669,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "upcoming");
-            // @ts-ignore
-            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -1019,84 +678,22 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "upcoming", ctx.dataSources);
                 logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 20, results);
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
-            results = await VTQuery.filterAndSortQueryResults(
-                results,
-                args,
-                "upcoming"
-            )
-            // @ts-ignore
-            let final_results: LivesResource = {};
-            let total_results = results.length;
-            const b64 = new Base64();
-            if (cursor !== "") {
-                logger.info("Using cursor to filter results...");
-                let unbase64cursor = b64.decode(cursor);
-                logger.info(`Finding cursor index: ${unbase64cursor}`);
-                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                logger.info(`Using cursor index: ${findIndex}`);
-                let limitres = results.length;
-                let max_limit = findIndex + limit;
-                let hasnextpage = true;
-                let next_cursor = null;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
-                    
-                }
-                results = _.slice(results, findIndex, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
+            let final_results: LivesResource = {
+                _total: results.pageInfo.totalData,
+                items: results.docs,
+                pageInfo: {
+                    total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            } else {
-                logger.info(`Starting cursor from zero.`);
-                let limitres = results.length;
-                let hasnextpage = true;
-                let next_cursor: string = null;
-                let max_limit = limit;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
+                    nextCursor: results.pageInfo.nextCursor,
+                    hasNextPage: results.pageInfo.hasNextPage,
                 }
-                results = _.slice(results, 0, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
-                    results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            }
-            final_results["_total"] = total_results;
+            };
             return final_results;
         },
         ended: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
@@ -1112,8 +709,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "past");
-            // @ts-ignore
-            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -1122,84 +718,22 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "past", ctx.dataSources);
                 logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 300, results);
                     ctx.res.set("Cache-Control", "private, max-age=300");
                 }
             }
-            results = await VTQuery.filterAndSortQueryResults(
-                results,
-                args,
-                "past"
-            )
-            // @ts-ignore
-            let final_results: LivesResource = {};
-            let total_results = results.length;
-            const b64 = new Base64();
-            if (cursor !== "") {
-                logger.info("Using cursor to filter results...");
-                let unbase64cursor = b64.decode(cursor);
-                logger.info(`Finding cursor index: ${unbase64cursor}`);
-                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                logger.info(`Using cursor index: ${findIndex}`);
-                let limitres = results.length;
-                let max_limit = findIndex + limit;
-                let hasnextpage = true;
-                let next_cursor = null;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
-                    
-                }
-                results = _.slice(results, findIndex, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
+            let final_results: LivesResource = {
+                _total: results.pageInfo.totalData,
+                items: results.docs,
+                pageInfo: {
+                    total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            } else {
-                logger.info(`Starting cursor from zero.`);
-                let limitres = results.length;
-                let hasnextpage = true;
-                let next_cursor: string = null;
-                let max_limit = limit;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
+                    nextCursor: results.pageInfo.nextCursor,
+                    hasNextPage: results.pageInfo.hasNextPage,
                 }
-                results = _.slice(results, 0, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
-                    results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            }
-            final_results["_total"] = total_results;
+            };
             return final_results;
         },
         videos: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
@@ -1215,8 +749,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             logger.info("Checking for cache...");
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             let cache_name = getCacheNameForLive(args, "video");
-            // @ts-ignore
-            let [results, ttl]: [LiveObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -1225,84 +758,22 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
                 results = await VTQuery.performQueryOnLive(args, "video", ctx.dataSources);
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
-            results = await VTQuery.filterAndSortQueryResults(
-                results,
-                args,
-                "video"
-            )
-            // @ts-ignore
-            let final_results: LivesResource = {};
-            let total_results = results.length;
-            const b64 = new Base64();
-            if (cursor !== "") {
-                logger.info("Using cursor to filter results...");
-                let unbase64cursor = b64.decode(cursor);
-                logger.info(`Finding cursor index: ${unbase64cursor}`);
-                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                logger.info(`Using cursor index: ${findIndex}`);
-                let limitres = results.length;
-                let max_limit = findIndex + limit;
-                let hasnextpage = true;
-                let next_cursor = null;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
-                    
-                }
-                results = _.slice(results, findIndex, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
+            let final_results: LivesResource = {
+                _total: results.pageInfo.totalData,
+                items: results.docs,
+                pageInfo: {
+                    total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            } else {
-                logger.info(`Starting cursor from zero.`);
-                let limitres = results.length;
-                let hasnextpage = true;
-                let next_cursor: string = null;
-                let max_limit = limit;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: LiveObject = _.nth(results, max_limit);
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
+                    nextCursor: results.pageInfo.nextCursor,
+                    hasNextPage: results.pageInfo.hasNextPage,
                 }
-                results = _.slice(results, 0, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
-                    results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            }
-            final_results["_total"] = total_results;
+            };
             return final_results;
         },
         channels: async (_s, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelsResource> => {
@@ -1322,8 +793,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info("No cache requested!");
             }
             let cache_name = getCacheNameForChannels(args, "channel");
-            // @ts-ignore
-            let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (!is_none(results) && !no_cache && !resetCache) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -1336,89 +806,25 @@ export const VTAPIv2Resolvers: IResolvers = {
                     "force_single": false
                 });
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
-                } else if (resetCache && results.length) {
+                } else if (resetCache && results.docs.length) {
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
-            results = await VTQuery.filterAndSortQueryResults(
-                results,
-                args,
-                "channel"
-            )
-            // @ts-ignore
-            let final_results: ChannelsResource = {};
-            let total_results = results.length;
-            const b64 = new Base64();
-            if (cursor !== "") {
-                logger.info("Using cursor to filter results...");
-                let unbase64cursor = b64.decode(cursor);
-                logger.info(`Finding cursor index: ${unbase64cursor}`);
-                let findIndex = _.findIndex(results, (o) => {return o.id === unbase64cursor});
-                logger.info(`Using cursor index: ${findIndex}`);
-                let limitres = results.length;
-                let max_limit = findIndex + limit;
-                let hasnextpage = true;
-                let next_cursor = null;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: ChannelObject = _.nth(results, max_limit);
-                        // @ts-ignore
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
-                    
-                }
-                results = _.slice(results, findIndex, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
+            let final_results: ChannelsResource = {
+                _total: results.pageInfo.totalData,
+                items: results.docs,
+                pageInfo: {
+                    total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            } else {
-                logger.info(`Starting cursor from zero.`);
-                let limitres = results.length;
-                let hasnextpage = true;
-                let next_cursor: string = null;
-                let max_limit = limit;
-                if (max_limit > limitres) {
-                    max_limit = limitres;
-                    hasnextpage = false;
-                    logger.info(`Next available cursor: None`);
-                } else {
-                    try {
-                        let next_data: ChannelObject = _.nth(results, max_limit);
-                        // @ts-ignore
-                        next_cursor = b64.encode(next_data["id"]);
-                        logger.info(`Next available cursor: ${next_cursor}`);
-                    } catch (e) {
-                        logger.info(`Next available cursor: None`);
-                        hasnextpage = false;
-                    }
+                    nextCursor: results.pageInfo.nextCursor,
+                    hasNextPage: results.pageInfo.hasNextPage,
                 }
-                results = _.slice(results, 0, max_limit);
-                final_results["items"] = results;
-                final_results["pageInfo"] = {
-                    total_results: results.length,
-                    results_per_page: limit,
-                    nextCursor: results.length > 0 ? next_cursor : null,
-                    hasNextPage: results.length > 0 ? hasnextpage : false,
-                };
-            }
-            final_results["_total"] = total_results;
+            };
             return final_results;
         },
         groups: async (_s, _a, ctx: VTAPIContext, info): Promise<GroupsResource> => {
@@ -1449,14 +855,14 @@ export const VTAPIv2Resolvers: IResolvers = {
         }
     },
     ChannelObject: {
-        growth: async (parent: ChannelObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<GrowthChannelData> => {
+        growth: async (parent: ChannelObject, args: ChannelObjectParams, ctx: VTAPIContext, info): Promise<ChannelGrowthObject> => {
             // @ts-ignore
             info.cacheControl.setCacheHint({maxAge: 1800, scope: "PRIVATE"});
             // const logger = MainLogger.child({fn: "ChannelObject.growth"});
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             let cache_name = getCacheNameForChannels({}, "growth", parent);
-            let [results, ttl]: [GrowthChannelData, number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [ChannelGrowthObject, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (is_none(results)) {
                 results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources, {
                     // @ts-ignore
@@ -1485,8 +891,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             let no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             let cache_name = getCacheNameForChannels({}, "singlech", parent);
-            // @ts-ignore
-            let [results, ttl]: [ChannelObject[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.cacheServers.getBetter(cache_name, true);
             if (is_none(results)) {
                 results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
                     // @ts-ignore
@@ -1496,17 +901,18 @@ export const VTAPIv2Resolvers: IResolvers = {
                     "group": parent.group,
                     "platform": parent.platform
                 });
-                if (!no_cache && results.length > 0) {
+                if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     ttl = 1800
                     await ctx.cacheServers.setexBetter(cache_name, 1800, results);
                 }
             }
-            if (results.length < 1) {
+            if (results.docs.length < 1) {
                 logger.error(`Failed to fetch ${parent.platform} ${parent.channel_id} ${parent.group}`);
+                return null;
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
-            return results[0];
+            return results.docs[0];
         }
     },
     DateTime: DateTimeScalar
