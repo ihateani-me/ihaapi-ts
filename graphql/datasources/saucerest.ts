@@ -1,13 +1,13 @@
 import _ from "lodash";
-
+import winston from "winston";
 import { RESTDataSource, RequestOptions } from "apollo-datasource-rest";
+
 import { SauceNAO, IQDB } from "../../utils/saucefinder";
 import { fallbackNaN, getValueFromKey } from "../../utils/swissknife";
 import { IQDBParams, SauceNAOParams } from "../schemas/saucefinder";
 import { logger as MainLogger } from "../../utils/logger";
-import winston from "winston";
 
-const packageJson = require("../../package.json");
+import packageJson from "../../package.json";
 
 export class SauceNAOAPI extends RESTDataSource {
     api_key: string

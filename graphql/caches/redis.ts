@@ -1,5 +1,6 @@
-import { RedisCache } from "apollo-server-cache-redis";
 import IORedis from "ioredis";
+import { RedisCache } from "apollo-server-cache-redis";
+
 import { is_none, fallbackNaN } from "../../utils/swissknife";
 import { logger as MainLogger } from "../../utils/logger";
 
