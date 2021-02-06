@@ -17,7 +17,7 @@ export const v2Definitions = gql`
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
-            sort_by: String = "startTime"
+            sort_by: String = "timeData.startTime"
             sort_order: SortOrder = asc
             cursor: String
             limit: Int = 25
@@ -27,8 +27,9 @@ export const v2Definitions = gql`
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
-            sort_by: String = "startTime"
+            sort_by: String = "timeData.startTime"
             sort_order: SortOrder = asc
+            max_scheduled_time: Int
             cursor: String
             limit: Int = 25
         ): LivesResource
@@ -37,7 +38,7 @@ export const v2Definitions = gql`
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
-            sort_by: String = "endTime"
+            sort_by: String = "timeData.endTime"
             sort_order: SortOrder = asc
             cursor: String
             max_lookback: Int = 6
@@ -48,7 +49,7 @@ export const v2Definitions = gql`
             channel_id: [ID],
             groups: [String],
             platforms: [PlatformName],
-            sort_by: String = ""
+            sort_by: String = "publishedAt"
             sort_order: SortOrder = asc
             cursor: String
             limit: Int = 25

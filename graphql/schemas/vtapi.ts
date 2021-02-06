@@ -1,6 +1,7 @@
+import moment from "moment-timezone";
 import { gql } from "apollo-server-express";
 import { GraphQLScalarType, Kind } from "graphql";
-import moment from "moment-timezone";
+
 import { is_none } from "../../utils/swissknife";
 
 export const DateTimeScalar = new GraphQLScalarType({
@@ -296,6 +297,11 @@ export interface VideoTime {
     duration?: number
 }
 
+export interface ChannelGrowthObject {
+    subscribersGrowth?: ChannelGrowth
+    viewsGrowth?: ChannelGrowth
+}
+
 export interface ChannelObject {
     id: string | number
     user_id?: string
@@ -306,10 +312,7 @@ export interface ChannelObject {
     publishedAt?: string
     image: string
     statistics?: ChannelStatistics
-    growth?: {
-        subscribersGrowth?: ChannelGrowth
-        viewsGrowth?: ChannelGrowth
-    }
+    growth?: ChannelGrowthObject
     group?: string
     is_live?: boolean
     platform: PlatformName
@@ -343,6 +346,8 @@ export interface LiveObjectParams {
     groups?: string[]
     platforms?: PlatformName[]
     max_lookback?: number
+    max_scheduled_time?: number
+    limit?: number
     sort_by?: string
     sort_order?: SortOrder
     cursor?: string
