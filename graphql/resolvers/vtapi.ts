@@ -435,9 +435,15 @@ class VTAPIQuery {
                     limit: 5
                 }
             )
-            let singleChResMap = singleChResult.docs.map(this.mapChannelResultToSchema);
+            if (singleChResult.docs.length < 1) {
+                return {
+                    docs: [],
+                    pageInfo: null
+                }
+            }
+            let singleChResMap = this.mapChannelResultToSchema(singleChResult.docs[0])
             return {
-                docs: singleChResMap,
+                docs: [singleChResMap],
                 pageInfo: singleChResult.pageInfo
             }
         }
@@ -849,7 +855,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 }
             }
             let final_results: GroupsResource = {
-                "items": results
+                "items": results.sort(),
             };
             return final_results;
         }
