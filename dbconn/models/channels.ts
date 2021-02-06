@@ -1,9 +1,10 @@
 import _ from "lodash";
 import { FilterQuery } from "mongoose";
 import { createSchema, Type, typedModel, ExtractProps, ExtractDoc } from "ts-mongoose";
+import { FindPaginatedResult } from 'mongo-cursor-pagination-alt'
 
 import { PlatformData } from "./extras";
-import { IPaginateOptions, IPaginateResults, remapSchemaToDatabase } from "./pagination";
+import { findPaginationMongoose, IPaginateOptions, IPaginateResults, remapSchemaToDatabase } from "./pagination";
 
 import { fallbackNaN } from "../../utils/swissknife";
 
@@ -50,41 +51,29 @@ export type ChannelStatsHistDocs = ExtractDoc<typeof ChannelStatsHistorySchema>;
 
 export const ChannelsData = typedModel("ChannelsData", ChannelsSchema, undefined, undefined, {
     paginate: async function (query: FilterQuery<ChannelsProps>, options?: IPaginateOptions): Promise<IPaginateResults<ChannelsProps>> {
-        // @ts-ignore
         let cursor = _.get(options, "cursor", undefined);
-        let limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25) + 1;
+        let limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25);
         let projection = _.get(options, "project", undefined);
-        let aggregateShits = [];
         let sortKey = remapSchemaToDatabase(_.get(options, "sortBy", "_id"), "v", "timedata.startTime");
         let sortMeth = {};
         sortMeth[sortKey] = ["asc", "ascending"].includes(_.get(options, "sortOrder", "asc").toLowerCase()) ? 1 : -1;
-        aggregateShits.push({
-            "$sort": sortMeth
-        })
-        let cleanQuery = _.cloneDeep(query);
+        let paginationParams = {
+            first: limit
+        }
         if (typeof cursor === "string" && cursor.length > 0) {
-            // @ts-ignore
-            query["_id"] = {"$gte": new Types.ObjectId(cursor)};
+            paginationParams["after"] = cursor;
         }
-        aggregateShits.push({
-            "$match": query,
-        })
+        paginationParams["sort"] = sortMeth;
         if (typeof projection === "object" && Object.keys(projection).length > 0) {
-            aggregateShits.push({
-                "$project": projection,
-            })
+            paginationParams["projection"] = projection;
         }
-        aggregateShits.push({
-            "$limit": limit
-        })
-        let promises = [{fn: this.aggregate.bind(this), name: "docs"}, {fn: this.countDocuments.bind(this), "name": "count"}].map((req) => (
-            // @ts-ignore
-            req.fn(req.name === "count" ? query : aggregateShits)
-                // @ts-ignore
-                .then((res: ChannelsProps[] | number) => {
+        paginationParams["query"] = query;
+        let promises = [{fn: findPaginationMongoose.bind(findPaginationMongoose, this, paginationParams), name: "docs"}, {fn: this.countDocuments.bind(this, query), "name": "count"}].map((req) => (
+            req.fn()
+                .then((res: FindPaginatedResult<ChannelsProps> | number) => {
                     return res;
                 })
-                .catch((_res) => {
+                .catch((res: any) => {
                     if (req.name === "count") {
                         return 0;
                     }
@@ -92,22 +81,14 @@ export const ChannelsData = typedModel("ChannelsData", ChannelsSchema, undefined
                 })
         ))
         // @ts-ignore
-        let [docsResults, countResults]: [ChannelsProps[], number] = await Promise.all(promises);
-        let hasNext = docsResults.length === limit ? true : false;
-        let nextCursor = null;
-        if (hasNext) {
-            let tNextCursor = _.get(_.last(docsResults), "_id", "").toString();
-            if (tNextCursor !== "") {
-                nextCursor = tNextCursor;
-            }
-        }
-        docsResults = _.take(docsResults, limit - 1);
+        let [docsResults, countResults]: [FindPaginatedResult<ChannelsProps>, number] = await Promise.all(promises);
+        let allDocuments = docsResults.edges.map(o => o.node);
         return {
-            "docs": docsResults,
+            "docs": allDocuments,
             "pageInfo": {
                 "totalData": countResults,
-                "hasNextPage": hasNext,
-                "nextCursor": nextCursor
+                "hasNextPage": docsResults.pageInfo.hasNextPage,
+                "nextCursor": docsResults.pageInfo.endCursor,
             }
         }
     }

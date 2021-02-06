@@ -1,8 +1,36 @@
+// The code is based on mongo-cursor-pagination-alt
+// Modified to fit mongoose more
+
 import _ from "lodash";
-import { Document, FilterQuery, Types } from "mongoose";
+import base64Url from 'base64-url'
+import { Document, Model } from "mongoose";
+import { Extract } from "ts-mongoose";
+import { ObjectId } from 'bson'
+import EJSON from "mongodb-extended-json";
+
+import { FindPaginatedParams, FindPaginatedResult } from "mongo-cursor-pagination-alt";
 
 import { SortOrder } from "../../graphql/schemas";
-import { fallbackNaN } from "../../utils/swissknife";
+
+export type BaseDocument = {
+    _id: ObjectId
+}
+
+export type CursorObject = {
+    [key: string]: any
+}
+
+export type Query = {
+    [key: string]: any
+}
+
+export type Sort = {
+    [key: string]: number
+}
+
+export type Projection = {
+    [key: string]: any
+}
 
 export interface IPaginateOptions {
     limit?: number
@@ -23,67 +51,121 @@ export interface IPaginateResults<T> {
     pageInfo: IPaginationInfo
 }
 
-export async function pagination<S extends Document>(query: FilterQuery<S>, options?: IPaginateOptions) {
-    // @ts-ignore
-    let cursor = _.get(options, "cursor", undefined);
-    let limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25) + 1;
-    let projection = _.get(options, "project", undefined);
-    let aggregateShits = [];
-    aggregateShits.push({
-        "$sort": {
-            "_id": ["asc", "ascending"].includes(_.get(options, "sortOrder", "asc").toLowerCase()) ? 1 : -1
+export const buildCursor = <TDocument extends BaseDocument>(
+    document: TDocument,
+    sort: Sort,
+): CursorObject => {
+    return Object.keys(sort).reduce((acc, key) => {
+        acc[key] = _.get(document, key)
+        return acc
+    }, {} as CursorObject)
+}
+
+export const encodeCursor = (cursorObject: CursorObject): string => {
+    return base64Url.encode(EJSON.stringify(cursorObject))
+}
+
+export const decodeCursor = (cursorString: string): CursorObject => {
+    return EJSON.parse(base64Url.decode(cursorString)) as CursorObject
+}
+
+export const buildQueryFromCursor = (
+    sort: Sort,
+    cursor: CursorObject,
+): Query => {
+    // Consider the `cursor`:
+    // { createdAt: '2020-03-22', color: 'blue', _id: 4 }
+    //
+    // And the `sort`:
+    // { createdAt: 1, color: -1 }
+    //
+    // The following table represents our documents (already sorted):
+    // ┌────────────┬───────┬─────┐
+    // │  createdAt │ color │ _id │
+    // ├────────────┼───────┼─────┤
+    // │ 2020-03-20 │ green │   1 │ <--- Line 1
+    // │ 2020-03-21 │ green │   2 │ <--- Line 2
+    // │ 2020-03-22 │ green │   3 │ <--- Line 3
+    // │ 2020-03-22 │ blue  │   4 │ <--- Line 4 (our cursor points to here)
+    // │ 2020-03-22 │ blue  │   5 │ <--- Line 5
+    // │ 2020-03-22 │ amber │   6 │ <--- Line 6
+    // │ 2020-03-23 │ green │   7 │ <--- Line 7
+    // │ 2020-03-23 │ green │   8 │ <--- Line 8
+    // └────────────┴───────┴─────┘
+    //
+    // In that case, in order to get documents starting after our cursor, we need
+    // to make sure any of the following clauses is true:
+    // - { createdAt: { $gt: '2020-03-22' } }                                          <--- Lines: 7 and 8
+    // - { createdAt: { $eq: '2020-03-22' }, color: { $lt: 'blue' } }                  <--- Lines: 6
+    // - { createdAt: { $eq: '2020-03-22' }, color: { $eq: 'blue' }, _id: { $gt: 4 } } <--- Lines: 5
+    const cursorEntries = Object.entries(cursor)
+
+    // So here we build an array of the OR clauses as mentioned above
+    const clauses = cursorEntries.reduce((clauses, [outerKey], index) => {
+        const currentCursorEntries = cursorEntries.slice(0, index + 1)
+
+        const clause = currentCursorEntries.reduce((clause, [key, value]) => {
+            // Last item in the clause uses an inequality operator
+            if (key === outerKey) {
+                const sortOrder = sort[key] ?? 1
+                const operator = sortOrder < 0 ? '$lt' : '$gt'
+                clause[key] = { [operator]: value }
+                return clause
+            }
+
+            // The rest use the equality operator
+            clause[key] = { $eq: value }
+            return clause
+        }, {} as Query)
+
+        clauses.push(clause)
+        return clauses
+    }, [] as Query[])
+
+    return { $or: clauses }
+}
+
+export const normalizeDirectionParams = ({
+    first,
+    after,
+    last,
+    before,
+    sort = {},
+}: {
+    first?: number | null
+    after?: string | null
+    last?: number | null
+    before?: string | null
+    sort?: Sort
+}) => {
+    // In case our sort object doesn't contain the `_id`, we need to add it
+    if (!('_id' in sort)) {
+        sort = {
+            ...sort,
+            // Important that it's the last key of the object to take the least priority
+            _id: 1,
         }
-    })
-    let cleanQuery = _.cloneDeep(query);
-    if (typeof cursor === "string" && cursor.length > 0) {
-        // @ts-ignore
-        query["_id"] = {"$gte": new Types.ObjectId(cursor)};
     }
-    aggregateShits.push({
-        "$match": query,
-    })
-    if (typeof projection === "object" && Object.keys(projection).length > 0) {
-        aggregateShits.push({
-            "$project": projection,
-        })
-    }
-    aggregateShits.push({
-        "$limit": limit
-    })
-    let promises = [{fn: this.aggregate.bind(this), name: "docs"}, {fn: this.countDocuments.bind(this), "name": "count"}].map((req) => (
-        // @ts-ignore
-        req.fn(req.name === "count" ? query : aggregateShits)
-            // @ts-ignore
-            .then((res: T[] | number) => {
-                return res;
-            })
-            .catch((res) => {
-                if (req.name === "count") {
-                    return 0;
-                }
-                return {};
-            })
-    ))
-    // @ts-ignore
-    let [docsResults, countResults]: [T[], number] = await Promise.all(promises);
-    let hasNext = docsResults.length === limit ? true : false;
-    let nextCursor = null;
-    if (hasNext) {
-        let tNextCursor = _.get(_.last(docsResults), "_id", "").toString();
-        if (tNextCursor !== "") {
-            nextCursor = tNextCursor;
+
+    if (last != null) {
+        // Paginating backwards
+        return {
+            limit: Math.max(1, last ?? 20),
+            cursor: before ? decodeCursor(before) : null,
+            sort: _.mapValues(sort, value => value * -1),
+            paginatingBackwards: true,
         }
     }
-    docsResults = _.take(docsResults, limit - 1);
+
+    // Paginating forwards
     return {
-        "docs": docsResults,
-        "pageInfo": {
-            "totalData": countResults,
-            "hasNextPage": hasNext,
-            "nextCursor": nextCursor
-        }
+        limit: Math.max(1, first ?? 20),
+        cursor: after ? decodeCursor(after) : null,
+        sort,
+        paginatingBackwards: false,
     }
 }
+
 
 const VideoDBMap = {
     "id": "id",
@@ -138,4 +220,69 @@ export function remapSchemaToDatabase(key: string, type: "v" | "ch", defaults?: 
         return mapped;
     }
     return "_id";
+}
+
+export const findPaginationMongoose = async <TDocument extends BaseDocument>(
+    model: Model<Document & Extract<TDocument>>,
+    {
+        first,
+        after,
+        last,
+        before,
+        query = {},
+        sort: originalSort = {},
+        projection = {},
+    }: FindPaginatedParams,
+): Promise<FindPaginatedResult<TDocument>> => {
+    const { limit, cursor, sort, paginatingBackwards } = normalizeDirectionParams(
+        {
+            first,
+            after,
+            last,
+            before,
+            sort: originalSort,
+        },
+    )
+
+    let aggroParams = [
+        {
+            "$match": !cursor ? query : { "$and": [query, buildQueryFromCursor(sort, cursor)] }
+        },
+        {
+            "$sort": sort,
+        },
+        {
+            "$limit": limit + 1,
+        }
+    ]
+    if (typeof projection === "object" && Object.keys(projection).length > 1) {
+        // @ts-ignore
+        aggroParams.push({ "$project": projection });
+    }
+
+    const allDocuments: TDocument[] = await model.aggregate(aggroParams);
+
+    const extraDocument = allDocuments[limit];
+    const hasMore = Boolean(extraDocument);
+
+    const desiredDocuments = allDocuments.slice(0, limit);
+    if (paginatingBackwards) {
+        desiredDocuments.reverse();
+    }
+    const edges = desiredDocuments.map((document) => {
+        return {
+            cursor: encodeCursor(buildCursor(document, sort)),
+            node: document,
+        };
+    });
+
+    return {
+        edges,
+        pageInfo: {
+            startCursor: edges[0]?.cursor ?? null,
+            endCursor: edges[edges.length - 1]?.cursor ?? null,
+            hasPreviousPage: paginatingBackwards ? hasMore : Boolean(after),
+            hasNextPage: paginatingBackwards ? Boolean(before) : hasMore,
+        },
+    }
 }
