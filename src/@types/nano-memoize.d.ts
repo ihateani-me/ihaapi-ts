@@ -1,5 +1,5 @@
 declare module "nano-memoize" {
-    export default function memoized<T extends Function> (
+    export default function memoized<T extends Function>(
         func: T,
         options?: {
             /**

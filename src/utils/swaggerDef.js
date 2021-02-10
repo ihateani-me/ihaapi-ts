@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const packageJson = require("../../package.json");
 const API_DESCRIPTIONS = `Source Code: [ihateani-me/ihaapi-ts](https://github.com/ihateani-me/ihaapi-ts)
 
@@ -33,7 +34,7 @@ This API are updating automatically via Python appscheduler (Running on another 
 You could contact me at **Discord: _N4O#8868_**<br>
 If you need more Other VTubers to add to the list.<br>
 After you add me, please Send Message directly so I'll know.
-`
+`;
 
 const OTHERAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
 It mainly consists of **Games API** that include HowLongToBeat and Steam, **Sauce Finder API** that use SauceNAO, IQDB, and ASCII2D as available backend,<br>
@@ -48,10 +49,10 @@ The API for this are experimental and subject to change, there's already some ch
 I'm still planning to add more stuff, but that's for later day.<br>
 If you have more suggestion what I should add, you could contact me at **Discord: _N4O#8868_**<br>
 After you add me, please Send Message directly so I'll know.
-`
+`;
 
 const MAIN_MODELS_SCHEMAS = {
-    "BiliScheduleModel": {
+    BiliScheduleModel: {
         description: "The Model Representing the BiliBili Live Schedule Endpoint.",
         type: "object",
         required: ["id", "room_id", "title", "startTime", "channel", "channel_name", "platform"],
@@ -59,201 +60,213 @@ const MAIN_MODELS_SCHEMAS = {
             id: {
                 type: "string",
                 description: "An ID that consist of subscriptions_id and program_id with `bili` prefixes.",
-                example: "bili1234_9876"
+                example: "bili1234_9876",
             },
             room_id: {
                 type: "integer",
                 description: "BiliBili Live Room ID the streamer will use.",
-                example: 12345678
+                example: 12345678,
             },
             title: {
                 type: "string",
-                description: "The room/live title."
+                description: "The room/live title.",
             },
             startTime: {
                 type: "integer",
-                description: "Scheduled/Real stream start time in UTC."
+                description: "Scheduled/Real stream start time in UTC.",
             },
             channel: {
                 type: "string",
-                description: "BiliBili Channel/Space/User ID."
+                description: "BiliBili Channel/Space/User ID.",
             },
             channel_name: {
                 type: "string",
-                description: "BiliBili Channel/Space/User name."
+                description: "BiliBili Channel/Space/User name.",
             },
             thumbnail: {
                 type: "string",
-                description: "Thumbnail of the stream."
+                description: "Thumbnail of the stream.",
             },
             viewers: {
                 type: "integer",
-                description: "Peak viewers for this stream."
+                description: "Peak viewers for this stream.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "bilibili"
-            }
-        }
+                example: "bilibili",
+            },
+        },
     },
-    "YouTubeScheduleModel": {
+    YouTubeScheduleModel: {
         description: "The Model Representing the YouTube Live Schedule Endpoint.",
         type: "object",
         required: ["id", "title", "startTime", "channel", "status", "thumbnail", "group", "platform"],
         properties: {
             id: {
                 type: "string",
-                description: "A youtube video ID"
+                description: "A youtube video ID",
             },
             title: {
                 type: "string",
-                description: "The stream title."
+                description: "The stream title.",
             },
             startTime: {
                 type: "integer",
-                description: "Scheduled/Real stream start time in UTC."
+                description: "Scheduled/Real stream start time in UTC.",
             },
             endTime: {
                 type: "integer",
-                description: "The stream end time in UTC."
+                description: "The stream end time in UTC.",
             },
             channel: {
                 type: "string",
-                description: "YouTube Channel ID."
+                description: "YouTube Channel ID.",
             },
             status: {
                 type: "string",
                 description: "Status of streams",
-                enum: ["live", "upcoming", "past"]
+                enum: ["live", "upcoming", "past"],
             },
             thumbnail: {
                 type: "string",
-                description: "Thumbnail of the stream."
+                description: "Thumbnail of the stream.",
             },
             viewers: {
                 type: "integer",
-                description: "Current viewers for the stream."
+                description: "Current viewers for the stream.",
             },
             group: {
                 type: "string",
-                description: "The VTubers group."
+                description: "The VTubers group.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "youtube"
-            }
-        }
+                example: "youtube",
+            },
+        },
     },
-    "TwitcastingScheduleModel": {
+    TwitcastingScheduleModel: {
         description: "The Model Representing the Twitcasting Live Schedule Endpoint.",
         type: "object",
         required: ["id", "title", "startTime", "channel", "viewers", "peakViewers", "platform"],
         properties: {
             id: {
                 type: "string",
-                description: "A twitcasting stream ID"
+                description: "A twitcasting stream ID",
             },
             title: {
                 type: "string",
-                description: "The stream title."
+                description: "The stream title.",
             },
             startTime: {
                 type: "integer",
-                description: "Scheduled/Real stream start time in UTC."
+                description: "Scheduled/Real stream start time in UTC.",
             },
             channel: {
                 type: "string",
-                description: "Twitcaster Channel ID."
+                description: "Twitcaster Channel ID.",
             },
             viewers: {
                 type: "integer",
-                description: "Current viewers for the stream."
+                description: "Current viewers for the stream.",
             },
             peakViewers: {
                 type: "integer",
-                description: "Peak viewers for the stream."
+                description: "Peak viewers for the stream.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "twitcasting"
-            }
-        }
+                example: "twitcasting",
+            },
+        },
     },
-    "TwitchScheduleModel": {
+    TwitchScheduleModel: {
         description: "The Model Representing the Twitch Live Schedule Endpoint.",
         type: "object",
         required: ["id", "title", "startTime", "channel", "channel_id", "thumbnail", "platform"],
         properties: {
             id: {
                 type: "string",
-                description: "A twitch stream ID"
+                description: "A twitch stream ID",
             },
             title: {
                 type: "string",
-                description: "The stream title."
+                description: "The stream title.",
             },
             startTime: {
                 type: "integer",
-                description: "Scheduled/Real stream start time in UTC."
+                description: "Scheduled/Real stream start time in UTC.",
             },
             channel: {
                 type: "string",
-                description: "Twitch channel login name or username."
+                description: "Twitch channel login name or username.",
             },
             channel_id: {
                 type: "string",
-                description: "Twitch channel user ID."
+                description: "Twitch channel user ID.",
             },
             thumbnail: {
                 type: "string",
-                description: "The thumbnail of ths stream."
+                description: "The thumbnail of ths stream.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "twitch"
-            }
-        }
+                example: "twitch",
+            },
+        },
     },
-    "BiliBiliChannelModel": {
+    BiliBiliChannelModel: {
         description: "The Model Representing the BiliBili Channel Endpoint.",
-        "type": "object",
-        "required": ["id", "room_id", "name", "description", "thumbnail", "publishedAt", "subscriberCount", "viewCount", "videoCount", "live", "platform"],
+        type: "object",
+        required: [
+            "id",
+            "room_id",
+            "name",
+            "description",
+            "thumbnail",
+            "publishedAt",
+            "subscriberCount",
+            "viewCount",
+            "videoCount",
+            "live",
+            "platform",
+        ],
         properties: {
             id: {
                 type: "string",
-                description: "An User/Channel/Space BiliBili ID."
+                description: "An User/Channel/Space BiliBili ID.",
             },
             room_id: {
                 type: "string",
-                description: "BiliBili Live Room ID the streamer will use."
+                description: "BiliBili Live Room ID the streamer will use.",
             },
             name: {
                 type: "string",
-                description: "BiliBili Channel/Space/User name."
+                description: "BiliBili Channel/Space/User name.",
             },
             description: {
                 type: "string",
-                description: "The Channel Signature/Description."
+                description: "The Channel Signature/Description.",
             },
             thumbnail: {
                 type: "string",
-                description: "The Channel profile picture."
+                description: "The Channel profile picture.",
             },
             subscriberCount: {
                 type: "integer",
-                description: "The channels subscription/followers count."
+                description: "The channels subscription/followers count.",
             },
             viewCount: {
                 type: "integer",
-                description: "The channels views count."
+                description: "The channels views count.",
             },
             videoCount: {
                 type: "integer",
-                description: "The channels published/uploaded videos count."
+                description: "The channels published/uploaded videos count.",
             },
             live: {
                 type: "boolean",
@@ -262,46 +275,57 @@ const MAIN_MODELS_SCHEMAS = {
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "bilibili"
-            }
-        }
+                example: "bilibili",
+            },
+        },
     },
-    "YouTubeChannelModel": {
+    YouTubeChannelModel: {
         description: "The Model Representing the YouTube Channel Endpoint.",
-        "type": "object",
-        "required": ["id", "name", "description", "thumbnail", "publishedAt", "subscriberCount", "viewCount", "videoCount", "group", "platform"],
+        type: "object",
+        required: [
+            "id",
+            "name",
+            "description",
+            "thumbnail",
+            "publishedAt",
+            "subscriberCount",
+            "viewCount",
+            "videoCount",
+            "group",
+            "platform",
+        ],
         properties: {
             id: {
                 type: "string",
-                description: "The YouTube channel ID."
+                description: "The YouTube channel ID.",
             },
             name: {
                 type: "string",
-                description: "The channel name."
+                description: "The channel name.",
             },
             description: {
                 type: "string",
-                description: "The channel description."
+                description: "The channel description.",
             },
             thumbnail: {
                 type: "string",
-                description: "The Channel profile picture."
+                description: "The Channel profile picture.",
             },
             publishedAt: {
                 type: "integer",
-                description: "The channel publication time in UTC."  
+                description: "The channel publication time in UTC.",
             },
             subscriberCount: {
                 type: "integer",
-                description: "The channels subscription/followers count."
+                description: "The channels subscription/followers count.",
             },
             viewCount: {
                 type: "integer",
-                description: "The channels views count."
+                description: "The channels views count.",
             },
             videoCount: {
                 type: "integer",
-                description: "The channels published/uploaded videos count."
+                description: "The channels published/uploaded videos count.",
             },
             group: {
                 type: "string",
@@ -310,119 +334,128 @@ const MAIN_MODELS_SCHEMAS = {
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "youtube"
-            }
-        }
+                example: "youtube",
+            },
+        },
     },
-    "TwitcastingChannelModel": {
+    TwitcastingChannelModel: {
         description: "The Model Representing the Twitcasting Channel Endpoint.",
-        "type": "object",
-        "required": ["id", "name", "description", "thumbnail", "followerCount", "level", "platform"],
+        type: "object",
+        required: ["id", "name", "description", "thumbnail", "followerCount", "level", "platform"],
         properties: {
             id: {
                 type: "string",
-                description: "Twitch username."
+                description: "Twitch username.",
             },
             name: {
                 type: "string",
-                description: "The channel name."
+                description: "The channel name.",
             },
             description: {
                 type: "string",
-                description: "The channel description."
+                description: "The channel description.",
             },
             thumbnail: {
                 type: "string",
-                description: "The Channel profile picture."
+                description: "The Channel profile picture.",
             },
             followerCount: {
                 type: "integer",
-                description: "The channels subscription/followers count."
+                description: "The channels subscription/followers count.",
             },
             level: {
                 type: "integer",
-                description: "The channels level."
+                description: "The channels level.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "twitcasting"
-            }
-        }
+                example: "twitcasting",
+            },
+        },
     },
-    "TwitchChannelModel": {
+    TwitchChannelModel: {
         description: "The Model Representing the Twitch Channel Endpoint.",
-        "type": "object",
-        "required": ["id", "user_id", "name", "description", "thumbnail", "followerCount", "viewCount", "platform"],
+        type: "object",
+        required: [
+            "id",
+            "user_id",
+            "name",
+            "description",
+            "thumbnail",
+            "followerCount",
+            "viewCount",
+            "platform",
+        ],
         properties: {
             id: {
                 type: "string",
-                description: "Twitch username."
+                description: "Twitch username.",
             },
             user_id: {
                 type: "string",
-                description: "Twitch user id."
+                description: "Twitch user id.",
             },
             name: {
                 type: "string",
-                description: "The channel name."
+                description: "The channel name.",
             },
             description: {
                 type: "string",
-                description: "The channel description."
+                description: "The channel description.",
             },
             thumbnail: {
                 type: "string",
-                description: "The Channel profile picture."
+                description: "The Channel profile picture.",
             },
             followerCount: {
                 type: "integer",
-                description: "The channels subscription/followers count."
+                description: "The channels subscription/followers count.",
             },
             viewCount: {
                 type: "integer",
-                description: "The channels views count."
+                description: "The channels views count.",
             },
             platform: {
                 type: "string",
                 description: "The platform the stream running currently.",
-                example: "twitch"
-            }
-        }
+                example: "twitch",
+            },
+        },
     },
-    "SauceFinderResultModel": {
+    SauceFinderResultModel: {
         description: "A possible match for image sauce.",
         type: "object",
         required: ["title", "confidence", "thumbnail", "indexer"],
         properties: {
             title: {
                 type: "string",
-                description: "The result image title."
+                description: "The result image title.",
             },
             source: {
                 type: "string",
-                description: "The result source if available."
+                description: "The result source if available.",
             },
             confidence: {
                 type: "number",
-                description: "The result match confidence."
+                description: "The result match confidence.",
             },
             thumbnail: {
                 type: "string",
-                description: "The image thumbnail (temporary)"
+                description: "The image thumbnail (temporary)",
             },
             extra_info: {
                 type: "object",
                 description: "Extra info dict, might be available to some of them.",
-                properties: {}
+                properties: {},
             },
             indexer: {
                 type: "string",
-                description: "The result indexer"
-            }
-        }
-    }
-}
+                description: "The result indexer",
+            },
+        },
+    },
+};
 
 module.exports = {
     openapi: "3.0.0",
@@ -433,92 +466,104 @@ module.exports = {
         contact: {
             name: "Contact",
             email: "noaione0809@gmail.com",
-            url: "https://github.com/ihateani-me/ihaapi-ts"
+            url: "https://github.com/ihateani-me/ihaapi-ts",
         },
         license: {
-            "name": "MIT License",
-            "url": "https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE"
+            name: "MIT License",
+            url: "https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE",
         },
         "x-logo": {
-            "url": "https://p.n4o.xyz/i/ihaTranslucent.png",
-            "altText": "ihaAPI Logo"
-        }
+            url: "https://p.n4o.xyz/i/ihaTranslucent.png",
+            altText: "ihaAPI Logo",
+        },
     },
     servers: [
         {
-            "url": "https://api.ihateani.me"
-        }
+            url: "https://api.ihateani.me",
+        },
     ],
     tags: [
-        {"name": "Hololive", "description": "Hololive BiliBili Endpoint"},
-        {"name": "Nijisanji", "description": "Nijisanji BiliBili & YouTube Endpoint"},
-        {"name": "Others", "description": "Others VTubers BiliBili & YouTube Endpoint"},
-        {"name": "Twitcasting", "description": "Twitcasting Stream Endpoint"},
-        {"name": "Twitch", "description": "Twitch Stream Endpoint"},
-        {"name": "games_api", "x-displayName": "Games API", "description": "An API wrapper anything related to games."},
-        {"name": "sauce_api", "x-displayName": "Sauce Finder API [DEPRECATION]", "description": "An API wrapper for SauceNAO, IQDB, and ASCII2D. [ON IT'S WAY TO DEPRECATION]"},
-        {"name": "nh_nsfw", "x-displayName": "nH [NSFW]", "description": "An API wrapper for nH (you know what it is)."},
-        {"name": "u2_api", "x-displayName": "U2 API", "description": "An API wrapper for U2 RSS and Offers."},
+        { name: "Hololive", description: "Hololive BiliBili Endpoint" },
+        { name: "Nijisanji", description: "Nijisanji BiliBili & YouTube Endpoint" },
+        { name: "Others", description: "Others VTubers BiliBili & YouTube Endpoint" },
+        { name: "Twitcasting", description: "Twitcasting Stream Endpoint" },
+        { name: "Twitch", description: "Twitch Stream Endpoint" },
         {
-            "name": "bilischedule_model",
+            name: "games_api",
+            "x-displayName": "Games API",
+            description: "An API wrapper anything related to games.",
+        },
+        {
+            name: "sauce_api",
+            "x-displayName": "Sauce Finder API [DEPRECATION]",
+            description: "An API wrapper for SauceNAO, IQDB, and ASCII2D. [ON IT'S WAY TO DEPRECATION]",
+        },
+        {
+            name: "nh_nsfw",
+            "x-displayName": "nH [NSFW]",
+            description: "An API wrapper for nH (you know what it is).",
+        },
+        { name: "u2_api", "x-displayName": "U2 API", description: "An API wrapper for U2 RSS and Offers." },
+        {
+            name: "bilischedule_model",
             "x-displayName": "BiliBili Live Schedule",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/BiliScheduleModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/BiliScheduleModel" />`,
         },
         {
-            "name": "bilichannel_model",
+            name: "bilichannel_model",
             "x-displayName": "BiliBili Channel",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/BiliBiliChannelModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/BiliBiliChannelModel" />`,
         },
         {
-            "name": "youtubeschedule_model",
+            name: "youtubeschedule_model",
             "x-displayName": "YouTube Live Schedule",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/YouTubeScheduleModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/YouTubeScheduleModel" />`,
         },
         {
-            "name": "youtubechannel_model",
+            name: "youtubechannel_model",
             "x-displayName": "YouTube Channel",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/YouTubeChannelModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/YouTubeChannelModel" />`,
         },
         {
-            "name": "twitchlive_model",
+            name: "twitchlive_model",
             "x-displayName": "Twitch Live Schedule",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitchScheduleModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitchScheduleModel" />`,
         },
         {
-            "name": "twitchchannel_model",
+            name: "twitchchannel_model",
             "x-displayName": "Twitch Channel",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitchChannelModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitchChannelModel" />`,
         },
         {
-            "name": "twitcastlive_model",
+            name: "twitcastlive_model",
             "x-displayName": "Twitcasting Live Schedule",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingScheduleModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingScheduleModel" />`,
         },
         {
-            "name": "twitcastchannel_model",
+            name: "twitcastchannel_model",
             "x-displayName": "Twitcasting Channel",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingChannelModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingChannelModel" />`,
         },
         {
-            "name": "saucefinder_model",
+            name: "saucefinder_model",
             "x-displayName": "Sauce Result Model",
-            "description": `<SchemaDefinition schemaRef="#/components/schemas/SauceFinderResultModel" />`
+            description: `<SchemaDefinition schemaRef="#/components/schemas/SauceFinderResultModel" />`,
         },
-        {"name": "vtapi_info", "description": VTAPI_INFORMATION, "x-displayName": "Information"},
-        {"name": "otherapi_info", "description": OTHERAPI_INFORMATION, "x-displayName": "Information"}
+        { name: "vtapi_info", description: VTAPI_INFORMATION, "x-displayName": "Information" },
+        { name: "otherapi_info", description: OTHERAPI_INFORMATION, "x-displayName": "Information" },
     ],
     "x-tagGroups": [
         {
-            "name": "VTuber API",
-            "tags": ["vtapi_info", "Hololive", "Nijisanji", "Others", "Twitcasting", "Twitch"]
+            name: "VTuber API",
+            tags: ["vtapi_info", "Hololive", "Nijisanji", "Others", "Twitcasting", "Twitch"],
         },
         {
-            "name": "Others API",
-            "tags": ["otherapi_info", "games_api", "sauce_api", "nh_nsfw", "u2_api"]
+            name: "Others API",
+            tags: ["otherapi_info", "games_api", "sauce_api", "nh_nsfw", "u2_api"],
         },
         {
-            "name": "Models",
-            "tags": [
+            name: "Models",
+            tags: [
                 "bilischedule_model",
                 "bilichannel_model",
                 "youtubeschedule_model",
@@ -527,14 +572,14 @@ module.exports = {
                 "twitcastchannel_model",
                 "twitchlive_model",
                 "twitchchannel_model",
-                "saucefinder_model"
-            ]
-        }
+                "saucefinder_model",
+            ],
+        },
     ],
     // "components": {
     //     schemas: MAIN_MODELS_SCHEMAS
     // },
-    "components": {
-        "schemas": MAIN_MODELS_SCHEMAS
-    }
-}
+    components: {
+        schemas: MAIN_MODELS_SCHEMAS,
+    },
+};

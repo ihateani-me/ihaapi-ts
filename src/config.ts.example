@@ -1,37 +1,37 @@
 interface IAPIConfiguration {
     mongodb: {
-        uri: string
-        dbname: string
-        replica_set?: string | null
-    }
+        uri: string;
+        dbname: string;
+        replica_set?: string | null;
+    };
     redis: {
-        host: string
-        port: number
-        password?: string | null
-    },
-    secure_password: string
+        host: string;
+        port: number;
+        password?: string | null;
+    };
+    secure_password: string;
     steam?: {
-        api_key?: string | null
-    }
+        api_key?: string | null;
+    };
     u2?: {
-        passkey?: string | null
-        cookies?: string | null
-    }
+        passkey?: string | null;
+        cookies?: string | null;
+    };
     saucenao?: {
-        api_key?: string | null
-    }
+        api_key?: string | null;
+    };
     vtapi?: {
-        youtube_key?: string | null
+        youtube_key?: string | null;
         twitch?: {
-            client?: string | null
-            secret?: string | null
-        }
-    }
+            client?: string | null;
+            secret?: string | null;
+        };
+    };
     features: {
-        museid: boolean
-        nhentai: boolean
-    }
-    [key: string]: any
+        museid: boolean;
+        nhentai: boolean;
+    };
+    [key: string]: any;
 }
 
 const CONFIGURATION: IAPIConfiguration = {

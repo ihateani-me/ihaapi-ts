@@ -4,23 +4,23 @@ import express from "express";
 type MinifierURLException = string | Function | RegExp | boolean | undefined;
 
 export interface IExpressMinifier {
-    override?: boolean
-    exception_url?: boolean | MinifierURLException[]
-    htmlMinifier?: MinifierOptions
+    override?: boolean;
+    exception_url?: boolean | MinifierURLException[];
+    htmlMinifier?: MinifierOptions;
 }
 
-export default function minifyHTML(opts: IExpressMinifier = {}) {
-    let default_opts = {
-		override: false,
-		exception_url: false,
-		htmlMinifier: {
-			removeComments: true,
-			collapseWhitespace: true,
-			collapseBooleanAttributes: true,
-			removeAttributeQuotes: true,
-			removeEmptyAttributes: true
-		}
-	};
+export default function minifyHTML(opts: IExpressMinifier = {}): express.RequestHandler {
+    const default_opts = {
+        override: false,
+        exception_url: false,
+        htmlMinifier: {
+            removeComments: true,
+            collapseWhitespace: true,
+            collapseBooleanAttributes: true,
+            removeAttributeQuotes: true,
+            removeEmptyAttributes: true,
+        },
+    };
 
     opts = Object.assign({}, default_opts, opts);
 
@@ -29,6 +29,7 @@ export default function minifyHTML(opts: IExpressMinifier = {}) {
     }
 
     function minifier(req: express.Request, res: express.Response, next: any) {
+        // eslint-disable-next-line no-var
         var skip = false;
 
         // @ts-ignore
@@ -47,9 +48,9 @@ export default function minifyHTML(opts: IExpressMinifier = {}) {
             }
 
             return !skip;
-        })
+        });
 
-        var sendMinified = function (callback?: Function) {
+        const sendMinified = function (callback?: Function) {
             if (typeof callback === "undefined") {
                 return function (err: any, html: string) {
                     if (err) {
@@ -64,7 +65,7 @@ export default function minifyHTML(opts: IExpressMinifier = {}) {
 
                     res.setHeader("X-Minified", 1);
                     res.send(html);
-                }
+                };
             } else {
                 return function (err: any, html?: string) {
                     try {
@@ -76,14 +77,14 @@ export default function minifyHTML(opts: IExpressMinifier = {}) {
                     } catch (err) {
                         callback(err, html);
                     }
-                }
+                };
             }
-        }
+        };
 
         // @ts-ignore
         res.renderMin = function (view: string, renderOpts: object | undefined, cb: Function | undefined) {
             this.render(view, renderOpts, sendMinified(cb));
-        }
+        };
 
         if (opts.override && !skip) {
             // @ts-ignore
@@ -92,10 +93,10 @@ export default function minifyHTML(opts: IExpressMinifier = {}) {
             res.render = function (view: any, renderOpts: any, cb: Function | undefined) {
                 // @ts-ignore
                 this.oldRender(view, renderOpts, sendMinified(cb));
-            }
+            };
         }
         return next();
-    };
+    }
 
-    return (minifier);
+    return minifier;
 }

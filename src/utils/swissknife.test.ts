@@ -1,4 +1,4 @@
-import * as SwissKnife from './swissknife';
+import * as SwissKnife from "./swissknife";
 
 // filter_empty()
 describe("Filter out empty data from Array", () => {
@@ -7,7 +7,7 @@ describe("Filter out empty data from Array", () => {
     });
     test("Undefined data and null", () => {
         expect(SwissKnife.filter_empty(null)).toEqual([]);
-    })
+    });
     test("One data passed.", () => {
         expect(SwissKnife.filter_empty(["one"])).toEqual(["one"]);
     });
@@ -29,10 +29,10 @@ describe("Check if Object have a certain key.", () => {
         expect(SwissKnife.hasKey({}, "id")).toBeFalsy();
     });
     test("Data passed. --> {data: 'test'} get `id`", () => {
-        expect(SwissKnife.hasKey({data: "test"}, "id")).toBeFalsy();
+        expect(SwissKnife.hasKey({ data: "test" }, "id")).toBeFalsy();
     });
     test("Data passed. --> {data: 'test', id: 123} get `id`", () => {
-        expect(SwissKnife.hasKey({data: "test", id: 123}, "id")).toBeTruthy();
+        expect(SwissKnife.hasKey({ data: "test", id: 123 }, "id")).toBeTruthy();
     });
 });
 
@@ -53,13 +53,13 @@ describe("Get value from Object by a certain key.", () => {
         expect(SwissKnife.getValueFromKey({}, "id", 123456)).toStrictEqual(123456);
     });
     test("Data passed. --> {data: 'test'} get `id`", () => {
-        expect(SwissKnife.getValueFromKey({data: "test"}, "id")).toStrictEqual(null);
+        expect(SwissKnife.getValueFromKey({ data: "test" }, "id")).toStrictEqual(null);
     });
     test("Data passed. --> {data: 'test'} get `id` with fallback", () => {
-        expect(SwissKnife.getValueFromKey({data: "test"}, "id", 123456)).toStrictEqual(123456);
+        expect(SwissKnife.getValueFromKey({ data: "test" }, "id", 123456)).toStrictEqual(123456);
     });
     test("Data passed. --> {data: 'test', id: 123} get `id`", () => {
-        expect(SwissKnife.getValueFromKey({data: "test", id: 123}, "id")).toStrictEqual(123);
+        expect(SwissKnife.getValueFromKey({ data: "test", id: 123 }, "id")).toStrictEqual(123);
     });
 });
 
@@ -67,7 +67,7 @@ describe("Get value from Object by a certain key.", () => {
 describe("Is data passed undefined or nulltype", () => {
     it("Passed normal data type (Should be `false`) ", () => {
         expect(SwissKnife.is_none(["data", "y"])).toStrictEqual(false);
-        expect(SwissKnife.is_none({data: "y"})).toStrictEqual(false);
+        expect(SwissKnife.is_none({ data: "y" })).toStrictEqual(false);
         expect(SwissKnife.is_none(true)).toStrictEqual(false);
         expect(SwissKnife.is_none(false)).toStrictEqual(false);
         expect(SwissKnife.is_none("test")).toStrictEqual(false);
@@ -77,8 +77,7 @@ describe("Is data passed undefined or nulltype", () => {
         expect(SwissKnife.is_none(undefined)).toStrictEqual(true);
         expect(SwissKnife.is_none(null)).toStrictEqual(true);
     });
-})
-
+});
 
 // Map boolean.
 describe("Map a string to a boolean", () => {
@@ -113,60 +112,66 @@ describe("Map a string to a boolean", () => {
 // Object[] sort
 describe("Sort an Array of Object by using a key on Object", () => {
     it("Passed undefined data.", () => {
-        expect(SwissKnife.sortObjectsByKey(undefined, "id")).toEqual([]);
+        expect(SwissKnife.sortObjectsByKey(undefined, "id")).toEqual(undefined);
     });
     it("Passed empty data.", () => {
         expect(SwissKnife.sortObjectsByKey([], "id")).toEqual([]);
     });
     it("Passed non-array.", () => {
-        expect(SwissKnife.sortObjectsByKey({id: "55555"}, "id")).toEqual({id: "55555"});
+        expect(SwissKnife.sortObjectsByKey({ id: "55555" }, "id")).toEqual({ id: "55555" });
     });
     it("Passed Array of Object, but the length is only one.", () => {
-        expect(SwissKnife.sortObjectsByKey([{id: "555555"}], "data")).toEqual([{id: "555555"}]);
+        expect(SwissKnife.sortObjectsByKey([{ id: "555555" }], "data")).toEqual([{ id: "555555" }]);
     });
     it("Passed Array of Object, but key is missing from Object.", () => {
-        expect(SwissKnife.sortObjectsByKey([{id: "555555"}, {"id": "44444"}], "data")).toEqual([{id: "555555"}, {"id": "44444"}]);
+        expect(SwissKnife.sortObjectsByKey([{ id: "555555" }, { id: "44444" }], "data")).toEqual([
+            { id: "555555" },
+            { id: "44444" },
+        ]);
     });
     it("Passed Array of Object, and key exist on Object.", () => {
-        expect(SwissKnife.sortObjectsByKey([{id: "555555"}, {"id": "44444"}], "id")).toEqual([{id: "44444"}, {"id": "555555"}]);
+        expect(SwissKnife.sortObjectsByKey([{ id: "555555" }, { id: "44444" }], "id")).toEqual([
+            { id: "44444" },
+            { id: "555555" },
+        ]);
     });
     it("Passed a proper stuff, but some of them missing a key needed.", () => {
-        let base = [
+        const base = [
             {
-                id: "55555"
+                id: "55555",
             },
             {
-                name: "string"
+                name: "string",
             },
             {
-                id: "44444"
+                id: "44444",
             },
             {
-                name: "yes"
+                name: "yes",
             },
             {
-                id: "45000"
-            }
-        ]
-        let expected = [
+                id: "45000",
+            },
+        ];
+        const expected = [
             {
-                "id": "44444"
+                id: "44444",
             },
             {
-                "id": "45000"
+                id: "45000",
             },
             {
-                "id": "55555"
+                id: "55555",
             },
             {
-                "name": "string"
+                name: "string",
             },
             {
-                "name": "yes"
-            }
-        ]
+                name: "yes",
+            },
+        ];
         expect(SwissKnife.sortObjectsByKey(base, "id")).toEqual(expected);
-    })
+    });
 });
 
 // capitalizeIt()
@@ -182,47 +187,66 @@ describe("Capitalize first letter", () => {
 describe("Remove a Key/Value Pair from Array of Object", () => {
     it("Passed a null data", () => {
         expect(SwissKnife.removeKeyFromObjects(null, "test")).toStrictEqual(null);
-    })
+    });
     it("Passed non-array object data", () => {
         expect(SwissKnife.removeKeyFromObjects("this is a string", "test")).toStrictEqual("this is a string");
-    })
+    });
     it("Passed properly, but missing key.", () => {
-        expect(SwissKnife.removeKeyFromObjects([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}], "test")).toStrictEqual([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}]);
-    })
+        expect(
+            SwissKnife.removeKeyFromObjects(
+                [
+                    { id: "1", name: "nao" },
+                    { id: "2", name: "nope" },
+                ],
+                "test"
+            )
+        ).toStrictEqual([
+            { id: "1", name: "nao" },
+            { id: "2", name: "nope" },
+        ]);
+    });
     it("Passed properly, key exist.", () => {
-        expect(SwissKnife.removeKeyFromObjects([{"id": "1", "name": "nao"}, {"id": "2", "name": "nope"}], "id")).toStrictEqual([{"name": "nao"}, {"name": "nope"}]);
-    })
+        expect(
+            SwissKnife.removeKeyFromObjects(
+                [
+                    { id: "1", name: "nao" },
+                    { id: "2", name: "nope" },
+                ],
+                "id"
+            )
+        ).toStrictEqual([{ name: "nao" }, { name: "nope" }]);
+    });
 });
 
 describe("Convert to Number with Fallback", () => {
     it("Passed a non-number string with no fallback.", () => {
         expect(SwissKnife.fallbackNaN(parseFloat, "test")).toStrictEqual("test");
-    })
+    });
     it("Passed a non-string number with a fallback.", () => {
         expect(SwissKnife.fallbackNaN(parseFloat, "test", 57.5)).toStrictEqual(57.5);
-    })
+    });
     it("Passed a number string with no fallback", () => {
         expect(SwissKnife.fallbackNaN(parseFloat, "60")).toStrictEqual(60);
-    })
+    });
     it("Passed a number string with with a fallback", () => {
         expect(SwissKnife.fallbackNaN(parseFloat, "60", 57.5)).toStrictEqual(60);
-    })
-})
+    });
+});
 
 describe("Generate random string and RNG", () => {
     it("Test RNG feature, must generate number", () => {
         expect(SwissKnife.rng(10)).toBeLessThanOrEqual(10);
-    })
+    });
     it("Test Generation feature, expect proper length", () => {
         expect(SwissKnife.generateCustomString(10)).toHaveLength(10);
-    })
+    });
     it("Test generation feature with number", () => {
         expect(SwissKnife.generateCustomString(10, true)).toHaveLength(10);
-    })
+    });
     it("Test generation feature with uppercase letters", () => {
         expect(SwissKnife.generateCustomString(10, false, true)).toHaveLength(10);
-    })
+    });
     it("Test generation feature with all options", () => {
         expect(SwissKnife.generateCustomString(10, true, true)).toHaveLength(10);
-    })
-})
+    });
+});

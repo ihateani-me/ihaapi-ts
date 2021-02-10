@@ -5,7 +5,7 @@
  * @param { any } key - things that want to be checked.
  * @returns { boolean } `true` or `false`
  */
-export function is_none(key: any): boolean {
+export function is_none<T>(key: T): boolean {
     if (typeof key === "undefined" || key === null) {
         return true;
     }
@@ -18,15 +18,15 @@ export function is_none(key: any): boolean {
  * @returns { any[] } Data that has been filtered.
  */
 export function filter_empty(data: null | any[]): any[] {
-    let filtered: any[] = [];
+    const filtered: any[] = [];
     if (typeof data === "undefined" || data === null) {
         return [];
     }
-    data.forEach((val => {
+    data.forEach((val) => {
         if (val) {
             filtered.push(val);
-        };
-    }));
+        }
+    });
     return filtered;
 }
 
@@ -36,7 +36,7 @@ export function filter_empty(data: null | any[]): any[] {
  * @param { string } key_name - key that will be checked.
  * @returns { boolean } `true` or `false`
  */
-export function hasKey(object_data: any, key_name: string): boolean {
+export function hasKey<T>(object_data: T, key_name: string): boolean {
     if (is_none(object_data)) {
         return false;
     }
@@ -53,16 +53,17 @@ export function hasKey(object_data: any, key_name: string): boolean {
  * @param { string } defaults - fallback
  * @returns { string } value of the inputted key.
  */
-export function getValueFromKey(object_data: any, key_name: string, defaults: any = null): any {
+export function getValueFromKey<T>(object_data: T, key_name: string, defaults: any = null): any {
     if (is_none(object_data)) {
         return defaults;
     }
     if (!hasKey(object_data, key_name)) {
         return defaults;
     }
-    let all_keys = Object.keys(object_data);
-    let index = all_keys.findIndex(key => key === key_name);
-    return object_data[all_keys[index]];
+    const all_keys = Object.keys(object_data);
+    const index = all_keys.findIndex((key) => key === key_name);
+    // @ts-ignore
+    return object_data[all_keys[index]] || undefined;
 }
 
 /**
@@ -70,14 +71,18 @@ export function getValueFromKey(object_data: any, key_name: string, defaults: an
  * @param { any } input_data - data to map
  * @returns { boolean } mapped boolean
  */
-export function map_bool(input_data: any): boolean {
+export function map_bool<T extends any>(input_data: T): boolean {
     if (is_none(input_data)) {
         return false;
     }
     let fstat = false;
     try {
+        // @ts-ignore
         input_data = input_data.toLowerCase();
-    } catch (error) { input_data = input_data.toString().toLowerCase(); };
+    } catch (error) {
+        // @ts-ignore
+        input_data = input_data.toString().toLowerCase();
+    }
     switch (input_data) {
         case "y":
             fstat = true;
@@ -100,9 +105,9 @@ export function map_bool(input_data: any): boolean {
     return fstat;
 }
 
-export function sortObjectsByKey(results: any, key_base: string) {
+export function sortObjectsByKey<T>(results: T, key_base: string): T {
     if (is_none(results)) {
-        return [];
+        return results;
     }
     if (!Array.isArray(results)) {
         return results;
@@ -113,25 +118,26 @@ export function sortObjectsByKey(results: any, key_base: string) {
     if (!hasKey(results[0], key_base)) {
         return results;
     }
-    var data_sort: any[] = [];
-    var cant_be_sorted: any[] = [];
-    let results_sorted: any[] = [];
+    const data_sort: any[] = [];
+    const cant_be_sorted: any[] = [];
+    const results_sorted: any[] = [];
     results.forEach((res, index) => {
         if (!hasKey(res, key_base)) {
-            cant_be_sorted.push(res);    
+            cant_be_sorted.push(res);
         } else {
-            data_sort.push([index.toString(), res[key_base]]);    
+            data_sort.push([index.toString(), res[key_base]]);
         }
     });
     data_sort.sort((a, b) => {
         return a[1] - b[1];
     });
     data_sort.forEach((value_map) => {
-        let [index_res, _] = value_map;
+        let index_res = value_map[0];
         index_res = parseInt(index_res);
         results_sorted.push(results[index_res]);
     });
-    let finalized_results = results_sorted.concat(cant_be_sorted);
+    // @ts-ignore
+    const finalized_results: T = results_sorted.concat(cant_be_sorted);
     return finalized_results;
 }
 
@@ -141,8 +147,10 @@ export function sortObjectsByKey(results: any, key_base: string) {
  * @returns { string } capitalized string
  */
 export function capitalizeIt(text: null | string): string {
-    // @ts-ignore
-    if (typeof text === "undefined" || text === null) {return text};
+    if (typeof text === "undefined" || text === null) {
+        // @ts-ignore
+        return text;
+    }
     return text.slice(0, 1).toUpperCase() + text.slice(1);
 }
 
@@ -151,7 +159,7 @@ export function capitalizeIt(text: null | string): string {
  * @param array_of_object - array of object to remove it's key.
  * @param key_base - key to remove.
  */
-export function removeKeyFromObjects(array_of_object: any, key_base: string): any {
+export function removeKeyFromObjects<T>(array_of_object: T, key_base: string): any {
     if (is_none(array_of_object)) {
         return array_of_object;
     }
@@ -161,7 +169,7 @@ export function removeKeyFromObjects(array_of_object: any, key_base: string): an
     if (!hasKey(array_of_object[0], key_base)) {
         return array_of_object;
     }
-    let fixed_array_of_object = array_of_object.map((obj) => {
+    const fixed_array_of_object = array_of_object.map((obj) => {
         delete obj[key_base];
         return obj;
     });
@@ -175,7 +183,7 @@ export function removeKeyFromObjects(array_of_object: any, key_base: string): an
  * @param to_convert number or string to convert
  * @param fallback fallback number
  */
-export function fallbackNaN(cb: Function, to_convert: any, fallback?: any): any {
+export function fallbackNaN<T, S>(cb: Function, to_convert: T, fallback?: S): T | S | undefined {
     if (isNaN(cb(to_convert))) {
         return is_none(fallback) ? to_convert : fallback;
     } else {

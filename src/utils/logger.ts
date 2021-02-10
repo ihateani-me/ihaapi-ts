@@ -1,38 +1,38 @@
 import _ from "lodash";
-import winston, {createLogger} from "winston";
+import winston, { createLogger } from "winston";
 import { logger as WinstonLog, errorLogger as WinstonErrorLog } from "express-winston";
 
 const reqTypeColor = {
-    "GET": "\u001b[32m",
-    "POST": "\u001b[36m",
-    "PUT": "\u001b[35m",
-    "PATCH": "\u001b[33m",
-    "DELETE": "\u001b[31m",
-    "HEAD": "\u001b[37m"
-}
+    GET: "\u001b[32m",
+    POST: "\u001b[36m",
+    PUT: "\u001b[35m",
+    PATCH: "\u001b[33m",
+    DELETE: "\u001b[31m",
+    HEAD: "\u001b[37m",
+};
 
 interface WinstonLogInfo extends winston.Logform.TransformableInfo {
-    timestamp?: string
+    timestamp?: string;
     /*
-        Use square format for class and function name 
+        Use square format for class and function name
         Rather than functionName() it will be [functionName]
         Rather than ClassName.functionName() it will be [ClassName.functionName]
     */
     squared?: boolean;
     // Class name
-    cls?: string
+    cls?: string;
     // Function name
-    fn?: string
+    fn?: string;
 }
 
 export const logger = createLogger({
     level: "info",
     format: winston.format.combine(
-        winston.format.colorize({level: true, message: false}),
+        winston.format.colorize({ level: true, message: false }),
         winston.format.timestamp(),
         winston.format.printf((info: WinstonLogInfo) => {
             let initformat = `[${info["timestamp"]}][${info.level}]`;
-            let squareMode = _.get(info, "squared", false);
+            const squareMode = _.get(info, "squared", false);
             if (_.has(info, "fn") && _.has(info, "cls")) {
                 if (squareMode) {
                     initformat += "[";
@@ -44,7 +44,7 @@ export const logger = createLogger({
                     initformat += "]";
                 } else {
                     initformat += "()";
-                }                
+                }
             } else if (!_.has(info, "fn") && _.has(info, "cls")) {
                 if (squareMode) {
                     initformat += "[";
@@ -73,25 +73,21 @@ export const logger = createLogger({
             return initformat + `: ${info.message}`;
         })
     ),
-    transports: [
-        new winston.transports.Console()
-    ]
+    transports: [new winston.transports.Console()],
 });
 
 export const expressLogger = WinstonLog({
-    transports: [
-        new winston.transports.Console()
-    ],
+    transports: [new winston.transports.Console()],
     format: winston.format.combine(
         winston.format.colorize(),
         winston.format.timestamp(),
         winston.format.ms(),
         winston.format.printf((info) => {
-            let method = info.meta.req.method;
-            let methodCol = _.get(reqTypeColor, method, "");
-            let statCode = info.meta.res.statusCode;
+            const method = info.meta.req.method;
+            const methodCol = _.get(reqTypeColor, method, "");
+            const statCode = info.meta.res.statusCode;
             // Base
-            let fmtRes = `[${info["timestamp"]}][${info.level}]: \u001b[32mHTTP\u001b[39m 1.1`
+            let fmtRes = `[${info["timestamp"]}][${info.level}]: \u001b[32mHTTP\u001b[39m 1.1`;
             // Method
             fmtRes += ` ${methodCol}${method}\u001b[39m `;
             // PATH
@@ -106,26 +102,25 @@ export const expressLogger = WinstonLog({
                 statCol = reqTypeColor["DELETE"];
             }
             fmtRes += `  ${statCol}${statCode}\u001b[39m`;
-            fmtRes += ` (${reqTypeColor["PATCH"]}${info["meta"]["responseTime"]}\u001b[39mms)`
+            fmtRes += ` (${reqTypeColor["PATCH"]}${info["meta"]["responseTime"]}\u001b[39mms)`;
             return fmtRes;
         })
-    )
-})
+    ),
+});
 
 export const expressErrorLogger = WinstonErrorLog({
-    transports: [
-        new winston.transports.Console()
-    ],
+    transports: [new winston.transports.Console()],
     format: winston.format.combine(
         winston.format.colorize(),
         winston.format.timestamp(),
         winston.format.ms(),
         winston.format.printf((info) => {
-            let method = info.meta.req.method;
-            let methodCol = _.get(reqTypeColor, method, "");
-            let statCode = 500;
+            const method = info.meta.req.method;
+            const methodCol = _.get(reqTypeColor, method, "");
+            const statCode = 500;
             // Base
-            let fmtRes = `[${info["timestamp"]}][${info.level}]: \u001b[32mHTTP\u001b[39m ${info["meta"]["req"]["httpVersion"]}`
+            // eslint-disable-next-line max-len
+            let fmtRes = `[${info["timestamp"]}][${info.level}]: \u001b[32mHTTP\u001b[39m ${info["meta"]["req"]["httpVersion"]}`;
             // Method
             fmtRes += ` ${methodCol}${method}\u001b[39m `;
             // PATH
@@ -143,4 +138,4 @@ export const expressErrorLogger = WinstonErrorLog({
             return fmtRes + "\n" + info.meta.message;
         })
     ),
-})
+});
