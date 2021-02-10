@@ -1,64 +1,62 @@
 module.exports = {
     root: true,
     parser: "@typescript-eslint/parser",
-    plugins: [
-        "@typescript-eslint",
-    ],
+    plugins: ["@typescript-eslint"],
     extends: [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
         "prettier",
-        "prettier/@typescript-eslint"
+        "prettier/@typescript-eslint",
     ],
-    "env": {
-        "node": true
+    env: {
+        node: true,
     },
-    "rules": {
-        "quotes": [
+    rules: {
+        quotes: [
             "error",
             "double",
             {
-                "allowTemplateLiterals": true
-            }
+                allowTemplateLiterals: true,
+            },
         ],
-        "semi": [
+        semi: [
             "error",
             "always",
             {
-                "omitLastInOneLineBlock": true
-            }
+                omitLastInOneLineBlock: true,
+            },
         ],
         "no-trailing-spaces": "error",
         "max-len": [
             "error",
             {
-                "code": 110,
-                "tabWidth": 4,
-                "ignoreComments": true,
-                "ignoreUrls": true
-            }
+                code: 110,
+                tabWidth: 4,
+                ignoreComments: true,
+                ignoreUrls: true,
+            },
         ],
         "comma-dangle": [
             "error",
             {
-                "arrays": "only-multiline",
-                "objects": "only-multiline",
-                "functions": "never",
-                "imports": "only-multiline",
-                "exports": "never",
-            }
+                arrays: "only-multiline",
+                objects: "only-multiline",
+                functions: "never",
+                imports: "only-multiline",
+                exports: "never",
+            },
         ],
-        "eol-last": [
-            "warning",
-            "always"
-        ]
+        "eol-last": ["warn", "always"],
+        "@typescript-eslint/ban-types": "off",
+        "@typescript-eslint/ban-ts-comment": "off",
+        "@typescript-eslint/no-explicit-any": "off",
     },
-    "overrides": [
+    overrides: [
         {
-            "files": ["**/*.js", "**/*.jsx"],
-            "rules": {
+            files: ["**/*.js", "**/*.jsx"],
+            rules: {
                 "@typescript-eslint/no-var-requires": "off",
-            }
-        }
+            },
+        },
     ],
 };
