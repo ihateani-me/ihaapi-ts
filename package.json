@@ -16,6 +16,7 @@
     "prod:start": "node build/main.js",
     "test": "jest",
     "testall": "npm-run-all test swaggerdoc swaggercheck",
+    "lint": "eslint .",
     "tsync": "typesync && npm install"
   },
   "engines": {
