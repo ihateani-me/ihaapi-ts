@@ -1,0 +1,258 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ihateanime API</title>
+    <meta name="description" content="An API focused on VTuber.">
+    <meta name="theme-color" content="#383838">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" href="/assets/favicon.ico">
+
+    <style>
+        body {
+            background-color: #383838;
+            color: #dddddd;
+            text-shadow: 0 0 2px #fff;
+            animation: glow1 1s ease-in-out infinite alternate;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding: 0.75rem;
+        }
+
+        .nicerbold {
+            font-weight: bolder;
+            color: white;
+            animation: glow2 1.5s ease-in-out infinite alternate;
+        }
+
+        a {
+            color: #efb973;
+            text-decoration: none;
+            animation: glowA 1s ease-in-out infinite alternate;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        a:active {
+            color: #efb973;
+        }
+
+        @keyframes glow1 {
+            from {
+                text-shadow: 0 0 2px #fff;
+            }
+
+            to {
+                text-shadow: 0 0 3px #ececec;
+            }
+        }
+
+        @keyframes glow2 {
+            from {
+                text-shadow: 0 0 4px #fff;
+            }
+
+            to {
+                text-shadow: 0 0 5px #ececec;
+            }
+        }
+
+        @keyframes glowA {
+            from {
+                text-shadow: 0 0 4px #ab8a60;
+            }
+
+            to {
+                text-shadow: 0 0 5px #ab8a60;
+            }
+        }
+
+        .scanlines {
+            position: relative;
+            overflow: hidden;
+            overflow-y: auto;
+        }
+
+        .scanlines:before,
+        .scanlines:after {
+            display: block;
+            pointer-events: none;
+            content: '';
+            position: absolute;
+        }
+
+        .scanlines:after {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 2147483648;
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(50%, transparent), color-stop(51%, rgba(0, 0, 0, 0.3)));
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 51%);
+            background-size: 100% 4px;
+            -webkit-animation: scanlines 1s steps(60) infinite;
+            animation: scanlines 1s steps(60) infinite;
+        }
+
+        /* ANIMATE UNIQUE SCANLINE */
+        @-webkit-keyframes scanline {
+            0% {
+                -webkit-transform: translate3d(0, 200000%, 0);
+                transform: translate3d(0, 200000%, 0);
+            }
+        }
+
+        @keyframes scanline {
+            0% {
+                -webkit-transform: translate3d(0, 200000%, 0);
+                transform: translate3d(0, 200000%, 0);
+            }
+        }
+
+        @-webkit-keyframes scanlines {
+            0% {
+                background-position: 0 50%;
+            }
+        }
+
+        @keyframes scanlines {
+            0% {
+                background-position: 0 50%;
+            }
+        }
+    </style>
+</head>
+
+<body onload="scanlines_init()" class="scanlines">
+    <main class="container">
+        <code>
+            Welcome to <span class="nicerbold">ihateani.me</span> API
+            <br>
+            Created by <span class="nicerbold">N4O</span><br>
+            Contact me at Discord: <span class="nicerbold">N4O#8868</span><br>
+            <br>
+            Current time: <span class="nicerbold" id="current_dt"><%= MOMENT_TEMPLATE_TIME %></span><br>
+            Detailed API Documentation<br>
+            --&gt; <a href="/api-docs">v1 API Docs</a> (ReDoc UI)<br>
+            --&gt; <a href="/changelog">Website Changelog</a><br>
+            --&gt; <a href="https://vtuber.ihateani.me">VTuber Live/Schedules</a>
+            <p>
+                This API focus was for BiliBili but was improved to support Youtube channels as well.<br>
+                Starting from <span class="nicerbold">version 0.8.5</span> this API support all Nijisanji VTubers that
+                are on Youtube.<br>
+                Including Nijisanji EN/ID/KR.<br><br>
+                <span class="nicerbold">Please note</span>: Not all of the deployed code in this web are available in
+                the source code.
+            </p>
+            <span class="nicerbold">Endpoint:</span><br>
+            <span class="nicerbold">&gt;&gt; v1 API &lt;&lt;</span><br>
+            - <a href="/v1/games">`/v1/games`</a> Endpoint for Games API (Steam, SteamDB, HowLongToBeat)<br>
+            - <a href="/v1/u2">`/v1/u2`</a> U2 Private Tracker API for latest torrents and offers<br>
+            <br>            
+            <span class="nicerbold">&gt;&gt; v2 API &lt;&lt;</span><br>
+            - <a href="/v2/graphql">`/v2/graphql`</a> Endpoint for VTubers API, nHentai API, and Sauce API<br>
+            - <a href="/v2/gql-docs">`/v2/gql-docs`</a> v2 API Documentation<br>
+            <br>
+            - <a href="https://vtuber.ihateani.me">`vtuber.ihateani.me`</a> VTuber API "Frontend" Implementation (Channels, Lives, Schedules)<br>
+            <br>
+            <span class="nicerbold">Dataset Used:</span><br>
+            - vtbs.moe<br>
+            - <a href="https://github.com/noaione/vthell/tree/master/dataset">`vthell`</a> by N4O<br>
+            <br>
+            <span class="nicerbold">Refresh/Cache Rate:</span><br>
+            - Channels: Every 6 hours<br>
+            - Upcoming (Bili): Every 4 minutes<br>
+            - Live (Bili): Every 2 minutes<br>
+            - Upcoming (YT): Every 2 minutes<br>
+            - Live (YT/Twitch/Twitcasting): Every 1 minute<br>
+            <br>
+            <span class="nicerbold">Backend:</span><br>
+            - Framework: <span class="nicerbold">Express.js v<%= EXPRESS_JS_VERSION %></span><br>
+            - Database: <span class="nicerbold">MongoDB <%= MONGO_DBTYPE %> v<%= MONGO_DBVERSION %></span>
+            <br><br>
+            <span class="nicerbold">&lt;/&gt;</span> Source Code: <a
+                href="https://github.com/ihateani-me/ihaapi-ts">GitHub</a> <span class="nicerbold">&lt;/&gt;</span>
+            <br>
+            <span class="nicerbold">&lt;/&gt;</span> Deployed API <span class="nicerbold">v<%= API_VERSION %></span> <span
+                class="nicerbold">&lt;/&gt;</span>
+
+            <br>
+            <br>
+            <a style="cursor: pointer;" onclick="toggleScanlines()"><span class="nicerbold">&lt;/&gt;</span> Toggle
+                Scanlines FX <span class="nicerbold">&lt;/&gt;</span></a>
+        </code>
+    </main>
+    <script>
+        function scanlines_init() {
+            var scansData = localStorage.getItem("enableScan");
+            if (scansData == null) {
+                localStorage.setItem("enableScan", 1);
+            };
+            var scansData = localStorage.getItem("enableScan");
+            if (scansData == 0) {
+                console.log("[ScanlinesFX] Removing...");
+                document.body.classList.remove("scanlines");
+            } else {
+                if (!document.body.classList.contains("scanlines")) {
+                    console.log("[ScanlinesFX] Enabling...");
+                    document.body.classList.add("scanlines");
+                };
+            };
+        }
+
+        function getLocale() {
+            return (navigator.language || navigator.languages[0]);
+        }
+        var locale = getLocale();
+
+        function getJPTime() {
+            var local_time = new Date();
+            return local_time.toLocaleString(
+                locale, {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                    hour: "numeric",
+                    hour12: false,
+                    minute: "numeric",
+                    second: "numeric",
+                    timeZone: "Asia/Tokyo",
+                    weekday: "short"
+                }
+            ).replace(/, /g, " ") + " JST";
+        }
+
+        const clock = document.getElementById("current_dt");
+        clock.textContent = getJPTime();
+        setInterval(function () {
+                clock.textContent = getJPTime();
+            },
+            1000
+        );
+
+        function toggleScanlines() {
+            if (!document.body.classList.contains("scanlines")) {
+                document.body.classList.add("scanlines");
+                console.log("[ScanlinesFX] Enabling...");
+                localStorage.setItem("enableScan", 1);
+            } else {
+                document.body.classList.remove("scanlines");
+                console.log("[ScanlinesFX] Removing...");
+                localStorage.setItem("enableScan", 0);
+            }
+        }
+    </script>
+
+
+</body>
+
+</html>

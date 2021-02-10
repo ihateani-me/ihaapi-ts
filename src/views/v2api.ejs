@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/assets/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#3DCE70" />
+    <meta
+      name="description"
+      content="A new API endpoint made with GraphQL"
+    />
+    <link rel="apple-touch-icon" href="/assets/favicon.png" />
+    <title>ihateani.me API v2</title>
+    <style>
+        html {
+            background: #0D0D0D;
+            font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+                monospace;
+            color: #eee;
+            font-size: 1em;
+            line-height: 1;
+            text-shadow: 0.06rem 0 0.06rem #ea36af, -0.125rem 0 0.06rem #75fa69;
+            letter-spacing: 0.125em;
+            animation-duration: 0.01s;
+            animation-name: textflicker;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+        h1 { font-size: 5em; }
+
+        @keyframes textflicker {
+            from {
+                text-shadow: 1px 0 0 #ea36af, -2px 0 0 #75fa69;
+            }
+            to {
+                text-shadow: 2px 0.5px 2px #ea36af, -1px -0.5px 2px #75fa69;
+            }
+        }
+        body {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        code {
+            font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+                monospace;
+        }
+
+        #root {
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(10px + 2vmin);
+            color: white;
+        }
+
+        .btn-row {
+            filter: blur(0.5px);
+            flex-direction: row;
+        }
+
+        .pulse:hover,
+        .pulse:focus {
+            -webkit-animation: pulse 1s;
+                    animation: pulse 1s;
+            box-shadow: 0 0 0 2em rgba(255, 255, 255, 0);
+        }
+
+        @-webkit-keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 var(--hover);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 var(--hover);
+            }
+        }
+
+        .pulse {
+            --color: #3DCE70;
+            --hover: #34B2A3;
+        }
+
+        button {
+            color: var(--color);
+            -webkit-transition: 0.25s;
+            transition: 0.25s;
+        }
+
+        button:hover, button:focus {
+            border-color: var(--hover);
+            color: #fff;
+        }
+
+        button {
+            background: none;
+            border: 2px solid;
+            font: inherit;
+            line-height: 1;
+            margin: 0.5em;
+            padding: 1em 2em;
+        }
+
+        .title {
+            margin: 0.7em;
+        }
+
+        .route {
+            background: #212121;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .post-route {
+            background: #3DCE70;
+            padding: 1px 4px;
+            color: #000;
+            margin-right: 10px;
+        }
+
+    </style>
+  </head>
+  <script src="https://code.iconify.design/1/1.0.7/iconify.min.js"></script>
+  <body>
+    <div id="root">
+        <img src="/assets/favicon.png" width="250" height="250">
+        <h3 class="title" style="margin: 0.75em;">ihateani.me API v2</h3>
+        <codeblock class="route">
+            <span class="post-route">POST</span>/v2/graphql
+        </codeblock>
+        <div class="btn-row">
+            <button id="v2api-gql" class="pulse">
+                <span class="iconify" data-icon="logos-graphql" data-inline="false"></span><br>Playground
+            </button>
+            <button id="api-gqldocs" class="pulse">
+                <span class="iconify" data-icon="clarity:book-solid" data-inline="false"></span><br>See Docs
+            </button>
+        </div>
+    </div>
+    <script type="text/javascript">
+        document.getElementById("v2api-gql").onclick = function () {
+            location.href = "/v2/graphql";
+        }
+        document.getElementById("api-gqldocs").onclick = function () {
+            location.href = "/v2/gql-docs";
+        }
+    </script>
+  </body>
+</html>
