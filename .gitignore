@@ -104,7 +104,6 @@ dist
 .tern-port
 
 .vscode
-src/config.js
 build/
 
 # Only add Typescript inside the src/ and database/ folder
@@ -112,3 +111,5 @@ build/
 *.ts
 !src/**/*.ts
 !**/*.d.ts
+
+src/config.ts
