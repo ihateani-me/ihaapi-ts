@@ -103,7 +103,6 @@ dist
 # TernJS port file
 .tern-port
 
-.vscode
 build/
 
 # Only add Typescript inside the src/ and database/ folder
