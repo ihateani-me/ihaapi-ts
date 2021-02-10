@@ -31,7 +31,7 @@ jobs:
     - name: Run Jest Test
       run: npm test
     - name: Build Swagger/OpenAPI Specification
-      run: npx swagger-jsdoc -o ./swagger.yml -d ./utils/swaggerDef.js ./routes/*.ts
+      run: npx swagger-jsdoc -o ./swagger.yml -d ./src/utils/swaggerDef.js ./src/routes/*.ts
     - name: Validate Swagger/OpenAPI Specification
       uses: mbowman100/swagger-validator-action@1.5
       with:
