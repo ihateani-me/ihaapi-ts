@@ -14,3 +14,4 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 fs.writeFileSync(path.join(__dirname, "..", "build", "swagger.yml"), swaggerSpec);
+console.info("Swagger Schema built!");

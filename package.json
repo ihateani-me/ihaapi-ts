@@ -8,12 +8,14 @@
     "compile": "tsc",
     "copy-assets": "node tools/copyAssets",
     "swaggerdoc": "node tools/buildSwagger",
+    "swaggercheck": "node tools/validateSwagger",
     "build": "npm-run-all clean swaggerdoc compile copy-assets",
     "dev": "npm-run-all swaggerdoc dev:start",
     "dev:start": "nodemon",
     "prod": "npm-run-all build prod:start",
     "prod:start": "node build/main.js",
     "test": "jest",
+    "testall": "npm-run-all test swaggerdoc swaggercheck",
     "tsync": "typesync && npm install"
   },
   "engines": {
@@ -42,6 +44,7 @@
   },
   "homepage": "https://github.com/ihateani-me/ihaapi-ts#readme",
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.0.2",
     "@types/axios": "^0.14.0",
     "@types/compression": "^1.7.0",
     "@types/consolidate": "^0.14.0",
