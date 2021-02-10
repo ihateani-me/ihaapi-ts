@@ -37,52 +37,52 @@ interface IAPIConfiguration {
 const CONFIGURATION: IAPIConfiguration = {
     /**
      * MongoDB Connection URL
-     * 
+     *
      * This is required!
      * Replica_set can be set to null, it's used for subscription method in GraphQL API
      * replica_set must be a string
      */
-    "mongodb": {
-        "uri": "mongodb://127.0.0.1:27017",
-        "dbname": "vtapi",
-        "replica_set": null,
+    mongodb: {
+        uri: "mongodb://127.0.0.1:27017",
+        dbname: "vtapi",
+        replica_set: null,
     },
     /**
      * Redis Cache Server Connection
      * Password can be set to null
      */
-    "redis": {
-        "host": "127.0.0.1",
-        "port": 6379,
-        "password": null,
+    redis: {
+        host: "127.0.0.1",
+        port: 6379,
+        password: null,
     },
     /**
      * This is a secure password that will be used to authenticate on some
      * API feature, like U2.
      */
-    "secure_password": "PLEASE_CHANGE_THIS",
+    secure_password: "PLEASE_CHANGE_THIS",
     /**
      * Steam Developer API Key
      * Can be leave as null, leaving it at null will disable some Steam API feature
-     * 
+     *
      * If not provided, this will be disabled:
      * - User search (/v1/games/steam/user)
      */
-    "steam": {
-        "api_key": null,
+    steam: {
+        api_key: null,
     },
     /**
      * U2 Private Tracker
      * -----------------------
      * This will allow to access U2.DMHY.ORG RSS and Offers data
      * Can be disabled by setting `passkey` or `cookies` to null
-     * 
+     *
      * Disabling passkey will disable RSS feature
      * Disabling cookies will disable Offers feature
      */
-    "u2": {
-        "passkey": null,
-        "cookies": null,
+    u2: {
+        passkey: null,
+        cookies: null,
     },
     /**
      * SauceNAO backend
@@ -90,44 +90,44 @@ const CONFIGURATION: IAPIConfiguration = {
      * Disabling this will disable the SauceNAO backend
      * Set to null to disable
      */
-    "saucenao": {
+    saucenao: {
         "api_key": null,
     },
     /**
      * VTuber API Helper
      * --------------------
      * This is used for modifying VTuber database from API
-     * 
+     *
      * `youtube_key` or Youtube Data API v3 Key is needed to add data from Youtube
      * While `twitch` needed to add data from Twitch
-     * 
+     *
      * Setting to `null` will disable that feature
      */
-    "vtapi": {
-        "youtube_key": null,
-        "twitch": {
-            "client": null,
-            "secret": null,
+    vtapi: {
+        youtube_key: null,
+        twitch: {
+            client: null,
+            secret: null,
         }
     },
     /**
      * This is extra feature that the API can have
      */
-    "features": {
+    features: {
         /**
          * This is Muse Indonesia YouTube channel tracker
          * I recommend disabling this since it was meant for private usage
-         * 
+         *
          * Default: disabled
          */
-        "museid": false,
+        museid: false,
         /**
          * This is nHentai proxy feature
          * It's up-to-you to enable it or not
-         * 
+         *
          * Default: enabled
          */
-        "nhentai": true,
+        nhentai: true,
     }
 };
 
