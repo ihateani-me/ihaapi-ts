@@ -14,9 +14,11 @@
     "dev:start": "nodemon",
     "prod": "npm-run-all build prod:start",
     "prod:start": "node build/main.js",
+    "prodpriv": "npm-run-all build prodpriv:start",
+    "prodpriv:start": "node build/main_private.js",
     "test": "jest",
+    "lint": "eslint src/",
     "testall": "npm-run-all test swaggerdoc swaggercheck",
-    "lint": "eslint .",
     "tsync": "typesync && npm install"
   },
   "engines": {

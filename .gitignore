@@ -112,3 +112,13 @@ build/
 !**/*.d.ts
 
 src/config.ts
+
+# Private-used API
+src/main_private.ts
+src/routes/private
+src/utils/private
+src/graphql/private.ts
+src/graphql/datasources/private
+src/graphql/schemas/private
+src/graphql/resolvers/private
+src/views/private
