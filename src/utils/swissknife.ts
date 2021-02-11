@@ -55,15 +55,23 @@ export function hasKey<T extends object, K extends keyof T>(
  * @param { string } defaults - fallback
  * @returns { string } value of the inputted key.
  */
-export function getValueFromKey<T extends object, K extends keyof T, S extends any>(
+export function getValueFromKey<T extends object, K extends keyof T, S = any>(
     object_data: T | undefined | null,
     key_name: K | string | undefined | null,
     defaults: S | undefined | null = null
 ): T[K] | S | Nulled {
     if (is_none(object_data)) {
+        if (is_none(defaults)) {
+            // @ts-ignore
+            return null;
+        }
         return defaults;
     }
     if (!hasKey(object_data, key_name as K)) {
+        if (is_none(defaults)) {
+            // @ts-ignore
+            return null;
+        }
         return defaults;
     }
     const all_keys = Object.keys(object_data) as K[];
@@ -195,7 +203,7 @@ export function removeKeyFromObjects<T extends object, K extends keyof T>(
  * @param to_convert number or string to convert
  * @param fallback fallback number
  */
-export function fallbackNaN<T, S>(cb: Function, to_convert: T, fallback?: S): T | S | undefined {
+export function fallbackNaN<F extends Function, T, S>(cb: F, to_convert: T, fallback?: S): T | S {
     if (isNaN(cb(to_convert))) {
         return is_none(fallback) ? to_convert : fallback;
     } else {
