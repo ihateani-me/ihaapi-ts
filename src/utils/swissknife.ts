@@ -1,15 +1,14 @@
 // A collection of utility dubbed swiss knife (as in swiss knife army.)
 
+type Nulled = null | undefined;
+
 /**
  * Check if the variable is a null type or not.
  * @param { any } key - things that want to be checked.
  * @returns { boolean } `true` or `false`
  */
-export function is_none<T>(key: T): boolean {
-    if (typeof key === "undefined" || key === null) {
-        return true;
-    }
-    return false;
+export function is_none(value: any): value is Nulled {
+    return typeof value === "undefined" || value === null;
 }
 
 /**
@@ -36,11 +35,14 @@ export function filter_empty(data: null | any[]): any[] {
  * @param { string } key_name - key that will be checked.
  * @returns { boolean } `true` or `false`
  */
-export function hasKey<T>(object_data: T, key_name: string): boolean {
-    if (is_none(object_data)) {
+export function hasKey<T extends object, K extends keyof T>(
+    object_data: T | undefined | null,
+    key_name: K | string | undefined | null
+): boolean {
+    if (is_none(object_data) || is_none(key_name)) {
         return false;
     }
-    if (Object.keys(object_data).includes(key_name)) {
+    if (Object.keys(object_data).includes(key_name as string)) {
         return true;
     }
     return false;
@@ -53,17 +55,20 @@ export function hasKey<T>(object_data: T, key_name: string): boolean {
  * @param { string } defaults - fallback
  * @returns { string } value of the inputted key.
  */
-export function getValueFromKey<T>(object_data: T, key_name: string, defaults: any = null): any {
+export function getValueFromKey<T extends object, K extends keyof T, S extends any>(
+    object_data: T | undefined | null,
+    key_name: K | string | undefined | null,
+    defaults: S | undefined | null = null
+): T[K] | S | Nulled {
     if (is_none(object_data)) {
         return defaults;
     }
-    if (!hasKey(object_data, key_name)) {
+    if (!hasKey(object_data, key_name as K)) {
         return defaults;
     }
-    const all_keys = Object.keys(object_data);
+    const all_keys = Object.keys(object_data) as K[];
     const index = all_keys.findIndex((key) => key === key_name);
-    // @ts-ignore
-    return object_data[all_keys[index]] || undefined;
+    return object_data[all_keys[index]];
 }
 
 /**
@@ -159,7 +164,10 @@ export function capitalizeIt(text: null | string): string {
  * @param array_of_object - array of object to remove it's key.
  * @param key_base - key to remove.
  */
-export function removeKeyFromObjects<T>(array_of_object: T, key_base: string): any {
+export function removeKeyFromObjects<T extends object, K extends keyof T>(
+    array_of_object: T[] | T | any | Nulled,
+    key_base: K | string
+): T[] | Nulled {
     if (is_none(array_of_object)) {
         return array_of_object;
     }
@@ -170,7 +178,7 @@ export function removeKeyFromObjects<T>(array_of_object: T, key_base: string): a
         return array_of_object;
     }
     const fixed_array_of_object = array_of_object.map((obj) => {
-        delete obj[key_base];
+        delete obj[key_base as K];
         return obj;
     });
     return fixed_array_of_object;
