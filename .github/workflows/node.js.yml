@@ -27,6 +27,8 @@ jobs:
     - name: Clean Install and Build
       run: |
         npm ci
+        cp ./src/config.ts.example ./src/config.ts
+        cp ./.env.example ./.env
         npm run build --if-present
     - name: Run Test
       run: npm run testall
