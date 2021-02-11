@@ -47,6 +47,8 @@
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.0.2",
     "@types/axios": "^0.14.0",
+    "@types/base64-url": "^2.2.0",
+    "@types/cheerio": "^0.22.23",
     "@types/compression": "^1.7.0",
     "@types/consolidate": "^0.14.0",
     "@types/cors": "^2.8.9",
@@ -66,6 +68,7 @@
     "@types/rimraf": "^3.0.0",
     "@types/shelljs": "^0.8.8",
     "@types/swagger-jsdoc": "^6.0.0",
+    "@types/xml2js": "^0.4.8",
     "@typescript-eslint/eslint-plugin": "^4.15.0",
     "@typescript-eslint/parser": "^4.15.0",
     "ejs-lint": "^1.1.0",
@@ -97,6 +100,7 @@
     "ejs": "^3.1.6",
     "express": "^4.17.1",
     "express-winston": "^4.0.5",
+    "form-data": "^3.0.0",
     "html-minifier": "^4.0.0",
     "ioredis": "^4.22.0",
     "lodash": "^4.17.20",
@@ -108,6 +112,7 @@
     "mongoose": "^5.11.15",
     "nano-memoize": "^1.2.1",
     "ts-mongoose": "^0.0.24",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+    "xml2js": "^0.4.23"
   }
 }
