@@ -81,14 +81,18 @@ export function map_bool<T extends any>(input_data: T): boolean {
         return false;
     }
     let fstat = false;
-    try {
+    let data: any;
+    if (typeof input_data === "string") {
+        data = input_data.toLowerCase() as string;
+    } else if (typeof input_data === "number") {
+        data = input_data.toString().toLowerCase() as string;
+    } else if (typeof input_data === "object") {
+        data = JSON.stringify(input_data);
+    } else {
         // @ts-ignore
-        input_data = input_data.toLowerCase();
-    } catch (error) {
-        // @ts-ignore
-        input_data = input_data.toString().toLowerCase();
+        data = input_data.toString().toLowerCase();
     }
-    switch (input_data) {
+    switch (data) {
         case "y":
             fstat = true;
             break;
