@@ -84,8 +84,14 @@ describe("Map a string to a boolean", () => {
     it("Passed a null data. (Should be `false`)", () => {
         expect(SwissKnife.map_bool(null)).toStrictEqual(false);
     });
-    it("Passed a undefined data. (Should be `false`)", () => {
+    it("Passed an undefined data. (Should be `false`)", () => {
         expect(SwissKnife.map_bool(undefined)).toStrictEqual(false);
+    });
+    it("Passed an object. (should be `false`)", () => {
+        expect(SwissKnife.map_bool({ test: 1 })).toBeFalsy();
+    });
+    it("Passed everything other than needed data. (should be `false`)", () => {
+        expect(SwissKnife.map_bool(parseInt)).toBeFalsy();
     });
     it("Passed a string that is 'n' (Should be `false`)", () => {
         expect(SwissKnife.map_bool("n")).toStrictEqual(false);
@@ -218,6 +224,7 @@ describe("Remove a Key/Value Pair from Array of Object", () => {
     });
 });
 
+// fallbackNaN()
 describe("Convert to Number with Fallback", () => {
     it("Passed a non-number string with no fallback.", () => {
         expect(SwissKnife.fallbackNaN(parseFloat, "test")).toStrictEqual("test");
@@ -233,6 +240,7 @@ describe("Convert to Number with Fallback", () => {
     });
 });
 
+// generateCustomString()
 describe("Generate random string and RNG", () => {
     it("Test RNG feature, must generate number", () => {
         expect(SwissKnife.rng(10)).toBeLessThanOrEqual(10);
