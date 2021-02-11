@@ -49,6 +49,16 @@ module.exports = {
         "no-empty": ["error", { allowEmptyCatch: true }],
         "eol-last": ["warn", "always"],
         "no-constant-condition": ["error", { checkLoops: false }],
+        "sort-imports": [
+            "warn",
+            {
+                ignoreCase: true,
+                ignoreDeclarationSort: true,
+                ignoreMemberSort: false,
+                memberSyntaxSortOrder: ["none", "all", "single", "multiple"],
+                allowSeparatedGroups: true,
+            },
+        ],
         "@typescript-eslint/ban-types": "off",
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-explicit-any": "off",
