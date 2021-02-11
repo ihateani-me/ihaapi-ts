@@ -10,19 +10,19 @@ interface IAPIConfiguration {
         password?: string | null;
     };
     secure_password: string;
-    steam?: {
+    steam: {
         api_key?: string | null;
     };
-    u2?: {
+    u2: {
         passkey?: string | null;
         cookies?: string | null;
     };
-    saucenao?: {
+    saucenao: {
         api_key?: string | null;
     };
-    vtapi?: {
+    vtapi: {
         youtube_key?: string | null;
-        twitch?: {
+        twitch: {
             client?: string | null;
             secret?: string | null;
         };
