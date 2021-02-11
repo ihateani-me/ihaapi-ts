@@ -16,9 +16,7 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-    - name: Clean Install and Build
-      run: |
-        npm ci
-        npm run build --if-present
+    - name: Clean Install
+      run: npm ci
     - name: Run Linting
       run: npm run lint
