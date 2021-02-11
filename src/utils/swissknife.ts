@@ -1,6 +1,7 @@
 // A collection of utility dubbed swiss knife (as in swiss knife army.)
 
-type Nulled = null | undefined;
+export type Nulled = null | undefined;
+export type Unknown = unknown | never;
 
 /**
  * Check if the variable is a null type or not.

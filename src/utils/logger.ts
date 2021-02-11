@@ -1,6 +1,6 @@
 import _ from "lodash";
 import winston, { createLogger } from "winston";
-import { logger as WinstonLog, errorLogger as WinstonErrorLog } from "express-winston";
+import { errorLogger as WinstonErrorLog, logger as WinstonLog } from "express-winston";
 
 const reqTypeColor = {
     GET: "\u001b[32m",
