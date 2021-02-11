@@ -3,18 +3,19 @@ import * as cons from "consolidate";
 import express from "express";
 import express_compression from "compression";
 import express_cors from "cors";
-import mongoose from "mongoose";
 import moment from "moment-timezone";
+import mongoose from "mongoose";
 import path from "path";
 import { altairExpress } from "altair-express-middleware";
 
-import * as Routes from "./routes";
 import * as Logger from "./utils/logger";
+import * as Routes from "./routes";
 import htmlMinifier from "./utils/minifier";
+import { capitalizeIt, is_none } from "./utils/swissknife";
 
+import changelog from "./changelog.json";
 import config from "./config";
 import packageJson from "../package.json";
-import changelog from "./changelog.json";
 
 const logger = Logger.logger;
 
@@ -30,11 +31,17 @@ let MONGO_VERSIONING = {
 };
 
 logger.info("Connecting to database...");
-mongoose.connect(`${mongouri}/${process.env.MONGODB_DBNAME}`, {
+const mongooseConfig: mongoose.ConnectOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
-});
+};
+let replicaEnabled = false;
+if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
+    mongooseConfig["replicaSet"] = config.mongodb.replica_set;
+    replicaEnabled = true;
+}
+mongoose.connect(`${mongouri}/${config.mongodb.dbname}`, mongooseConfig);
 
 mongoose.connection.on("open", () => {
     logger.info("Connected to VTubers Database!");
@@ -44,7 +51,7 @@ mongoose.connection.on("open", () => {
         const modules = info.modules;
         if (modules.length > 0) {
             MONGO_VERSIONING["type"] = modules[0];
-            // MONGO_VERSIONING["type"] = capitalizeIt(MONGO_VERSIONING["type"]);
+            MONGO_VERSIONING["type"] = capitalizeIt(MONGO_VERSIONING["type"]);
         } else {
             MONGO_VERSIONING["type"] = "Community";
         }
@@ -222,10 +229,10 @@ app.use(
     })
 );
 // GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
-// if (process.env.REPLICA_ENABLED === "y") {
-//     logger.info("Binding GraphQL Subscription WS Handler")
-//     GQLAPIv2Server.installSubscriptionHandlers(httpServer);
-// }
+if (replicaEnabled) {
+    logger.info("Binding GraphQL Subscription WS Handler");
+    //     GQLAPIv2Server.installSubscriptionHandlers(httpServer);
+}
 
 app.use(Logger.expressErrorLogger);
 app.use(function (req, res, next) {
@@ -234,4 +241,4 @@ app.use(function (req, res, next) {
     next();
 });
 
-export { app };
+export { app, replicaEnabled };
