@@ -22,7 +22,7 @@
     "tsync": "typesync && npm install"
   },
   "engines": {
-    "node": "12.x"
+    "node": ">= 12.x"
   },
   "repository": {
     "type": "git",
