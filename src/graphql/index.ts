@@ -1,0 +1,61 @@
+import _ from "lodash";
+import { ApolloServer } from "apollo-server-express";
+import { ApolloServerPluginInlineTraceDisabled } from "apollo-server-core";
+
+import { CustomRedisCache } from "./caches/redis";
+import { nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
+import { v2Resolvers } from "./resolvers";
+import { SubscriptionResolver, v2SubscriptionSchemas } from "./subscription";
+import { IQDBAPI, SauceNAOAPI } from "./datasources";
+import { VTAPIChannels, VTAPIChannelStatsHist, VTAPIVideos } from "./datasources/vtapi";
+
+import { is_none } from "../utils/swissknife";
+import { ChannelsData, ChannelStatsHistData, VideosData } from "../controller/models";
+import { logger } from "../utils/logger";
+
+import config from "../config";
+
+const REDIS_PASSWORD = config["redis"]["password"];
+const REDIS_HOST = config["redis"]["host"];
+const REDIS_PORT = config["redis"]["port"];
+const cacheServers = new CustomRedisCache({
+    host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
+    port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT,
+    password: is_none(REDIS_PASSWORD) ? undefined : REDIS_PASSWORD,
+});
+
+let typeDefs = [VTAPIv2, SauceAPIGQL, nHGQLSchemas, v2Definitions];
+const v2ResolversFinal = v2Resolvers;
+if (!is_none(process.env.REPLICA_SET) && process.env.REPLICA_SET.length > 0) {
+    logger.info("Enabling replica subscription (schemas)...");
+    typeDefs = _.concat(typeDefs, v2SubscriptionSchemas);
+}
+if (Object.keys(SubscriptionResolver["Subscription"]).length > 0) {
+    logger.info("Enabling replica subscription (resolver)...");
+    _.merge(v2ResolversFinal, SubscriptionResolver);
+}
+
+export const GQLAPIv2Server = new ApolloServer({
+    typeDefs: typeDefs,
+    resolvers: v2ResolversFinal,
+    cache: cacheServers,
+    tracing: false,
+    introspection: true,
+    playground: false,
+    context: ({ req, res }) => ({
+        req,
+        res,
+        cacheServers,
+    }),
+    subscriptions: {
+        path: "/v2/graphql",
+    },
+    dataSources: () => ({
+        videos: new VTAPIVideos(VideosData),
+        channels: new VTAPIChannels(ChannelsData),
+        statsHist: new VTAPIChannelStatsHist(ChannelStatsHistData),
+        saucenao: new SauceNAOAPI(),
+        iqdb: new IQDBAPI(),
+    }),
+    plugins: [ApolloServerPluginInlineTraceDisabled()],
+});
