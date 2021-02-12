@@ -2,7 +2,7 @@ import moment from "moment-timezone";
 import { gql } from "apollo-server-express";
 import { GraphQLScalarType, Kind } from "graphql";
 
-import { is_none } from "../../utils/swissknife";
+import { is_none, Nullable } from "../../utils/swissknife";
 
 export const DateTimeScalar = new GraphQLScalarType({
     name: "DateTime",
@@ -271,15 +271,15 @@ export type PlatformName = "youtube" | "bilibili" | "twitch" | "twitcasting" | "
 export interface PageInfo {
     total_results: number;
     results_per_page: number;
-    nextCursor?: string;
+    nextCursor?: Nullable<string>;
     hasNextPage: boolean;
 }
 
 export interface ChannelStatistics {
     subscriberCount: number;
-    viewCount?: number;
-    videoCount?: number;
-    level?: number;
+    viewCount?: Nullable<number>;
+    videoCount?: Nullable<number>;
+    level?: Nullable<number>;
 }
 
 export interface ChannelGrowth {
@@ -293,54 +293,54 @@ export interface ChannelGrowth {
 }
 
 export interface VideoTime {
-    startTime?: number;
-    endTime?: number;
-    scheduledStartTime?: number;
-    publishedAt?: string;
-    lateBy?: number;
-    duration?: number;
+    startTime?: Nullable<number>;
+    endTime?: Nullable<number>;
+    scheduledStartTime?: Nullable<number>;
+    publishedAt?: Nullable<string>;
+    lateBy?: Nullable<number>;
+    duration?: Nullable<number>;
 }
 
 export interface ChannelGrowthObject {
-    subscribersGrowth?: ChannelGrowth;
-    viewsGrowth?: ChannelGrowth;
+    subscribersGrowth?: Nullable<ChannelGrowth>;
+    viewsGrowth?: Nullable<ChannelGrowth>;
 }
 
 export interface ChannelObject {
     id: string | number;
-    user_id?: string;
-    room_id?: string;
+    user_id?: Nullable<string>;
+    room_id?: Nullable<string>;
     name: string;
-    en_name?: string;
-    description: string;
-    publishedAt?: string;
+    en_name?: Nullable<string>;
+    description?: Nullable<string>;
+    publishedAt?: Nullable<string>;
     image: string;
-    statistics?: ChannelStatistics;
-    growth?: ChannelGrowthObject;
-    group?: string;
-    is_live?: boolean;
+    statistics?: Nullable<ChannelStatistics>;
+    growth?: Nullable<ChannelGrowthObject>;
+    group?: Nullable<string>;
+    is_live?: Nullable<boolean>;
     platform: PlatformName;
-    pageInfo?: PageInfo;
+    pageInfo?: Nullable<PageInfo>;
 }
 
 export interface LiveObject {
     id: string;
-    room_id?: number;
+    room_id?: Nullable<string>;
     title: string;
     timeData: VideoTime;
     channel_id: string | number;
-    channel?: ChannelObject;
-    thumbnail?: string;
+    channel?: Nullable<ChannelObject>;
+    thumbnail?: Nullable<string>;
     status: LiveStatus;
-    viewers?: number;
-    peakViewers?: number;
-    averageViewers?: number;
-    is_missing?: boolean;
-    is_premiere?: boolean;
-    is_member?: boolean;
+    viewers?: Nullable<number>;
+    peakViewers?: Nullable<number>;
+    averageViewers?: Nullable<number>;
+    is_missing?: Nullable<boolean>;
+    is_premiere?: Nullable<boolean>;
+    is_member?: Nullable<boolean>;
     group: string;
-    platform?: PlatformName;
-    pageInfo?: PageInfo;
+    platform: PlatformName;
+    pageInfo?: Nullable<PageInfo>;
 }
 
 // Request-type params/args
