@@ -10,6 +10,8 @@ import { altairExpress } from "altair-express-middleware";
 
 import * as Logger from "./utils/logger";
 import * as Routes from "./routes";
+import { GQLAPIv2Server } from "./graphql";
+
 import htmlMinifier from "./utils/minifier";
 import { capitalizeIt, is_none } from "./utils/swissknife";
 
@@ -228,11 +230,7 @@ app.use(
         },
     })
 );
-// GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
-if (replicaEnabled) {
-    logger.info("Binding GraphQL Subscription WS Handler");
-    //     GQLAPIv2Server.installSubscriptionHandlers(httpServer);
-}
+GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
 
 app.use(Logger.expressErrorLogger);
 app.use(function (req, res, next) {
@@ -241,4 +239,4 @@ app.use(function (req, res, next) {
     next();
 });
 
-export { app, replicaEnabled };
+export { app, replicaEnabled, GQLAPIv2Server };
