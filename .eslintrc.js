@@ -34,6 +34,7 @@ module.exports = {
                 tabWidth: 4,
                 ignoreComments: true,
                 ignoreUrls: true,
+                ignoreRegExpLiterals: true,
             },
         ],
         "comma-dangle": [
