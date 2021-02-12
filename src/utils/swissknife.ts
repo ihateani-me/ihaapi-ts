@@ -1,6 +1,7 @@
 // A collection of utility dubbed swiss knife (as in swiss knife army.)
 
 export type Nulled = null | undefined;
+export type Nullable<T> = T | null;
 export type Unknown = unknown | never;
 
 /**
