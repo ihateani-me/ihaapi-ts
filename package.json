@@ -103,6 +103,7 @@
     "express": "^4.17.1",
     "express-winston": "^4.0.5",
     "form-data": "^3.0.0",
+    "graphql-type-json": "^0.3.2",
     "html-minifier": "^4.0.0",
     "ioredis": "^4.22.0",
     "lodash": "^4.17.20",
@@ -110,9 +111,7 @@
     "moment-timezone": "^0.5.33",
     "mongo-cursor-pagination-alt": "^1.0.0",
     "mongodb": "^3.6.4",
-    "mongodb-extended-json": "^1.11.0",
     "mongoose": "^5.11.15",
-    "nano-memoize": "^1.2.1",
     "ts-mongoose": "^0.0.24",
     "winston": "^3.3.3",
     "xml2js": "^0.4.23"

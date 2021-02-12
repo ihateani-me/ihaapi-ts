@@ -3,13 +3,13 @@
 
 import _ from "lodash";
 import base64Url from "base64-url";
-import EJSON from "mongodb-extended-json";
 import { Extract } from "ts-mongoose";
-import { ObjectId } from "bson";
+import { EJSON, ObjectId } from "bson";
 import { Document, Model } from "mongoose";
 import { FindPaginatedParams, FindPaginatedResult } from "mongo-cursor-pagination-alt";
 
 import { SortOrder } from "../../graphql/schemas";
+import { Nullable } from "../../utils/swissknife";
 
 export type BaseDocument = {
     _id: ObjectId;
@@ -47,7 +47,7 @@ export interface IPaginationInfo {
 
 export interface IPaginateResults<T> {
     docs: T[];
-    pageInfo: IPaginationInfo;
+    pageInfo: Nullable<IPaginationInfo>;
 }
 
 export const buildCursor = <TDocument extends BaseDocument>(
