@@ -15,14 +15,6 @@ import config from "../config";
 const GamesRoutes = express.Router();
 const MainLogger = TopLogger.child({ cls: "Routes.Games" });
 
-GamesRoutes.use((req, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-    });
-    next();
-});
-
 /**
  * @swagger
  * /games/hltb:
@@ -178,7 +170,7 @@ GamesRoutes.get("/hltb", async (req, res) => {
 
 async function steam_fetch_user(req: express.Request, res: express.Response) {
     if (is_none(config["steam"]["api_key"])) {
-        res.status(500).json({ error: "The administrator haven't enabled Steam User Support", code: 500 });
+        res.status(501).json({ error: "The administrator haven't enabled Steam User Support", code: 500 });
     } else {
         const logger = MainLogger.child({ fn: "SteamUser" });
         const user_id = req.params.user_id;
@@ -327,7 +319,13 @@ async function steam_fetch_user(req: express.Request, res: express.Response) {
  *                                  type: number
  *                                  description: HTTP Status code
  */
-GamesRoutes.get("/steam/user/:user_id", steam_fetch_user);
+if (!is_none(config.steam.api_key)) {
+    GamesRoutes.get("/steam/user/:user_id", steam_fetch_user);
+} else {
+    GamesRoutes.get("/steam/user/:user_id", (_q, res) => {
+        res.status(501).json({ error: "Administrator haven't enabled Steam User Searching API.", code: 501 });
+    });
+}
 
 /**
  * @swagger

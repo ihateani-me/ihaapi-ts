@@ -3,14 +3,6 @@ import { join } from "path";
 
 const gqldocsRoutes = express.Router({ strict: true });
 
-gqldocsRoutes.use((_, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-    });
-    next();
-});
-
 gqldocsRoutes.use("/", express.static(join(__dirname, "..", "views", "v2docs")));
 gqldocsRoutes.get("/manifest.json", (_, res) => {
     res.sendFile(join(__dirname, "..", "views", "v2docs", "assets", "manifest.json"));

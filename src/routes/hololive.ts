@@ -2,14 +2,6 @@ import * as express from "express";
 
 const HoloRoutes = express.Router();
 
-HoloRoutes.use((req, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-    });
-    next();
-});
-
 /**
  * @swagger
  * /live:

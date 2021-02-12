@@ -2,14 +2,6 @@ import * as express from "express";
 
 const NijiRoutes = express.Router();
 
-NijiRoutes.use((req, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-    });
-    next();
-});
-
 /**
  * @swagger
  * /nijisanji/live:

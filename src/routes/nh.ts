@@ -6,14 +6,6 @@ import { logger as TopLogger } from "../utils/logger";
 const MainLogger = TopLogger.child({ cls: "Routes.nHentai" });
 const NHRoutes = express.Router();
 
-NHRoutes.use((req, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-    });
-    next();
-});
-
 NHRoutes.get("/i/:media_id/:img_num", (req, res) => {
     const logger = MainLogger.child({ fn: "image" });
     const image_path = `${req.params.media_id}/${req.params.img_num}`;

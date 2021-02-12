@@ -2,15 +2,6 @@ import * as express from "express";
 
 const TwitchRoutes = express.Router();
 
-TwitchRoutes.use((req, res, next) => {
-    res.header({
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-        "Cache-Control": "public, max-age=60, immutable",
-    });
-    next();
-});
-
 /**
  * @swagger
  * /twitch/live:

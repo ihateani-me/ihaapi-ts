@@ -12,5 +12,6 @@ export * from "./saucefinder";
 export * from "./nh";
 
 export * from "./games";
+export * from "./u2";
 
 // V2 API Helper
