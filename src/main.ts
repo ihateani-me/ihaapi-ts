@@ -1,11 +1,19 @@
 import dotenv from "dotenv";
 import http from "http";
+import moment from "moment-timezone";
 import path from "path";
 
 import { app, GQLAPIv2Server, replicaEnabled } from "./server";
-import { logger } from "./utils/logger";
+import { expressErrorLogger, logger } from "./utils/logger";
 
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
+app.use(expressErrorLogger);
+app.use(function (req, res, next) {
+    const current_utc = moment().tz("UTC").unix();
+    res.status(404).json({ time: current_utc, status: 404, message: `path '${req.path}' not found.` });
+    next();
+});
 
 const PORT = process.env.PORT || 4200;
 

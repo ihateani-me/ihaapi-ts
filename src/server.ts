@@ -236,11 +236,4 @@ app.use(
 );
 GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
 
-app.use(Logger.expressErrorLogger);
-app.use(function (req, res, next) {
-    const current_utc = moment().tz("UTC").unix();
-    res.status(404).json({ time: current_utc, status: 404, message: `path '${req.path}' not found.` });
-    next();
-});
-
 export { app, replicaEnabled, GQLAPIv2Server };
