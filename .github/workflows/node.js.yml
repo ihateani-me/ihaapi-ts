@@ -27,13 +27,8 @@ jobs:
     - name: Clean Install and Build
       run: |
         npm ci
+        cp ./src/config.ts.example ./src/config.ts
+        cp ./.env.example ./.env
         npm run build --if-present
-    - name: Run Jest Test
-      run: npm test
-    - name: Build Swagger/OpenAPI Specification
-      run: npx swagger-jsdoc -o ./swagger.yml -d ./utils/swaggerDef.js ./routes/*.ts
-    - name: Validate Swagger/OpenAPI Specification
-      uses: mbowman100/swagger-validator-action@1.5
-      with:
-        files: |
-          swagger.yml
+    - name: Run Test
+      run: npm run testall

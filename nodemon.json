@@ -1,14 +1,11 @@
 {
     "watch": [
-        "*.ts",
-        "utils/*.ts",
-        "routes/*.ts",
-        "dbconn/*.ts",
-        "utils/swaggerDef.js"
+        "src/**/*.ts",
+        "src/**/*.js",
+        "src/config.json"
     ],
     "ignore": [
         "**/*.test.ts"
     ],
-    "exec": "ts-node ./server.ts",
-    "ext": "js ts"
+    "ext": "ts js"
 }
