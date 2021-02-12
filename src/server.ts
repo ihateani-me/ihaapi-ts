@@ -143,6 +143,10 @@ app.all("/swagger", (_, res) => {
     res.redirect(302, "/api-docs");
 });
 
+app.all("/swagger.yml", (_, res) => {
+    res.sendFile(path.join(__dirname, "..", "build", "swagger.yml"));
+});
+
 // Redirect all old links with v1 prefix.
 app.use((req, res, next) => {
     const v1_redirect = [
@@ -150,7 +154,6 @@ app.use((req, res, next) => {
         "other",
         "twitch",
         "twitcasting",
-        "museid",
         "games",
         "nh",
         "sauce",
@@ -179,16 +182,17 @@ app.use((req, res, next) => {
 
 const v1API = express.Router();
 
-// v1API.use("/", Routes.HoloRoutes);
-// v1API.use("/nijisanji", Routes.NijiRoutes);
-// v1API.use("/other", Routes.OthersRoutes);
-// v1API.use("/twitch", Routes.TwitchRoutes);
-// v1API.use("/twitcasting", Routes.TwitcastingRoutes);
-// v1API.use("/museid", Routes.MuseIDRoutes);
-// v1API.use("/games", Routes.GamesRoutes);
-// v1API.use("/u2", Routes.U2Routes);
-// v1API.use("/nh", Routes.NHRoutes);
-// v1API.use("/sauce", Routes.SauceRoutes);
+v1API.use("/", Routes.HoloRoutes);
+v1API.use("/nijisanji", Routes.NijiRoutes);
+v1API.use("/other", Routes.OthersRoutes);
+v1API.use("/twitch", Routes.TwitchRoutes);
+v1API.use("/twitcasting", Routes.TwitcastingRoutes);
+v1API.use("/games", Routes.GamesRoutes);
+v1API.use("/u2", Routes.U2Routes);
+if (config.features.nhentai) {
+    v1API.use("/nh", Routes.NHRoutes);
+}
+v1API.use("/sauce", Routes.SauceRoutes);
 // Use new v1 prefix.
 app.use("/v1", v1API);
 
