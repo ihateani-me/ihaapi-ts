@@ -28,7 +28,6 @@ interface IAPIConfiguration {
         };
     };
     features: {
-        museid: boolean;
         nhentai: boolean;
     };
     [key: string]: any;
@@ -77,6 +76,9 @@ const CONFIGURATION: IAPIConfiguration = {
      * This will allow to access U2.DMHY.ORG RSS and Offers data
      * Can be disabled by setting `passkey` or `cookies` to null
      *
+     * The important cookies that need to be copied are the 'nexusphp_u2=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+     * That would allow accessing the offers page.
+     *
      * Disabling passkey will disable RSS feature
      * Disabling cookies will disable Offers feature
      */
@@ -114,13 +116,6 @@ const CONFIGURATION: IAPIConfiguration = {
      * This is extra feature that the API can have
      */
     features: {
-        /**
-         * This is Muse Indonesia YouTube channel tracker
-         * I recommend disabling this since it was meant for private usage
-         *
-         * Default: disabled
-         */
-        museid: false,
         /**
          * This is nHentai proxy feature
          * It's up-to-you to enable it or not
