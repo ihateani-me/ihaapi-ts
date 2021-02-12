@@ -16,14 +16,16 @@ export class MongoConnection {
     version: string;
     dbtype: string;
 
-    constructor(database_name: string) {
+    constructor(database_name: string, auto_connect = true) {
         this.client = new MongoClient(server_url, { useUnifiedTopology: true });
         this.is_connected = false;
         this.db_name = database_name;
         this.dbtype = "???";
         this.version = "X.XX.XX";
         this.logger = MainLogger.child({ cls: "MongoConnection" });
-        this.connect();
+        if (auto_connect) {
+            this.connect();
+        }
     }
 
     connect() {
