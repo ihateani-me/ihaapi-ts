@@ -6,6 +6,10 @@ api.ihateani.me but written in TypeScript
 The website are originally written in Python with Sanic as it's backend.<br>
 I'm creating this to actually try javascript and typescript.
 
+Running:
+- Without PM2: `npm run prod`
+- With PM2: `pm2 start npm --no-automation --name ihaAPI -- run prod`
+
 ## License
 MIT License, refer more to the [LICENSE](https://github.com/ihateani-me/ihaapi-ts/blob/master/LICENSE) file.
 
