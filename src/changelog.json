@@ -91,6 +91,12 @@
         "Use the new Database schemas, this also introduce a much longer cursor"
     ],
     "2.5.0": [
-        "Codebase rework"
+        "Codebase rework",
+        "GraphQL subscription support, only for VTuber API now."
+    ],
+    "2.5.1": [
+        "ImageBooru Board support",
+        "Added Danbooru, Konachan, and Gelbooru Support for now.",
+        "More documentation of the GraphQL API, this time is for the API References"
     ]
 }

@@ -1,7 +1,7 @@
 <h1 id="mulai-dari-sini" style="color:#c8c8c8;" align="center">
     ihaAPI v2 API
 </h1>
-<p align="center"><b>Version 2.5.0</b><br>A simple GraphQL endpoint for multiple utility</p>
+<p align="center"><b>Version 2.5.1</b><br>A simple GraphQL endpoint for multiple utility</p>
 
 # Introduction
 Welcome to ihateani.me API v2, this API use GraphQL powered by Apollo GraphQL Server.
