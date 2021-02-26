@@ -1,4 +1,4 @@
-import { ImageBoardBase, ImageBoardResultsBase } from "./base";
+import { AnyDict, ImageBoardBase, ImageBoardResultsBase } from "./base";
 
 import { logger as MainLogger } from "../logger";
 import { numMoreThan } from "../swissknife";
@@ -79,7 +79,7 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
         if (query.length > 0) {
             params["tags"] = query.join("+");
         }
-        const [results, status_code] = await this.request("get", "/posts.json", {
+        const [results, status_code] = await this.request<AnyDict>("get", "/posts.json", {
             params: params,
         });
         let resultsFinal;
