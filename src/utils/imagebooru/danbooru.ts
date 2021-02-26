@@ -1,6 +1,7 @@
-import { ImageBoard } from "./base";
+import { ImageBoardBase, ImageBoardResultsBase } from "./base";
 
 import { logger as MainLogger } from "../logger";
+import { numMoreThan } from "../swissknife";
 
 interface DanbooruResult {
     id?: string;
@@ -36,14 +37,7 @@ interface DanbooruMapping {
     };
 }
 
-interface DanbooruSearch {
-    results: DanbooruResult[];
-    total_data: number;
-    engine: string;
-    isError: boolean;
-}
-
-export class DanbooruBoard extends ImageBoard<DanbooruResult, DanbooruMapping> {
+export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMapping> {
     private familyFriendly: boolean;
 
     constructor(safe_version = false) {
@@ -63,9 +57,11 @@ export class DanbooruBoard extends ImageBoard<DanbooruResult, DanbooruMapping> {
         };
     }
 
-    async search(query: string[] = []): Promise<DanbooruSearch> {
+    async search(query: string[] = [], page = 1): Promise<ImageBoardResultsBase<DanbooruResult>> {
+        page = numMoreThan(page, 1);
         const params: { [key: string]: any } = {
-            limit: 10,
+            limit: 15,
+            page: page,
         };
         if (this.familyFriendly) {
             const redoneTags: string[] = [];
@@ -79,13 +75,14 @@ export class DanbooruBoard extends ImageBoard<DanbooruResult, DanbooruMapping> {
             query = redoneTags;
         }
         query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
+        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
         if (query.length > 0) {
             params["tags"] = query.join("+");
         }
         const [results, status_code] = await this.request("get", "/posts.json", {
             params: params,
         });
-        let resultsFinal: DanbooruSearch;
+        let resultsFinal;
         if (status_code === 200) {
             const parsedResults = await this.parseJson(results);
             resultsFinal = {
@@ -105,11 +102,12 @@ export class DanbooruBoard extends ImageBoard<DanbooruResult, DanbooruMapping> {
         return resultsFinal;
     }
 
-    async random(query: string[] = []): Promise<DanbooruSearch> {
+    async random(query: string[] = []): Promise<ImageBoardResultsBase<DanbooruResult>> {
         query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
         if (!query.includes("order:random")) {
             query.push("order:random");
         }
+        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
         return await this.search(query);
     }
 }
