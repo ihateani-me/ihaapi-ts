@@ -86,14 +86,22 @@ export const v2Definitions = gql`
     This is a drop in replacement for /v1/nh, except the Image route.
     """
     type nHentaiQuery {
+        "Get information of a doujin_id"
         info(doujin_id: ID!): nhInfoResult!
+        "Search nHentai for some doujin(shi)"
         search(query: String!, page: Int = 1): nhSearchResult!
+        "Get latest nHentai doujin(shi)"
         latest(page: Int = 1): nhSearchResult!
     }
 
+    """
+    Query through a collection of Image Board/Booru website.
+    """
     type ImageBoardQuery {
-        search(tags: [String], engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
-        random(tags: [String], engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
+        "Search the Image board with the tags params for your search query."
+        search(tags: [String], page: Int = 1, engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
+        "Search the Image board with the tags params for your search query, this will randomized the order."
+        random(tags: [String], page: Int = 1, engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
     }
 
     type Query {
