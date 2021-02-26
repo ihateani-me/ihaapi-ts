@@ -10,6 +10,8 @@ export const ImageBooruSchemas = gql`
         danbooru
         "danbooru.donmai.us with rating:safe"
         safebooru
+        "konachan.net"
+        konachan
     }
 
     type ImageInfo {
@@ -57,7 +59,7 @@ export const ImageBooruSchemas = gql`
     }
 `;
 
-export type BoardEngine = "danbooru" | "safebooru";
+export type BoardEngine = "danbooru" | "safebooru" | "konachan";
 
 export interface ImageInfo {
     w?: Nullable<number>;
@@ -78,4 +80,10 @@ export interface ImageBoardResult {
     image_info: ImageInfo;
     extras: { [key: string]: any };
     engine: BoardEngine;
+}
+
+export interface ImageBoardParams {
+    tags?: string[];
+    page: number;
+    engine: BoardEngine[];
 }
