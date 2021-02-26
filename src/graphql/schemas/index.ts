@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export * from "./vtapi";
 export * from "./saucefinder";
 export * from "./nh";
+export * from "./imagebooru";
 
 export const v2Definitions = gql`
     """
@@ -90,9 +91,15 @@ export const v2Definitions = gql`
         latest(page: Int = 1): nhSearchResult!
     }
 
+    type ImageBoardQuery {
+        search(tags: [String], engine: [BoardEngine] = [danbooru]): ImageBoardResults!
+        random(tags: [String], engine: [BoardEngine] = [danbooru]): ImageBoardResults!
+    }
+
     type Query {
         vtuber: VTuberQuery!
         sauce: SauceQuery!
         nhentai: nHentaiQuery!
+        imagebooru: ImageBoardQuery!
     }
 `;
