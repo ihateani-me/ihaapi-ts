@@ -7,6 +7,7 @@ import moment from "moment-timezone";
 import mongoose from "mongoose";
 import path from "path";
 import { altairExpress } from "altair-express-middleware";
+import { readFileSync } from "fs";
 
 import * as Logger from "./utils/logger";
 import * as Routes from "./routes";
@@ -15,7 +16,6 @@ import { GQLAPIv2Server } from "./graphql";
 import htmlMinifier from "./utils/minifier";
 import { capitalizeIt, is_none } from "./utils/swissknife";
 
-import changelog from "./changelog.json";
 import config from "./config";
 import packageJson from "../package.json";
 
@@ -113,8 +113,9 @@ app.get("/", (_, res) => {
 });
 
 app.get("/changelog", (_, res) => {
+    const CHANGELOGS_FILE = readFileSync(path.join(__dirname, "changelog.json")).toString();
     res.render("changelog", {
-        CHANGELOGS: changelog,
+        CHANGELOGS: JSON.parse(CHANGELOGS_FILE),
     });
 });
 
