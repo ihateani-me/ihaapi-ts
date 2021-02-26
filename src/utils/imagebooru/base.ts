@@ -79,10 +79,42 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                             sep = elem[2];
                             elem = elem.substring(5);
                         }
-                        let data = _.get(main_data, elem);
+                        let convType;
+                        if (typeof value === "string" && value.includes("##")) {
+                            [value, convType] = value.split("##");
+                            convType = convType.toLowerCase();
+                        }
+                        let selectFallback;
+                        if (typeof value === "string" && value.includes("||")) {
+                            selectFallback = value.split("||");
+                        }
+                        let data;
+                        if (typeof selectFallback !== "undefined") {
+                            for (let i = 0; i < selectFallback.length; i++) {
+                                data = _.get(main_data, selectFallback[i]);
+                                if (!is_none(data)) {
+                                    break;
+                                }
+                                if (typeof data === "string") {
+                                    if (data !== "" || data !== " ") {
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            data = _.get(main_data, value);
+                        }
                         if (is_none(data)) {
                             collectVal.push("");
                             return;
+                        }
+                        if (typeof convType === "string") {
+                            if (convType === "float" || convType === "int") {
+                                // @ts-ignore
+                                data = parseFloat(data);
+                            } else if (convType === "str") {
+                                data = data.toString();
+                            }
                         }
                         if (typeof sep === "string" && typeof data === "string") {
                             data = data.split(sep);
@@ -96,9 +128,41 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                         sep = value[2];
                         value = value.substring(5);
                     }
-                    let data = _.get(main_data, value);
+                    let convType;
+                    if (typeof value === "string" && value.includes("##")) {
+                        [value, convType] = value.split("##");
+                        convType = convType.toLowerCase();
+                    }
+                    let selectFallback;
+                    if (typeof value === "string" && value.includes("||")) {
+                        selectFallback = value.split("||");
+                    }
+                    let data;
+                    if (typeof selectFallback !== "undefined") {
+                        for (let i = 0; i < selectFallback.length; i++) {
+                            data = _.get(main_data, selectFallback[i]);
+                            if (!is_none(data)) {
+                                break;
+                            }
+                            if (typeof data === "string") {
+                                if (data !== "" || data !== " ") {
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        data = _.get(main_data, value);
+                    }
                     if (is_none(data)) {
                         return "";
+                    }
+                    if (typeof convType === "string") {
+                        if (convType === "float" || convType === "int") {
+                            // @ts-ignore
+                            data = parseFloat(data);
+                        } else if (convType === "str") {
+                            data = data.toString();
+                        }
                     }
                     if (typeof sep === "string" && typeof data === "string") {
                         data = data.split(sep);
