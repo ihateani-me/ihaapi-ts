@@ -1,3 +1,4 @@
+import _ from "lodash";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
 import xml2js from "xml2js";
 
@@ -5,7 +6,6 @@ import { filter_empty, is_none } from "../swissknife";
 
 import packageJson from "../../../package.json";
 import { Logger } from "winston";
-import _ from "lodash";
 
 export interface AnyDict {
     [key: string]: any;
@@ -35,6 +35,41 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
             },
             baseURL: BASE_URL,
         });
+    }
+
+    private metaTagChecks(tagName: string): boolean {
+        if (tagName.startsWith("rating:")) {
+            return true;
+        } else if (tagName.startsWith("order:")) {
+            return true;
+        } else if (tagName.startsWith("parent:")) {
+            return true;
+        } else if (tagName.startsWith("set:")) {
+            return true;
+        } else if (tagName.startsWith("pool:")) {
+            return true;
+        } else if (tagName.startsWith("date:")) {
+            return true;
+        } else if (tagName.startsWith("score:")) {
+            return true;
+        } else if (tagName.startsWith("id:")) {
+            return true;
+        }
+        return false;
+    }
+
+    protected normalizeTags(tagsSet: string[], limit: number = 2, forceLower: boolean = true): string[] {
+        tagsSet = tagsSet.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
+        if (forceLower) {
+            tagsSet = tagsSet.map((tag) => tag.replace(" ", "_").toLowerCase());
+        }
+        const nonMetaTags = tagsSet.filter((tag) => !this.metaTagChecks(tag));
+        const subNonMetaTags = nonMetaTags.slice(0, limit);
+        const diffs = _.difference(nonMetaTags, subNonMetaTags);
+        if (diffs.length > 0) {
+            tagsSet = _.without(tagsSet, ...diffs);
+        }
+        return tagsSet;
     }
 
     protected async request<R>(
