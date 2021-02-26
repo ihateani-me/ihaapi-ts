@@ -88,6 +88,8 @@ export class KonachanBoard extends ImageBoardBase<KonachanResult, KonachanMappin
 
     async random(query: string[] = []): Promise<ImageBoardResultsBase<KonachanResult>> {
         query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
+        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = query.filter((tag) => !tag.startsWith("order:")); // remove any order: tag
         if (!query.includes("order:random")) {
             query.push("order:random");
         }

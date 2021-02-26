@@ -101,10 +101,11 @@ export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMappin
 
     async random(query: string[] = [], page = 1): Promise<ImageBoardResultsBase<GelbooruResult>> {
         query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
+        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = query.filter((tag) => !tag.startsWith("order:")); // remove any order: tag
         if (!query.includes("order:random")) {
             query.push("order:random");
         }
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
         return await this.search(query, page);
     }
 }
