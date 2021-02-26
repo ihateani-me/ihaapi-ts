@@ -137,19 +137,21 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                     if (typeof value === "string" && value.includes("||")) {
                         selectFallback = value.split("||");
                     }
-                    let data;
+                    let data: string | number | string[] | R[any] | null | undefined;
                     if (typeof selectFallback !== "undefined") {
-                        for (let i = 0; i < selectFallback.length; i++) {
-                            data = _.get(main_data, selectFallback[i]);
-                            if (!is_none(data)) {
-                                break;
-                            }
+                        selectFallback.forEach((sel) => {
                             if (typeof data === "string") {
-                                if (data !== "" || data !== " ") {
-                                    break;
+                                // @ts-ignore
+                                if (data !== "" && data !== " " && data.length > 0) {
+                                    return;
                                 }
+                            } else if (typeof data === "number") {
+                                return;
+                            } else if (typeof data === "object" && data !== null) {
+                                return;
                             }
-                        }
+                            data = _.get(main_data, sel);
+                        });
                     } else {
                         data = _.get(main_data, value);
                     }
@@ -160,11 +162,13 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                         if (convType === "float" || convType === "int") {
                             // @ts-ignore
                             data = parseFloat(data);
-                        } else if (convType === "str") {
+                        } else if (convType === "str" && typeof data !== "string") {
+                            // @ts-ignore
                             data = data.toString();
                         }
                     }
                     if (typeof sep === "string" && typeof data === "string") {
+                        // @ts-ignore
                         data = data.split(sep);
                     }
                     return data;
@@ -207,11 +211,18 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
         return finalized;
     }
 
-    protected async xmlToJSON<R extends AnyDict>(xmlData: string, path: string): Promise<R[]> {
+    protected async xmlToJSON<R extends AnyDict>(
+        xmlData: string,
+        path?: string,
+        useAttrs: boolean = true
+    ): Promise<R[] | R> {
         const parsedXML = await xml2js.parseStringPromise(xmlData);
+        if (typeof path === "undefined") {
+            return useAttrs ? parsedXML["$"] : parsedXML;
+        }
         const selectedList: AnyDict[] = _.get(parsedXML, path);
         const remapped: R[] = selectedList.map((res: AnyDict) => {
-            return res["$"];
+            return useAttrs ? res["$"] : res;
         });
         return remapped;
     }
