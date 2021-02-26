@@ -10,7 +10,14 @@ interface AnyDict {
     [key: string]: any;
 }
 
-export class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
+export interface ImageBoardResultsBase<TRes> {
+    results: TRes[];
+    total_data: number;
+    engine: string;
+    isError: boolean;
+}
+
+class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
     protected sesi: AxiosInstance;
     protected mappings!: TMapping;
     protected logger!: Logger;
@@ -128,4 +135,12 @@ export class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
         const finalized = await Promise.all(tasksManager);
         return finalized;
     }
+}
+
+export abstract class ImageBoardBase<TRes extends AnyDict, TMap extends AnyDict> extends ImageBoard<
+    TRes,
+    TMap
+> {
+    abstract search(query: string[]): Promise<ImageBoardResultsBase<TRes>>;
+    abstract random(query: string[]): Promise<ImageBoardResultsBase<TRes>>;
 }
