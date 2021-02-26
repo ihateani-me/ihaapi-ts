@@ -42,12 +42,12 @@ export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMappin
         this.logger = MainLogger.child({ cls: "GelbooruBoard" });
         this.mappings = {
             id: "id",
-            title: "tags",
+            title: "title||tags",
             tags: "++ ++tags",
             source: "source",
             thumbnail: "preview_url",
             image_url: "file_url",
-            image_info: { w: "width", h: "height" },
+            image_info: { w: "width##int", h: "height##int" },
         };
         this.apiKey =
             typeof config["imageboard"]["gelbooru"]["api_key"] === "string"
