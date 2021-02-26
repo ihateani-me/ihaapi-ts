@@ -122,3 +122,5 @@ src/graphql/datasources/private
 src/graphql/schemas/private
 src/graphql/resolvers/private
 src/views/private
+
+tools/uploader.js
