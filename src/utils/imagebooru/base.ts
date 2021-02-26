@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
+import xml2js from "xml2js";
 
 import { is_none } from "../swissknife";
 
@@ -6,7 +7,7 @@ import packageJson from "../../../package.json";
 import { Logger } from "winston";
 import _ from "lodash";
 
-interface AnyDict {
+export interface AnyDict {
     [key: string]: any;
 }
 
@@ -17,21 +18,26 @@ export interface ImageBoardResultsBase<TRes> {
     isError: boolean;
 }
 
+const CHROME_UA =
+    // eslint-disable-next-line max-len
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36";
+const IHAAPI_UA = `ihaapi-ts/${packageJson["version"]} (https://github.com/ihateani-me/ihaapi-ts)`;
+
 class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
     protected sesi: AxiosInstance;
     protected mappings!: TMapping;
     protected logger!: Logger;
 
-    constructor(BASE_URL: string) {
+    constructor(BASE_URL: string, useChromeUA: boolean = false) {
         this.sesi = axios.create({
             headers: {
-                "User-Agent": `ihaapi-ts/${packageJson["version"]} (https://github.com/ihateani-me/ihaapi-ts)`,
+                "User-Agent": useChromeUA ? CHROME_UA : IHAAPI_UA,
             },
             baseURL: BASE_URL,
         });
     }
 
-    protected async request<R extends { [key: string]: any }>(
+    protected async request<R>(
         method: Method,
         path: string,
         extraArgs: AxiosRequestConfig
@@ -53,7 +59,8 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
         }
         return [resp.data, resp.status];
     }
-    async parseJson<R extends { [key: string]: any }>(dataset: R | R[]): Promise<TResult[]> {
+
+    protected async parseJson<R extends { [key: string]: any }>(dataset: R | R[]): Promise<TResult[]> {
         const logger = this.logger.child({ fn: "parseJson" });
         let properDataset: R[];
         if (!Array.isArray(dataset)) {
@@ -134,6 +141,15 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
 
         const finalized = await Promise.all(tasksManager);
         return finalized;
+    }
+
+    protected async xmlToJSON<R extends AnyDict>(xmlData: string, path: string): Promise<R[]> {
+        const parsedXML = await xml2js.parseStringPromise(xmlData);
+        const selectedList: AnyDict[] = _.get(parsedXML, path);
+        const remapped: R[] = selectedList.map((res: AnyDict) => {
+            return res["$"];
+        });
+        return remapped;
     }
 }
 
