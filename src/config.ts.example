@@ -1,3 +1,5 @@
+import { Nullable } from "./utils/swissknife";
+
 interface IAPIConfiguration {
     mongodb: {
         uri: string;
@@ -25,6 +27,20 @@ interface IAPIConfiguration {
         twitch: {
             client?: string | null;
             secret?: string | null;
+        };
+    };
+    imageboard: {
+        enabled: boolean;
+        danbooru: {
+            enable?: boolean;
+        };
+        konachan: {
+            enable?: boolean;
+        };
+        gelbooru: {
+            enable?: boolean;
+            user_id?: Nullable<string>;
+            api_key?: Nullable<string>;
         };
     };
     features: {
@@ -111,6 +127,29 @@ const CONFIGURATION: IAPIConfiguration = {
             client: null,
             secret: null,
         }
+    },
+    /**
+     * Image Booru API Helper
+     * -----------------------------
+     *
+     * `enabled` key are global, if set to enable it will default everything to the one that being set.
+     * It can be overriden by setting it per "Boord".
+     *
+     * Gelbooru: You can use your own User ID and API Key to bypass some restrictions (default to `null`)
+     */
+    imageboard: {
+        enabled: true,
+        danbooru: {
+            enable: true,
+        },
+        konachan: {
+            enable: true,
+        },
+        gelbooru: {
+            enable: true,
+            user_id: null,
+            api_key: null,
+        },
     },
     /**
      * This is extra feature that the API can have
