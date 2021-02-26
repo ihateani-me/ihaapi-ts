@@ -19,5 +19,5 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: 22
           script: |
-            curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" ${{ secrets.CONFIG_PATH }} > /var/www/ihaapi-ts/testSubject
+            curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" ${{ secrets.CONFIG_PATH }} > /var/www/ihaapi-ts/src/config.ts
             sh /var/www/ihaapi-ts/deploy.sh
