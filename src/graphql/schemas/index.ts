@@ -92,8 +92,8 @@ export const v2Definitions = gql`
     }
 
     type ImageBoardQuery {
-        search(tags: [String], engine: [BoardEngine] = [danbooru]): ImageBoardResults!
-        random(tags: [String], engine: [BoardEngine] = [danbooru]): ImageBoardResults!
+        search(tags: [String], engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
+        random(tags: [String], engine: [BoardEngine!]! = [danbooru]): ImageBoardResults!
     }
 
     type Query {
