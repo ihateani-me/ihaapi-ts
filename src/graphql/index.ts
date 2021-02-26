@@ -3,7 +3,7 @@ import { ApolloServer } from "apollo-server-express";
 import { ApolloServerPluginInlineTraceDisabled } from "apollo-server-core";
 
 import { CustomRedisCache } from "./caches/redis";
-import { nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
+import { ImageBooruSchemas, nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
 import { v2Resolvers } from "./resolvers";
 import { SubscriptionResolver, v2SubscriptionSchemas } from "./subscription";
 import { IQDBAPI, SauceNAOAPI } from "./datasources";
@@ -24,7 +24,7 @@ const cacheServers = new CustomRedisCache({
     password: is_none(REDIS_PASSWORD) ? undefined : REDIS_PASSWORD,
 });
 
-let typeDefs = [VTAPIv2, SauceAPIGQL, nHGQLSchemas, v2Definitions];
+let typeDefs = [VTAPIv2, SauceAPIGQL, nHGQLSchemas, ImageBooruSchemas, v2Definitions];
 const v2ResolversFinal = v2Resolvers;
 if (!is_none(process.env.REPLICA_SET) && process.env.REPLICA_SET.length > 0) {
     logger.info("Enabling replica subscription (schemas)...");
