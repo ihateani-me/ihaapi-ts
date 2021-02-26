@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
 import xml2js from "xml2js";
 
-import { is_none } from "../swissknife";
+import { filter_empty, is_none } from "../swissknife";
 
 import packageJson from "../../../package.json";
 import { Logger } from "winston";
@@ -88,19 +88,21 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                         if (typeof value === "string" && value.includes("||")) {
                             selectFallback = value.split("||");
                         }
-                        let data;
+                        let data: string | number | string[] | R[any] | null | undefined;
                         if (typeof selectFallback !== "undefined") {
-                            for (let i = 0; i < selectFallback.length; i++) {
-                                data = _.get(main_data, selectFallback[i]);
-                                if (!is_none(data)) {
-                                    break;
-                                }
+                            selectFallback.forEach((sel) => {
                                 if (typeof data === "string") {
-                                    if (data !== "" || data !== " ") {
-                                        break;
+                                    // @ts-ignore
+                                    if (data !== "" && data !== " " && data.length > 0) {
+                                        return;
                                     }
+                                } else if (typeof data === "number") {
+                                    return;
+                                } else if (typeof data === "object" && data !== null) {
+                                    return;
                                 }
-                            }
+                                data = _.get(main_data, sel);
+                            });
                         } else {
                             data = _.get(main_data, value);
                         }
@@ -113,15 +115,17 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                                 // @ts-ignore
                                 data = parseFloat(data);
                             } else if (convType === "str") {
+                                // @ts-ignore
                                 data = data.toString();
                             }
                         }
                         if (typeof sep === "string" && typeof data === "string") {
-                            data = data.split(sep);
+                            // @ts-ignore
+                            data = filter_empty(data.split(sep));
                         }
                         collectVal.push(data);
                     });
-                    return collectVal;
+                    return filter_empty(collectVal);
                 } else {
                     let sep;
                     if (typeof value === "string" && value.startsWith("++")) {
@@ -169,7 +173,7 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                     }
                     if (typeof sep === "string" && typeof data === "string") {
                         // @ts-ignore
-                        data = data.split(sep);
+                        data = filter_empty(data.split(sep));
                     }
                     return data;
                 }
