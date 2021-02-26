@@ -36,8 +36,11 @@ interface KonachanMapping {
 }
 
 export class KonachanBoard extends ImageBoardBase<KonachanResult, KonachanMapping> {
-    constructor() {
+    private familyFriendly: boolean;
+
+    constructor(safe_version = false) {
         super("https://konachan.net");
+        this.familyFriendly = safe_version;
         this.logger = MainLogger.child({ cls: "KonachanBoard" });
         this.mappings = {
             id: "id",
@@ -58,8 +61,18 @@ export class KonachanBoard extends ImageBoardBase<KonachanResult, KonachanMappin
             limit: 15,
             page: page,
         };
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = this.normalizeTags(query);
+        if (this.familyFriendly) {
+            const redoneTags: string[] = [];
+            query.forEach((tag) => {
+                if (tag.includes("rating:")) {
+                    return;
+                }
+                redoneTags.push(tag);
+            });
+            redoneTags.push("rating:safe");
+            query = redoneTags;
+        }
         if (query.length > 0) {
             params["tags"] = query.join("+");
         }
@@ -87,8 +100,7 @@ export class KonachanBoard extends ImageBoardBase<KonachanResult, KonachanMappin
     }
 
     async random(query: string[] = []): Promise<ImageBoardResultsBase<KonachanResult>> {
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = this.normalizeTags(query);
         query = query.filter((tag) => !tag.startsWith("order:")); // remove any order: tag
         if (!query.includes("order:random")) {
             query.push("order:random");

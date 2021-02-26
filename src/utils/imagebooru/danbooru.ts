@@ -63,6 +63,7 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
             limit: 15,
             page: page,
         };
+        query = this.normalizeTags(query);
         if (this.familyFriendly) {
             const redoneTags: string[] = [];
             query.forEach((tag) => {
@@ -74,8 +75,6 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
             redoneTags.push("rating:safe");
             query = redoneTags;
         }
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
         if (query.length > 0) {
             params["tags"] = query.join("+");
         }
@@ -103,8 +102,7 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
     }
 
     async random(query: string[] = [], page = 1): Promise<ImageBoardResultsBase<DanbooruResult>> {
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = this.normalizeTags(query);
         query = query.filter((tag) => !tag.startsWith("order:")); // remove any order: tag
         if (!query.includes("order:random")) {
             query.push("order:random");

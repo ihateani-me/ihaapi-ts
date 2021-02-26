@@ -36,9 +36,11 @@ interface GelbooruMapping {
 export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMapping> {
     private apiKey: string;
     private userId: string;
+    private familyFriendly: boolean;
 
-    constructor() {
+    constructor(safe_version = false) {
         super("https://gelbooru.com");
+        this.familyFriendly = safe_version;
         this.logger = MainLogger.child({ cls: "GelbooruBoard" });
         this.mappings = {
             id: "id",
@@ -70,8 +72,18 @@ export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMappin
             api_key: this.apiKey,
             user_id: this.userId,
         };
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = this.normalizeTags(query);
+        if (this.familyFriendly) {
+            const redoneTags: string[] = [];
+            query.forEach((tag) => {
+                if (tag.includes("rating:")) {
+                    return;
+                }
+                redoneTags.push(tag);
+            });
+            redoneTags.push("rating:safe");
+            query = redoneTags;
+        }
         if (query.length > 0) {
             params["tags"] = query.join("+");
         }
@@ -100,8 +112,7 @@ export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMappin
     }
 
     async random(query: string[] = [], page = 1): Promise<ImageBoardResultsBase<GelbooruResult>> {
-        query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
-        query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
+        query = this.normalizeTags(query);
         query = query.filter((tag) => !tag.startsWith("order:")); // remove any order: tag
         if (!query.includes("order:random")) {
             query.push("order:random");
