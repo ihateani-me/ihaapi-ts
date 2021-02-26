@@ -84,6 +84,11 @@ export interface ImageBoardResult {
     engine: BoardEngine;
 }
 
+export interface ImageBoardResults {
+    results: ImageBoardResults[] | never[];
+    total: number;
+}
+
 export interface ImageBoardParams {
     tags?: string[];
     page: number;
