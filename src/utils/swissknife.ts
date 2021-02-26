@@ -235,3 +235,7 @@ export function generateCustomString(length = 8, includeNumbers = false, include
     }
     return generated;
 }
+
+export function numMoreThan(number: number, min: number = 0): number {
+    return number < min ? min : number;
+}
