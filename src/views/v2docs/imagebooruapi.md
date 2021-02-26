@@ -4,9 +4,9 @@ An API wrapper for Booru-like Image Board (Danbooru, Gelbooru, etc.)
 
 **Supported Image Board**:
 - [Danbooru](https://danbooru.donmai.us/)
-- [Safebooru](https://danbooru.donmai.us/posts?tags=rating%3As) (Danbooru)
 - [Konachan](https://konachan.net/post)
 - [Gelbooru](https://gelbooru.com/index.php?page=post&s=list&tags=all)
+- [E621](https://e621.net/)
 
 **Table of Contents**:
 - [Schemas](#schemas)
@@ -82,6 +82,7 @@ The Image Booru API accepts 3 variables:
 - **tags**: this will be your tags params in list (maximum of 2, excluding meta tags)
 - **page**: the page that will be returned
 - **engine**: The engiine that will be used, must be a list.
+- **safeVersion**: a boolean, set to `true` to only return "safe" version.
 
 **tags** can be empty
 
