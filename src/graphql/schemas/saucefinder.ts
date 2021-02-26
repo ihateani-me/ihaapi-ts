@@ -49,6 +49,9 @@ export const SauceAPIGQL = gql`
         indexer: String
     }
 
+    """
+    The sauce results of the provided image
+    """
     type SauceResource {
         "Total matches"
         _total: Int!
