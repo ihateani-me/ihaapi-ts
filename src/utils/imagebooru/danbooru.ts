@@ -46,8 +46,8 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
         this.logger = MainLogger.child({ cls: "DanbooruBoard" });
         this.mappings = {
             id: "id",
-            title: "tag_string_character",
-            tags: "++ ++tag_string",
+            title: "tag_string_character||tag_string_copyright||tag_string_general||tag_string",
+            tags: "++ ++tag_string_general||tag_string",
             meta: "++ ++tag_string_meta",
             artist: "++ ++tag_string_artist",
             source: "source",
