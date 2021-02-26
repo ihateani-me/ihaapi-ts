@@ -11,5 +11,5 @@ npm run build
 
 # Supress output
 echo "Restarting PM2 ihaAPI process"
-pm2 restart ihaAPI &> /dev/null
+pm2 --silent restart ihaAPI &> /dev/null
 echo "Process ihaAPI is restarted!"
