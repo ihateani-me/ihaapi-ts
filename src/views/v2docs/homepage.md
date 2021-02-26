@@ -26,3 +26,8 @@ This is a wrapper for nHentai, this also includes a support of Image Proxy to by
 The Image Proxy are located in the /v1/ endpoint
 
 **See: [nHentai API](nhentaiapi.md)**
+
+## ImageBooru API {docsify-ignore}
+This is a wrapper of multiple Booru-like Image Board.
+
+**See: [ImageBooru API](imagebooruapi.md)**
