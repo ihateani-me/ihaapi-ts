@@ -24,8 +24,20 @@ export function filter_empty(data: null | any[]): any[] {
         return [];
     }
     data.forEach((val) => {
-        if (val) {
+        if (typeof val === "string") {
+            if (val && val !== " " && val.length > 0) {
+                filtered.push(val);
+            }
+        } else if (Array.isArray(val)) {
+            if (val.length > 0) {
+                filtered.push(val);
+            }
+        } else if (typeof val === "number") {
             filtered.push(val);
+        } else if (typeof val === "object" && !Array.isArray(val)) {
+            if (Object.keys(val).length > 0) {
+                filtered.push(val);
+            }
         }
     });
     return filtered;

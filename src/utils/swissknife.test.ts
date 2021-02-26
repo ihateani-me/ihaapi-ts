@@ -12,10 +12,19 @@ describe("Filter out empty data from Array", () => {
         expect(SwissKnife.filter_empty(["one"])).toEqual(["one"]);
     });
     test("Multiple data passed (with no empty data).", () => {
-        expect(SwissKnife.filter_empty(["one", "two", "three"])).toStrictEqual(["one", "two", "three"]);
+        expect(SwissKnife.filter_empty(["one", "two", "three", ["a"], 0, { a: 1 }])).toStrictEqual([
+            "one",
+            "two",
+            "three",
+            ["a"],
+            0,
+            { a: 1 },
+        ]);
     });
-    test("Multiple data passed (with one empty data).", () => {
-        expect(SwissKnife.filter_empty(["one", "two", "", "three"])).toStrictEqual(["one", "two", "three"]);
+    test("Multiple data passed (with empty data).", () => {
+        expect(
+            SwissKnife.filter_empty(["one", "two", "", "three", [], ["a"], 0, {}, { a: 1 }])
+        ).toStrictEqual(["one", "two", "three", ["a"], 0, { a: 1 }]);
     });
 });
 
