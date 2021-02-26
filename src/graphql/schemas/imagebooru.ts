@@ -12,6 +12,8 @@ export const ImageBooruSchemas = gql`
         safebooru
         "konachan.net"
         konachan
+        "gelbooru.net"
+        gelbooru
     }
 
     type ImageInfo {
@@ -59,7 +61,7 @@ export const ImageBooruSchemas = gql`
     }
 `;
 
-export type BoardEngine = "danbooru" | "safebooru" | "konachan";
+export type BoardEngine = "danbooru" | "safebooru" | "konachan" | "gelbooru";
 
 export interface ImageInfo {
     w?: Nullable<number>;
