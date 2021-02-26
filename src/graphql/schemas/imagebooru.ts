@@ -8,6 +8,8 @@ export const ImageBooruSchemas = gql`
     enum BoardEngine {
         "danbooru.donmai.us"
         danbooru
+        "danbooru.donmai.us with rating:safe"
+        safebooru
     }
 
     type ImageInfo {
@@ -55,7 +57,7 @@ export const ImageBooruSchemas = gql`
     }
 `;
 
-export type BoardEngine = "danbooru";
+export type BoardEngine = "danbooru" | "safebooru";
 
 export interface ImageInfo {
     w?: Nullable<number>;

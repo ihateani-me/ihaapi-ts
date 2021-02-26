@@ -88,26 +88,26 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
             resultsFinal = {
                 results: parsedResults,
                 total_data: parsedResults.length,
-                engine: "danbooru",
+                engine: this.familyFriendly ? "safebooru" : "danbooru",
                 isError: false,
             };
         } else {
             resultsFinal = {
                 results: [],
                 total_data: 0,
-                engine: "danbooru",
+                engine: this.familyFriendly ? "safebooru" : "danbooru",
                 isError: true,
             };
         }
         return resultsFinal;
     }
 
-    async random(query: string[] = []): Promise<ImageBoardResultsBase<DanbooruResult>> {
+    async random(query: string[] = [], page = 1): Promise<ImageBoardResultsBase<DanbooruResult>> {
         query = query.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
         if (!query.includes("order:random")) {
             query.push("order:random");
         }
         query = query.map((tag) => tag.replace(" ", "_").toLowerCase());
-        return await this.search(query);
+        return await this.search(query, page);
     }
 }
