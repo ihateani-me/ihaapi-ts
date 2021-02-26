@@ -183,7 +183,9 @@ export const v2Definitions = gql`
             "The page you want to see"
             page: Int = 1
             "The engine/backend to use"
-            engine: [BoardEngine!]! = [danbooru, konachan, gelbooru]
+            engine: [BoardEngine!]! = [danbooru, konachan, gelbooru, e621]
+            "Force safe result or not (rating:safe)"
+            safeVersion: Boolean! = false
         ): ImageBoardResults!
         "Search the Image board with the tags params for your search query, this will randomized the order."
         random(
@@ -192,7 +194,9 @@ export const v2Definitions = gql`
             "The page you want to see"
             page: Int = 1
             "The engine/backend to use"
-            engine: [BoardEngine!]! = [danbooru, konachan, gelbooru]
+            engine: [BoardEngine!]! = [danbooru, konachan, gelbooru, e621]
+            "Force safe result or not (rating:safe)"
+            safeVersion: Boolean! = false
         ): ImageBoardResults!
     }
 

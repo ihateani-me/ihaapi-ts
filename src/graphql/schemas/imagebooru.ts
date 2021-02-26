@@ -8,12 +8,12 @@ export const ImageBooruSchemas = gql`
     enum BoardEngine {
         "danbooru.donmai.us"
         danbooru
-        "danbooru.donmai.us with rating:safe"
-        safebooru
         "konachan.net"
         konachan
         "gelbooru.net"
         gelbooru
+        "e621.net"
+        e621
     }
 
     type ImageInfo {
@@ -61,7 +61,7 @@ export const ImageBooruSchemas = gql`
     }
 `;
 
-export type BoardEngine = "danbooru" | "safebooru" | "konachan" | "gelbooru";
+export type BoardEngine = "danbooru" | "konachan" | "gelbooru" | "e621";
 
 export interface ImageInfo {
     w?: Nullable<number>;
@@ -93,4 +93,5 @@ export interface ImageBoardParams {
     tags?: string[];
     page: number;
     engine: BoardEngine[];
+    safeVersion: boolean;
 }

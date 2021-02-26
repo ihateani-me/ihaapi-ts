@@ -7,7 +7,7 @@ import { GraphQLJSON } from "graphql-type-json";
 import { BoardEngine, ImageBoardParams, ImageBoardResult, ImageBoardResults } from "../schemas";
 import { CustomRedisCache } from "../caches/redis";
 
-import { DanbooruBoard, GelbooruBoard, KonachanBoard } from "../../utils/imagebooru";
+import { DanbooruBoard, E621Board, GelbooruBoard, KonachanBoard } from "../../utils/imagebooru";
 import { ImageBoardResultsBase } from "../../utils/imagebooru/base";
 import { logger as TopLogger } from "../../utils/logger";
 import _ from "lodash";
@@ -21,9 +21,16 @@ interface ImageBoardContext {
 
 const ImageBoardMapping = {
     danbooru: new DanbooruBoard(),
-    safebooru: new DanbooruBoard(true),
     konachan: new KonachanBoard(),
     gelbooru: new GelbooruBoard(),
+    e621: new E621Board(),
+};
+
+const ImageBoardMappingSafe = {
+    danbooru: new DanbooruBoard(true),
+    konachan: new KonachanBoard(true),
+    gelbooru: new GelbooruBoard(true),
+    e621: new E621Board(true),
 };
 
 export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
@@ -37,8 +44,9 @@ export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
                 Object.keys(ImageBoardMapping).includes(engine.toLowerCase())
             );
             selectedEngine = selectedEngine.map((e) => e.toLowerCase() as BoardEngine);
+            const usingMappings = args.safeVersion ? ImageBoardMappingSafe : ImageBoardMapping;
             const requesterTasks = selectedEngine.map((engine) =>
-                ImageBoardMapping[engine]
+                usingMappings[engine]
                     .search(args.tags, args.page)
                     // @ts-ignore
                     .then((res: ImageBoardResultsBase<ImageBoardResult>) => {
@@ -70,8 +78,9 @@ export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
                 Object.keys(ImageBoardMapping).includes(engine.toLowerCase())
             );
             selectedEngine = selectedEngine.map((e) => e.toLowerCase() as BoardEngine);
+            const usingMappings = args.safeVersion ? ImageBoardMappingSafe : ImageBoardMapping;
             const requesterTasks = selectedEngine.map((engine) =>
-                ImageBoardMapping[engine]
+                usingMappings[engine]
                     .random(args.tags, args.page)
                     // @ts-ignore
                     .then((res: ImageBoardResultsBase<ImageBoardResult>) => {
