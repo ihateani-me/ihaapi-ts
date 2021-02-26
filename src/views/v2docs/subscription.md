@@ -1,5 +1,7 @@
 # GraphQL Subscription
 
+!> Incomplete documentation!
+
 Subscription is a GraphQL operation that use the WebSockets Protocol to send data over each other.<br>
 Essentially giving live update of changes of the API.
 

@@ -39,10 +39,15 @@ export const VTAPIv2 = gql`
     The Platform the stream was running on, its self-explanatory
     """
     enum PlatformName {
+        "youtube.com"
         youtube
+        "bilibili.com"
         bilibili
+        "twitch.tv"
         twitch
+        "twitcasting.tv"
         twitcasting
+        "mildom.com"
         mildom
     }
 

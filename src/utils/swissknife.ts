@@ -24,8 +24,20 @@ export function filter_empty(data: null | any[]): any[] {
         return [];
     }
     data.forEach((val) => {
-        if (val) {
+        if (typeof val === "string") {
+            if (val && val !== " " && val.length > 0) {
+                filtered.push(val);
+            }
+        } else if (Array.isArray(val)) {
+            if (val.length > 0) {
+                filtered.push(val);
+            }
+        } else if (typeof val === "number") {
             filtered.push(val);
+        } else if (typeof val === "object" && !Array.isArray(val)) {
+            if (Object.keys(val).length > 0) {
+                filtered.push(val);
+            }
         }
     });
     return filtered;
@@ -234,4 +246,8 @@ export function generateCustomString(length = 8, includeNumbers = false, include
         generated += letters_used.charAt(rng(charlengths));
     }
     return generated;
+}
+
+export function numMoreThan(number: number, min: number = 0): number {
+    return number < min ? min : number;
 }

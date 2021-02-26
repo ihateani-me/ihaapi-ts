@@ -4,6 +4,7 @@ import { IResolvers } from "apollo-server-express";
 import { SauceGQLResoler } from "./saucefinder";
 import { VTAPIv2Resolvers } from "./vtapi";
 import { nhGQLResolvers } from "./nh";
+import { ImageBooruGQLResolver } from "./imagebooru";
 
 export * from "./vtapi";
 export * from "./nh";
@@ -14,10 +15,12 @@ const multiResolvers: IResolvers = {
         vtuber: () => ({}),
         sauce: () => ({}),
         nhentai: () => ({}),
+        imagebooru: () => ({}),
     },
     VTuberQuery: VTAPIv2Resolvers["Query"],
     SauceQuery: SauceGQLResoler["Query"],
     nHentaiQuery: nhGQLResolvers["Query"],
+    ImageBoardQuery: ImageBooruGQLResolver["Query"],
 };
 
 const vtresolver = _.omit(VTAPIv2Resolvers, ["Query"]);
