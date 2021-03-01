@@ -113,7 +113,7 @@ app.get("/", (_, res) => {
 });
 
 app.get("/changelog", (_, res) => {
-    const CHANGELOGS_FILE = readFileSync(path.join(__dirname, "changelog.json")).toString();
+    const CHANGELOGS_FILE = readFileSync(path.join(__dirname, "..", "src", "changelog.json")).toString();
     res.render("changelog", {
         CHANGELOGS: JSON.parse(CHANGELOGS_FILE),
     });
