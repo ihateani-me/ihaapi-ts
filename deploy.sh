@@ -6,7 +6,7 @@ cd /var/www/ihaapi-ts
 
 git pull
 
-npm install
+npm ci
 npm run build
 
 # Supress output
