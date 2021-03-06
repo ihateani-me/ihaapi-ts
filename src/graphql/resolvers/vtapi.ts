@@ -782,14 +782,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
+            let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
+            let nextCursor;
+            if (hasNextPage) {
+                nextCursor = _.get(_.get(results, "pageInfo", {}), "nextCursor", null);
+            } else {
+                nextCursor = null;
+            }
+            if (is_none(nextCursor)) {
+                hasNextPage = false;
+            }
             const final_results: LivesResource = {
                 _total: _.get(_.get(results, "pageInfo", {}), "totalData", 0) || 0,
                 items: results.docs,
                 pageInfo: {
                     total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: _.get(_.get(results, "pageInfo", {}), "nextCursor", null),
-                    hasNextPage: _.get(_.get(results, "pageInfo", {}), "hasNextPage", false),
+                    nextCursor: nextCursor,
+                    hasNextPage: hasNextPage,
                 },
             };
 
@@ -828,14 +838,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
+            let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
+            let nextCursor;
+            if (hasNextPage) {
+                nextCursor = _.get(_.get(results, "pageInfo", {}), "nextCursor", null);
+            } else {
+                nextCursor = null;
+            }
+            if (is_none(nextCursor)) {
+                hasNextPage = false;
+            }
             const final_results: LivesResource = {
                 _total: _.get(_.get(results, "pageInfo", {}), "totalData", 0) || 0,
                 items: results.docs,
                 pageInfo: {
                     total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: _.get(_.get(results, "pageInfo", {}), "nextCursor", null),
-                    hasNextPage: _.get(_.get(results, "pageInfo", {}), "hasNextPage", false),
+                    nextCursor: nextCursor,
+                    hasNextPage: hasNextPage,
                 },
             };
             return final_results;
@@ -871,14 +891,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=300");
                 }
             }
+            let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
+            let nextCursor;
+            if (hasNextPage) {
+                nextCursor = _.get(_.get(results, "pageInfo", {}), "nextCursor", null);
+            } else {
+                nextCursor = null;
+            }
+            if (is_none(nextCursor)) {
+                hasNextPage = false;
+            }
             const final_results: LivesResource = {
                 _total: _.get(_.get(results, "pageInfo", {}), "totalData", 0) || 0,
                 items: results.docs,
                 pageInfo: {
                     total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: _.get(_.get(results, "pageInfo", {}), "nextCursor", null),
-                    hasNextPage: _.get(_.get(results, "pageInfo", {}), "hasNextPage", false),
+                    nextCursor: nextCursor,
+                    hasNextPage: hasNextPage,
                 },
             };
             return final_results;
@@ -914,14 +944,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
+            let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
+            let nextCursor;
+            if (hasNextPage) {
+                nextCursor = _.get(_.get(results, "pageInfo", {}), "nextCursor", null);
+            } else {
+                nextCursor = null;
+            }
+            if (is_none(nextCursor)) {
+                hasNextPage = false;
+            }
             const final_results: LivesResource = {
                 _total: _.get(_.get(results, "pageInfo", {}), "totalData", 0) || 0,
                 items: results.docs,
                 pageInfo: {
                     total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: _.get(_.get(results, "pageInfo", {}), "nextCursor", null),
-                    hasNextPage: _.get(_.get(results, "pageInfo", {}), "hasNextPage", false),
+                    nextCursor: nextCursor,
+                    hasNextPage: hasNextPage,
                 },
             };
             return final_results;
@@ -973,14 +1013,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
+            let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
+            let nextCursor;
+            if (hasNextPage) {
+                nextCursor = _.get(_.get(results, "pageInfo", {}), "nextCursor", null);
+            } else {
+                nextCursor = null;
+            }
+            if (is_none(nextCursor)) {
+                hasNextPage = false;
+            }
             const final_results: ChannelsResource = {
                 _total: _.get(_.get(results, "pageInfo", {}), "totalData", 0) || 0,
                 items: results.docs,
                 pageInfo: {
                     total_results: results.docs.length,
                     results_per_page: limit,
-                    nextCursor: _.get(_.get(results, "pageInfo", {}), "nextCursor", null),
-                    hasNextPage: _.get(_.get(results, "pageInfo", {}), "hasNextPage", false),
+                    nextCursor: nextCursor,
+                    hasNextPage: hasNextPage,
                 },
             };
             return final_results;
