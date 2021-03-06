@@ -25,7 +25,14 @@ import { VTAPIDataSources } from "../datasources";
 import { ChannelsProps, VideoProps } from "../../controller/models";
 import { CustomRedisCache } from "../caches/redis";
 import { getGroup } from "../../utils/filters";
-import { fallbackNaN, getValueFromKey, is_none, map_bool, Nullable } from "../../utils/swissknife";
+import {
+    fallbackNaN,
+    getValueFromKey,
+    is_none,
+    map_bool,
+    Nullable,
+    validateListData,
+} from "../../utils/swissknife";
 import { logger as TopLogger } from "../../utils/logger";
 import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagination";
 
@@ -541,15 +548,23 @@ class VTAPIQuery {
 
 const VTPrefix = "vtapi-gqlcache";
 function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
-    const groups_filters = getValueFromKey(args, "groups", []) as string[];
-    const channels_filters = getValueFromKey(args, "channel_id", []) as string[];
-    const platforms = getValueFromKey(args, "platforms", [
-        "youtube",
-        "bilibili",
-        "twitch",
-        "twitcasting",
-        "mildom",
-    ]) as PlatformName[];
+    const groups_filters = validateListData(
+        getValueFromKey(args, "groups", [], true) as string[],
+        "string"
+    ) as string[];
+    const channels_filters = validateListData(
+        getValueFromKey(args, "channel_id", [], true) as string[],
+        "string"
+    ) as string[];
+    const platforms = validateListData(
+        getValueFromKey(
+            args,
+            "platforms",
+            ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+            true
+        ) as PlatformName[],
+        "string"
+    ) as PlatformName[];
     const sortBy: string =
         "-sort_" +
         getValueFromKey(
@@ -559,14 +574,19 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
                 ? "timeData.startTime"
                 : type === "past"
                 ? "timeData.endTime"
-                : "timeData.publishedAt"
+                : "timeData.publishedAt",
+            true
         );
-    let sortOrder = getValueFromKey(args, "sort_order", "asc") as SortOrder;
+    let sortOrder = getValueFromKey(args, "sort_order", "asc", true) as SortOrder;
     sortOrder = sortOrder.toLowerCase() as SortOrder;
-    let curr = getValueFromKey(args, "cursor", "nocursor") as string;
+    let curr = getValueFromKey(args, "cursor", "nocursor", true) as string;
     let lookback = "";
     if (type === "past") {
-        const max_lookback = fallbackNaN(parseInt, getValueFromKey(args, "max_lookback", 24), 24) as number;
+        const max_lookback = fallbackNaN(
+            parseInt,
+            getValueFromKey(args, "max_lookback", 24, true),
+            24
+        ) as number;
         lookback = "-lb_" + max_lookback.toString();
     }
     let lookforward = "";
@@ -648,19 +668,27 @@ function getCacheNameForChannels(
         final_name += `-platforms_${parent.platform}-ch_${parent.channel_id}`;
         return final_name;
     }
-    const groups_filters = getValueFromKey(args, "groups", []) as string[];
-    const channels_filters = getValueFromKey(args, "id", []) as string[];
-    const platforms = getValueFromKey(args, "platforms", [
-        "youtube",
-        "bilibili",
-        "twitch",
-        "twitcasting",
-        "mildom",
-    ]) as PlatformName[];
-    const sortBy = "-sort_" + getValueFromKey(args, "sort_by", "publishedAt");
-    let sortOrder = getValueFromKey(args, "sort_order", "asc") as SortOrder;
+    const groups_filters = validateListData(
+        getValueFromKey(args, "groups", [], true) as string[],
+        "string"
+    ) as string[];
+    const channels_filters = validateListData(
+        getValueFromKey(args, "id", [], true) as string[],
+        "string"
+    ) as string[];
+    const platforms = validateListData(
+        getValueFromKey(
+            args,
+            "platforms",
+            ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+            true
+        ) as PlatformName[],
+        "string"
+    ) as PlatformName[];
+    const sortBy = "-sort_" + getValueFromKey(args, "sort_by", "publishedAt", true);
+    let sortOrder = getValueFromKey(args, "sort_order", "asc", true) as SortOrder;
     sortOrder = sortOrder.toLowerCase() as SortOrder;
-    const curr = "-cur_" + getValueFromKey(args, "cursor", "nocursor");
+    const curr = "-cur_" + getValueFromKey(args, "cursor", "nocursor", true);
     const limit_val = fallbackNaN(parseInt, getValueFromKey(args, "limit", 25), 25) as number;
     const limit = "-l" + limit_val.toString();
     if (!["asc", "ascending", "desc", "descending"].includes(sortOrder)) {
