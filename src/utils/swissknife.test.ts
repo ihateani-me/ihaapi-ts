@@ -70,6 +70,11 @@ describe("Get value from Object by a certain key.", () => {
     test("Data passed. --> {data: 'test', id: 123} get `id`", () => {
         expect(SwissKnife.getValueFromKey({ data: "test", id: 123 }, "id")).toStrictEqual(123);
     });
+    test("Data passed,  --> {data: null, id: 123} get `data`, with content check and fallback", () => {
+        expect(SwissKnife.getValueFromKey({ id: 123, data: null }, "data", "default", true)).toStrictEqual(
+            "default"
+        );
+    });
 });
 
 // is_none()
@@ -280,5 +285,21 @@ describe("Check if number more than minimum", () => {
     });
     it("Passed a number that is less than the minimum (with a custom min)", () => {
         expect(SwissKnife.numMoreThan(2, 4)).toEqual(4);
+    });
+});
+
+describe("Validate the content of a list to the expected data", () => {
+    it("Passed undefined", () => {
+        expect(SwissKnife.validateListData(undefined, "string")).toBeUndefined();
+    });
+    it("Passed null", () => {
+        expect(SwissKnife.validateListData(null, "string")).toBeNull();
+    });
+    it("Passed a proper list", () => {
+        expect(SwissKnife.validateListData(["a", 2, "c", "d"], "string")).toEqual(["a", "c", "d"]);
+    });
+    it("Passed data but it's not a list", () => {
+        // @ts-ignore
+        expect(SwissKnife.validateListData({ a: 1 }, "string")).toEqual({ a: 1 });
     });
 });

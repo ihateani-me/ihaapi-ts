@@ -50,8 +50,8 @@ export function filter_empty(data: null | any[]): any[] {
  * @returns { boolean } `true` or `false`
  */
 export function hasKey<T extends object, K extends keyof T>(
-    object_data: T | undefined | null,
-    key_name: K | string | undefined | null
+    object_data: T | Nulled,
+    key_name: K | string | Nulled
 ): boolean {
     if (is_none(object_data) || is_none(key_name)) {
         return false;
@@ -70,9 +70,10 @@ export function hasKey<T extends object, K extends keyof T>(
  * @returns { string } value of the inputted key.
  */
 export function getValueFromKey<T extends object, K extends keyof T, S = any>(
-    object_data: T | undefined | null,
-    key_name: K | string | undefined | null,
-    defaults: S | undefined | null = null
+    object_data: T | Nulled,
+    key_name: K | string | Nulled,
+    defaults: S | Nulled = null,
+    check_content: boolean = false
 ): T[K] | S | Nulled {
     if (is_none(object_data)) {
         if (is_none(defaults)) {
@@ -90,7 +91,13 @@ export function getValueFromKey<T extends object, K extends keyof T, S = any>(
     }
     const all_keys = Object.keys(object_data) as K[];
     const index = all_keys.findIndex((key) => key === key_name);
-    return object_data[all_keys[index]];
+    const finalData = object_data[all_keys[index]];
+    if (check_content) {
+        if (is_none(finalData)) {
+            return defaults;
+        }
+    }
+    return finalData;
 }
 
 /**
@@ -250,4 +257,31 @@ export function generateCustomString(length = 8, includeNumbers = false, include
 
 export function numMoreThan(number: number, min: number = 0): number {
     return number < min ? min : number;
+}
+
+type TypeOfCompare =
+    | "string"
+    | "number"
+    | "boolean"
+    | "function"
+    | "bigint"
+    | "object"
+    | "symbol"
+    | "undefined";
+
+export function validateListData<T extends any[]>(data: T | Nulled, expected: TypeOfCompare): T | Nulled {
+    if (is_none(data)) {
+        return data;
+    }
+    if (!Array.isArray(data)) {
+        return data;
+    }
+    // @ts-ignore
+    const properExpected: T = [];
+    data.forEach((val) => {
+        if (typeof val === expected) {
+            properExpected.push(val);
+        }
+    });
+    return properExpected;
 }
