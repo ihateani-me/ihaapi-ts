@@ -384,18 +384,22 @@ class VTAPIQuery {
         dataSources: VTAPIDataSources
     ): Promise<IPaginateResults<LiveObject>> {
         // const logger = this.logger.child({fn: "performQueryOnLive"});
-        let platforms_choices = getValueFromKey(args, "platforms", [
-            "youtube",
-            "bilibili",
-            "twitch",
-            "twitcasting",
-            "mildom",
-        ]) as PlatformName[];
+        let platforms_choices = validateListData(
+            getValueFromKey(
+                args,
+                "platforms",
+                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                true
+            ) as PlatformName[],
+            "string"
+        ) as PlatformName[];
         if (!Array.isArray(platforms_choices)) {
             platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
         }
-        const groups_choices = getValueFromKey(args, "groups", undefined);
-        let allowed_users = getValueFromKey(args, "channel_id", undefined);
+        if (Array.isArray(platforms_choices) && platforms_choices.length < 1)
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+        const groups_choices = getValueFromKey(args, "groups", undefined, true);
+        let allowed_users = getValueFromKey(args, "channel_id", undefined, true);
         const max_lookforward = fallbackNaN(
             parseFloat,
             getValueFromKey(args, "max_scheduled_time", undefined),
@@ -445,16 +449,20 @@ class VTAPIQuery {
     ): Promise<IPaginateResults<ChannelObject>> {
         let user_ids_limit =
             getValueFromKey(parents, "channel_id", null) || getValueFromKey(args, "id", null);
-        let platforms_choices = getValueFromKey(args, "platforms", [
-            "youtube",
-            "bilibili",
-            "twitch",
-            "twitcasting",
-            "mildom",
-        ]) as PlatformName[];
+        let platforms_choices = validateListData(
+            getValueFromKey(
+                args,
+                "platforms",
+                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                true
+            ) as PlatformName[],
+            "string"
+        ) as PlatformName[];
         if (!Array.isArray(platforms_choices)) {
             platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
         }
+        if (Array.isArray(platforms_choices) && platforms_choices.length < 1)
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
         if (!Array.isArray(user_ids_limit)) {
             user_ids_limit = null;
         } else if (Array.isArray(user_ids_limit)) {
