@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "clean": "rimraf build/*",
-    "compile": "tsc --build src",
+    "compile": "swc src -d build",
     "copy-assets": "node tools/copyAssets",
     "swaggerdoc": "node tools/buildSwagger",
     "swaggercheck": "node tools/validateSwagger",
@@ -53,6 +53,8 @@
   "homepage": "https://github.com/ihateani-me/ihaapi-ts#readme",
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.0.2",
+    "@swc/cli": "^0.1.35",
+    "@swc/core": "^1.2.50",
     "@types/axios": "^0.14.0",
     "@types/base64-url": "^2.2.0",
     "@types/cheerio": "^0.22.23",
@@ -64,8 +66,8 @@
     "@types/express": "^4.17.7",
     "@types/express-serve-static-core": "^4.17.13",
     "@types/express-winston": "^4.0.0",
-    "@types/feedparser": "^2.2.3",
     "@types/fs-extra": "^9.0.6",
+    "@types/hepburn": "^1.2.0",
     "@types/html-minifier": "^4.0.0",
     "@types/ioredis": "^4.19.3",
     "@types/jest": "^26.0.20",
@@ -96,7 +98,6 @@
     "typesync": "^0.8.0"
   },
   "dependencies": {
-    "@types/hepburn": "^1.2.0",
     "altair-express-middleware": "^3.1.0",
     "apollo-datasource-rest": "^0.10.0",
     "apollo-server-cache-redis": "^1.2.3",
@@ -110,7 +111,6 @@
     "ejs": "^3.1.6",
     "express": "^4.17.1",
     "express-winston": "^4.0.5",
-    "feedparser": "^2.2.10",
     "form-data": "^3.0.0",
     "graphql-type-json": "^0.3.2",
     "hepburn": "^1.2.0",
@@ -122,7 +122,6 @@
     "mongo-cursor-pagination-alt": "^1.0.0",
     "mongodb": "^3.6.4",
     "mongoose": "^5.11.15",
-    "string-to-stream": "^3.0.1",
     "ts-mongoose": "^0.0.24",
     "unofficial-jisho-api": "^2.0.13",
     "winston": "^3.3.3",

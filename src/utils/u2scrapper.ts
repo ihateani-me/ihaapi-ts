@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import _ from "lodash";
 import cheerio from "cheerio";
-import FeedParser from "feedparser";
+import xml2js from "xml2js";
 import moment from "moment-timezone";
-import stringToStream from "string-to-stream";
 import axios, { AxiosInstance } from "axios";
 
 import { filter_empty, is_none, Nullable, sortObjectsByKey } from "./swissknife";
@@ -12,6 +11,7 @@ import { logger as TopLogger } from "./logger";
 import { MongoConnection } from "../controller/mongo_client";
 
 import config from "../config";
+import { AnyDict } from "./imagebooru/base";
 
 const MainLogger = TopLogger.child({ cls: "U2Scrapper" });
 
@@ -28,8 +28,8 @@ function default_settings() {
 }
 
 interface U2RSSResults {
-    items: FeedParser.Item[];
-    meta: Nullable<{ [key: string]: any } & FeedParser.Meta>;
+    items: AnyDict[];
+    meta: AnyDict;
 }
 
 interface U2Torrent {
@@ -62,33 +62,36 @@ interface U2OfferTorrent {
 }
 
 async function feedParse(text_data: string): Promise<U2RSSResults> {
-    // @ts-ignore
-    const parser = new FeedParser({ resume_saxerror: true, addmeta: false });
-    stringToStream(text_data, "utf-8").pipe(parser);
-    const promiseRss = new Promise<U2RSSResults>((resolve, reject) => {
-        const PARSED_DATA: U2RSSResults = { items: [], meta: null };
-        parser.on("error", (err: any) => {
-            reject(err);
-        });
-
-        parser.on("readable", () => {
-            // @ts-ignore
-            const stream: FeedParser = this;
-            // @ts-ignore
-            PARSED_DATA["meta"] = stream.meta;
-            let item;
-
-            while ((item = stream.read())) {
-                PARSED_DATA["items"].push(item);
+    const parsedFeeds = await xml2js.parseStringPromise(text_data);
+    const metaData: AnyDict = _.get(parsedFeeds, "rss.channel.0");
+    const itemsSets: AnyDict[] = _.get(metaData, "item", []);
+    const metaDataParsed: AnyDict = {};
+    for (const [metaKey, metaVal] of Object.entries(metaData)) {
+        if (metaKey === "item" || metaKey === "items") {
+            continue;
+        }
+        metaDataParsed[metaKey] = metaVal[0];
+    }
+    const itemsSetsParsed = itemsSets.map((res) => {
+        const mapped: AnyDict = {};
+        for (const [key, val] of Object.entries(res)) {
+            const item = val[0];
+            if (key === "category") {
+                mapped[key] = item["_"];
+            } else if (key === "enclosure") {
+                mapped[key] = item["$"];
+            } else if (key === "guid") {
+                mapped[key] = item["_"];
+            } else {
+                mapped[key] = item;
             }
-        });
-
-        parser.on("end", () => {
-            resolve(PARSED_DATA);
-        });
+        }
+        return mapped;
     });
-
-    return await promiseRss;
+    return {
+        meta: metaDataParsed,
+        items: itemsSetsParsed,
+    };
 }
 
 class U2Sessions {
@@ -152,6 +155,7 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
         u2_res = await feedParse(res);
     } catch (err) {
         logger.error(err);
+        console.error(err);
         return [[], "Exception occured: " + err.toString()];
     }
     if (Object.keys(u2_res).length < 1) {
@@ -163,22 +167,22 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
     u2_res["items"].forEach((entry_data) => {
         // @ts-ignore
         const dataset: U2Torrent = {};
-        const title_regex = /\[(?<category>\w+)\](?<main_title>.*)\[(?<torrent_size>[\d. \w]+)\]\[(?<uploader>\w+)\]/gim;
+        const title_regex = /\[(?<category>[a-zA-Z0-9_ ]+)\](?<main_title>.*)\[(?<torrent_size>[\d. \w]+)\]\[(?<uploader>.*)\]/gim;
         const temp_title = entry_data["title"];
         const title_array = title_regex.exec(temp_title)?.groups;
         let temp_author = entry_data["author"];
-        if (temp_author.endsWith("/i")) {
-            temp_author = temp_author.slice(0, temp_author.indexOf(" "));
+        if (temp_author.includes("<i>")) {
+            temp_author = temp_author.replace(/(<i>|<\/i>)/g, "");
         }
-        const author = `${temp_author}@u2.dmhy.org (${temp_author})`;
+        const author = temp_author;
 
         const pubdate_parsed = moment(entry_data["pubdate"]);
 
         dataset["title"] = _.get(title_array, "main_title", "");
         dataset["original_title"] = temp_title;
-        dataset["category"] = entry_data["categories"][0];
+        dataset["category"] = entry_data["category"];
         dataset["link"] = entry_data["link"];
-        dataset["download_link"] = entry_data["enclosures"][0]["url"];
+        dataset["download_link"] = entry_data["enclosure"]["url"];
         dataset["author"] = author;
         dataset["size"] = _.get(title_array, "torrent_size", "0.0 B");
         dataset["publishedAt"] = pubdate_parsed.tz("Asia/Jakarta").format("ddd, DD MMM YYYY HH:mm:ss Z");
