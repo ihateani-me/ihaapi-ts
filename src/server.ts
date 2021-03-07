@@ -193,6 +193,7 @@ v1API.use("/u2", Routes.U2Routes);
 if (config.features.nhentai) {
     v1API.use("/nh", Routes.NHRoutes);
 }
+v1API.use("/jisho", Routes.JishoRoutes);
 v1API.use("/sauce", Routes.SauceRoutes);
 // Use new v1 prefix.
 app.use("/v1", v1API);

@@ -13,6 +13,7 @@ export * from "./nh";
 
 export * from "./games";
 export * from "./u2";
+export * from "./jisho";
 
 // V2 API Helper
 export * from "./vtuberapi";
