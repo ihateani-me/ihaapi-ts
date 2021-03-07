@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "clean": "rimraf build/*",
-    "compile": "swc src -d build",
+    "compile": "tsc --build src",
     "copy-assets": "node tools/copyAssets",
     "swaggerdoc": "node tools/buildSwagger",
     "swaggercheck": "node tools/validateSwagger",
