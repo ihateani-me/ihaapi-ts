@@ -4,4 +4,7 @@ module.exports = {
     verbose: true,
     silent: true,
     collectCoverage: true,
+    transform: {
+        "^.+\\.(t|j)sx?$": ["@swc/jest"],
+    },
 };
