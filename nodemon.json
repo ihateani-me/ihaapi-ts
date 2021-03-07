@@ -5,7 +5,9 @@
         "src/config.json"
     ],
     "ignore": [
-        "**/*.test.ts"
+        "**/*.test.ts",
+        "src/assets/**/*",
+        "src/views/**/*"
     ],
     "ext": "ts js"
 }
