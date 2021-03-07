@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: #272727;
+        }
+    </style>
+    <title>ihateani.me API - RapiDoc</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" href="/assets/favicon.ico">
+    <meta name="theme-color" content="#383838">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Roboto+Mono:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <!--
+        Custom RapiDoc JS, this has been customized to fit my needs.
+        Base version is 8.4.8, modification includes:
+        - Custom Vendor for Tags Title (via x-displayName)
+        - Show components on 'read' render-style.
+        - Color method on Navbar
+    -->
+    <script type="module" src="/assets/js/rapidoc-min.js"></script>
+</head>
+
+<body>
+    <rapi-doc spec-url="<%= SPEC_URL %>" show-header="false" theme="dark" render-style="read" primary-color="#3DCE70"
+        nav-bg-color="#353D42" bg-color="#272727" use-path-in-nav-bar="true" show-components="true"
+        allow-authentication="false" mono-font="Roboto Mono, Courier, monospace" regular-font="Montserrat, sans-serif">
+        <div slot="nav-logo" style="display: flex; align-items: center; justify-content: center;">
+            <img src="/assets/favicon.png" style="width:40px; margin-right: 20px"><span style="color:#fff">
+                <b>iha</b>API</span>
+        </div>
+    </rapi-doc>
+</body>
+
+</html>

@@ -135,7 +135,7 @@ app.get("/echo", (_, res) => {
 // Version 1 API
 
 app.get("/api-docs", (_, res) => {
-    res.render("redoc", {
+    res.render("rapidoc", {
         SPEC_URL: "/swagger.yml",
     });
 });

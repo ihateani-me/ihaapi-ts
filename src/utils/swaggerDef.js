@@ -8,6 +8,10 @@ The current API are written in TypeScript and was ported from Python.<br>
 Using MongoDB as it's Backend Database and Express as the Web Backend.<br>
 Everything is still being ported, v1 will be when it's finalized.
 
+**Notice**:<br>
+A new version is deployed under [/v2/graphql](/v2/graphql)<br>
+This API contains all of the [VTuber API](#tags--Hololive), [Sauce Finder API](#tag--sauce_api), and [nHentai API](#tag--nh_nsfw), including some new one like Image Booru API
+
 It's expanded so much that I don't bother hosting it on another domain.<br>
 Most of the API are hidden but you can contact me more via Email or Discord to get more info.
 
@@ -15,13 +19,10 @@ Most of the API are hidden but you can contact me more via Email or Discord to g
 Please don't just add me, after you add me start messaging me so I'll know.
 `;
 
-const VTAPI_INFORMATION = `A VTubers **API endpoint** for the new [BiliBili scheduling system](https://live.bilibili.com/p/html/live-web-calendar).<br>
-And also include API endpoint for YouTube streams, Twitcasting and Twitch Streams.<br>
-Including Channel Stats.
+const VTAPI_TEMPLATE_INFO = `This is one of the **API Endpoint** focused on VTuber, this one is handling all of {{ORG}} VTubers.<br>
 
-**DEPRECATION NOTICE** <br>
-The v1 API are going to be deprecated, it's already marked as deprecated in here,<br>
-but the real deprecation date will be on **31st January 2021**.<br>
+**DEPRECATION NOTICE**<br>
+All of this API has been deprecated in favor of the v2 GraphQL API.<br>
 Please start using the VTuber API v2 GraphQL here: [/v2/graphql](/v2/graphql)
 
 This API are updating automatically via Python appscheduler (Running on another server.):<br>
@@ -36,9 +37,36 @@ If you need more Other VTubers to add to the list.<br>
 After you add me, please Send Message directly so I'll know.
 `;
 
-const OTHERAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
-It mainly consists of **Games API** that include HowLongToBeat and Steam, **Sauce Finder API** that use SauceNAO, IQDB, and ASCII2D as available backend,<br>
-**nHentai API** that also include an Image proxier to bypass government block, and finally an **U2 API** that fetch torrents from a website called U2 DMHY (Mainly Japanese Anime torrents)
+const NHAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
+This API wrap the nHentai API and present it to a much more nice result.<br>
+This API also include an Image proxier to bypass government block.
+
+**DEPRECATION NOTICE** <br>
+Some part of this API will be deprecated in favor of a much better GraphQL version.<br>
+Date of deprecation: **31st January 2021**<br>
+Please start using GraphQL v2 API here: [/v2/graphql](/v2/graphql)
+
+The API for this are experimental and subject to change, there's already some changes between this and the original one.<br>
+I'm still planning to add more stuff, but that's for later day.<br>
+If you have more suggestion what I should add, you could contact me at **Discord: _N4O#8868_**<br>
+After you add me, please Send Message directly so I'll know.
+`;
+
+const GAMESAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
+This API consists of HowLongToBeat, Steam, and SteamDB wrapper.
+
+Steam API covers Steam User Information, Steam App Information, Steam App Search
+SteamDB coveres the App Search on the DB
+HowLongToBeat covers the *How long to beat* a games information
+
+The API for this are experimental and subject to change, there's already some changes between this and the original one.<br>
+I'm still planning to add more stuff, but that's for later day.<br>
+If you have more suggestion what I should add, you could contact me at **Discord: _N4O#8868_**<br>
+After you add me, please Send Message directly so I'll know.
+`;
+
+const SAUCEAPI_INFORMATION = `This API are already available before migration to JS, but it was hidden from Public.<br>
+This API consists of wrapping SauceNAO, IQDB, and ASCII2D for the reverse image searching backend.
 
 **DEPRECATION NOTICE** <br>
 Sauce API will be deprecated in favor of GraphQL version of it.<br>
@@ -479,78 +507,36 @@ module.exports = {
     },
     servers: [
         {
-            url: "https://api.ihateani.me",
+            url: "https://api.ihateani.me/v1",
         },
     ],
     tags: [
-        { name: "Hololive", description: "Hololive BiliBili Endpoint" },
-        { name: "Nijisanji", description: "Nijisanji BiliBili & YouTube Endpoint" },
-        { name: "Others", description: "Others VTubers BiliBili & YouTube Endpoint" },
-        { name: "Twitcasting", description: "Twitcasting Stream Endpoint" },
-        { name: "Twitch", description: "Twitch Stream Endpoint" },
+        { name: "Hololive", description: VTAPI_TEMPLATE_INFO.replace("{{ORG}}", "Hololive") },
+        { name: "Nijisanji", description: VTAPI_TEMPLATE_INFO.replace("{{ORG}}", "Nijisanji") },
+        { name: "Others", description: VTAPI_TEMPLATE_INFO.replace("{{ORG}}", "Others") },
+        { name: "Twitcasting", description: VTAPI_TEMPLATE_INFO.replace("{{ORG}}", "Twitcasting") },
+        { name: "Twitch", description: VTAPI_TEMPLATE_INFO.replace("{{ORG}}", "Twitch") },
         {
             name: "games_api",
             "x-displayName": "Games API",
-            description: "An API wrapper anything related to games.",
+            description: GAMESAPI_INFORMATION,
         },
         {
             name: "sauce_api",
-            "x-displayName": "Sauce Finder API [DEPRECATION]",
-            description: "An API wrapper for SauceNAO, IQDB, and ASCII2D. [ON IT'S WAY TO DEPRECATION]",
+            "x-displayName": "Sauce Finder API [v1 Deprecated]",
+            description: SAUCEAPI_INFORMATION,
         },
         {
             name: "nh_nsfw",
             "x-displayName": "nH [NSFW]",
-            description: "An API wrapper for nH (you know what it is).",
+            description: NHAPI_INFORMATION,
         },
         { name: "u2_api", "x-displayName": "U2 API", description: "An API wrapper for U2 RSS and Offers." },
         {
-            name: "bilischedule_model",
-            "x-displayName": "BiliBili Live Schedule",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/BiliScheduleModel" />`,
+            name: "jisho_api",
+            "x-displayName": "Jisho API",
+            description: "An API wrapper for Jisho, a database of japanese word and kanji",
         },
-        {
-            name: "bilichannel_model",
-            "x-displayName": "BiliBili Channel",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/BiliBiliChannelModel" />`,
-        },
-        {
-            name: "youtubeschedule_model",
-            "x-displayName": "YouTube Live Schedule",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/YouTubeScheduleModel" />`,
-        },
-        {
-            name: "youtubechannel_model",
-            "x-displayName": "YouTube Channel",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/YouTubeChannelModel" />`,
-        },
-        {
-            name: "twitchlive_model",
-            "x-displayName": "Twitch Live Schedule",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitchScheduleModel" />`,
-        },
-        {
-            name: "twitchchannel_model",
-            "x-displayName": "Twitch Channel",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitchChannelModel" />`,
-        },
-        {
-            name: "twitcastlive_model",
-            "x-displayName": "Twitcasting Live Schedule",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingScheduleModel" />`,
-        },
-        {
-            name: "twitcastchannel_model",
-            "x-displayName": "Twitcasting Channel",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/TwitcastingChannelModel" />`,
-        },
-        {
-            name: "saucefinder_model",
-            "x-displayName": "Sauce Result Model",
-            description: `<SchemaDefinition schemaRef="#/components/schemas/SauceFinderResultModel" />`,
-        },
-        { name: "vtapi_info", description: VTAPI_INFORMATION, "x-displayName": "Information" },
-        { name: "otherapi_info", description: OTHERAPI_INFORMATION, "x-displayName": "Information" },
     ],
     "x-tagGroups": [
         {
@@ -559,7 +545,7 @@ module.exports = {
         },
         {
             name: "Others API",
-            tags: ["otherapi_info", "games_api", "sauce_api", "nh_nsfw", "u2_api"],
+            tags: ["otherapi_info", "games_api", "sauce_api", "nh_nsfw", "u2_api", "jisho_api"],
         },
         {
             name: "Models",
