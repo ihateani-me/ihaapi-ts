@@ -2,8 +2,11 @@ import express from "express";
 import { cleanRomaji, fromKana } from "hepburn";
 import jishoAPI, { Result as ExampleResult, YomiExample } from "unofficial-jisho-api";
 
+import { logger as TopLogger } from "../utils/logger";
+
 const JishoRoutes = express.Router();
 const Jisho = new jishoAPI();
+const MainLogger = TopLogger.child({ cls: "JishoRoutes" });
 
 interface ReparsedYomiExamples {
     word: string;
@@ -84,8 +87,11 @@ function reparseYomi(yomis: string[], examples: YomiExample[]) {
  *                              data:
  *                                  type: object
  *                                  description: The kanji information
- *                                  required: ["jlpt", "taughtIn", "strokes", "meanings", "kunyomi", "onyomi", "radical", "parts"]
+ *                                  required: ["query", "jlpt", "taughtIn", "strokes", "meanings", "kunyomi", "onyomi", "radical", "parts"]
  *                                  properties:
+ *                                     query:
+ *                                         type: string
+ *                                         description: Your search query.
  *                                     jlpt:
  *                                         type: string
  *                                         description: JLPT Level of the Kanji
@@ -220,12 +226,18 @@ function reparseYomi(yomis: string[], examples: YomiExample[]) {
  *                                  description: HTTP Status code
  */
 JishoRoutes.get("/kanji/:kanji", async (req, res) => {
-    const result = await Jisho.searchForKanji(req.params.kanji);
+    const logger = MainLogger.child({ fn: "kanji" });
+    let kanji = decodeURIComponent(req.params.kanji);
+    kanji = kanji.charAt(0);
+    logger.info(`Searching for ${kanji}`);
+    const result = await Jisho.searchForKanji(kanji);
     const kanjiCode = req.params.kanji.charCodeAt(0).toString();
     if (result.found) {
+        logger.info(`${kanji} found!`);
         res.json({
             code: 200,
             data: {
+                query: kanji,
                 jlpt: result.jlptLevel,
                 taughtIn: result.taughtIn,
                 strokes: {
@@ -241,6 +253,7 @@ JishoRoutes.get("/kanji/:kanji", async (req, res) => {
             },
         });
     } else {
+        logger.info(`${kanji} cannot be found!`);
         res.status(404).json({
             code: 404,
             data: {},
@@ -338,13 +351,18 @@ function reparseExamplesSearch(examples: ExampleResult[]) {
  *                                  description: HTTP Status code
  */
 JishoRoutes.get("/examples/:word", async (req, res) => {
-    const result = await Jisho.searchForExamples(req.params.word);
+    const logger = MainLogger.child({ fn: "sentences" });
+    const sentences = decodeURIComponent(req.params.word);
+    logger.info(`Searching for ${sentences}`);
+    const result = await Jisho.searchForExamples(sentences);
     if (result.found) {
+        logger.info(`${sentences} found!`);
         res.json({
             code: 200,
             data: reparseExamplesSearch(result.results),
         });
     } else {
+        logger.info(`${sentences} cannot match anything!`);
         res.json({
             code: 404,
             data: [],
