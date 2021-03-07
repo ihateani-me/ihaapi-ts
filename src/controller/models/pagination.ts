@@ -9,7 +9,8 @@ import { Document, Model } from "mongoose";
 import { FindPaginatedParams, FindPaginatedResult } from "mongo-cursor-pagination-alt";
 
 import { SortOrder } from "../../graphql/schemas";
-import { Nullable } from "../../utils/swissknife";
+import { fallbackNaN, Nullable } from "../../utils/swissknife";
+import { FilterQuery } from "mongoose";
 
 export type BaseDocument = {
     _id: ObjectId;
@@ -271,3 +272,61 @@ export const findPaginationMongoose = async <TDocument extends BaseDocument>(
         },
     };
 };
+
+export async function wrapStaticsToNonAsync<T, S extends Document<T>>(
+    model: Model<S>,
+    type: "v" | "ch",
+    query: FilterQuery<T>,
+    options?: IPaginateOptions
+): Promise<IPaginateResults<T>> {
+    const cursor = _.get(options, "cursor", undefined);
+    const limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25);
+    const projection = _.get(options, "project", undefined);
+    const default_sort = type === "v" ? "timedata.startTime" : "name";
+    const sortKey = remapSchemaToDatabase(_.get(options, "sortBy", "_id"), type, default_sort);
+    const sortMeth: any = {};
+    sortMeth[sortKey] = ["asc", "ascending"].includes(_.get(options, "sortOrder", "asc").toLowerCase())
+        ? 1
+        : -1;
+    const paginationParams: any = {
+        first: limit,
+    };
+    if (typeof cursor === "string" && cursor.length > 0) {
+        paginationParams["after"] = cursor;
+    }
+    paginationParams["sort"] = sortMeth;
+    if (typeof projection === "object" && Object.keys(projection).length > 0) {
+        paginationParams["projection"] = projection;
+    }
+    paginationParams["query"] = query;
+    const promises = [
+        // @ts-ignore
+        { fn: findPaginationMongoose.bind(findPaginationMongoose, model, paginationParams), name: "docs" },
+        // @ts-ignore
+        { fn: model.countDocuments.bind(model, query), name: "count" },
+    ].map((req) =>
+        req
+            .fn()
+            // @ts-ignore
+            .then((res: FindPaginatedResult<T> | number) => {
+                return res;
+            })
+            .catch(() => {
+                if (req.name === "count") {
+                    return 0;
+                }
+                return {};
+            })
+    );
+    // @ts-ignore
+    const [docsResults, countResults]: [FindPaginatedResult<T>, number] = await Promise.all(promises);
+    const allDocuments = docsResults.edges.map((o) => o.node);
+    return {
+        docs: allDocuments,
+        pageInfo: {
+            totalData: countResults,
+            hasNextPage: docsResults.pageInfo.hasNextPage,
+            nextCursor: docsResults.pageInfo.endCursor,
+        },
+    };
+}
