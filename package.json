@@ -1,6 +1,6 @@
 {
   "name": "ihaapi-ts",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "A maybe-pretty-fast API endpoint mainly made for VTuber stuff.",
   "main": "src/main.ts",
   "scripts": {
@@ -96,6 +96,7 @@
     "typesync": "^0.8.0"
   },
   "dependencies": {
+    "@types/hepburn": "^1.2.0",
     "altair-express-middleware": "^3.1.0",
     "apollo-datasource-rest": "^0.10.0",
     "apollo-server-cache-redis": "^1.2.3",
@@ -112,6 +113,7 @@
     "feedparser": "^2.2.10",
     "form-data": "^3.0.0",
     "graphql-type-json": "^0.3.2",
+    "hepburn": "^1.2.0",
     "html-minifier": "^4.0.0",
     "ioredis": "^4.22.0",
     "lodash": "^4.17.20",
@@ -122,6 +124,7 @@
     "mongoose": "^5.11.15",
     "string-to-stream": "^3.0.1",
     "ts-mongoose": "^0.0.24",
+    "unofficial-jisho-api": "^2.0.13",
     "winston": "^3.3.3",
     "xml2js": "^0.4.23"
   }

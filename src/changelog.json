@@ -98,5 +98,9 @@
         "ImageBooru Board support",
         "Added Danbooru, Konachan, and Gelbooru Support for now.",
         "More documentation of the GraphQL API, this time is for the API References"
+    ],
+    "2.5.2": [
+        "Added Jisho support, this includes the kanji info, and sentences info",
+        "Migrate the v1 API Docs from ReDoc to RapiDoc"
     ]
 }
