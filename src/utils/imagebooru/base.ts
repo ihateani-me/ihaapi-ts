@@ -59,6 +59,9 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
     }
 
     protected normalizeTags(tagsSet: string[], limit: number = 2, forceLower: boolean = true): string[] {
+        if (is_none(tagsSet)) {
+            tagsSet = [];
+        }
         tagsSet = tagsSet.filter((tag) => typeof tag === "string" && tag.length > 0 && tag);
         if (forceLower) {
             tagsSet = tagsSet.map((tag) => tag.replace(" ", "_").toLowerCase());

@@ -94,6 +94,7 @@ export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
                         logger.error(
                             `An error occured when fetching from engine ${engine}, ${err.toString()}`
                         );
+                        console.error(err);
                         return [];
                     })
             );
