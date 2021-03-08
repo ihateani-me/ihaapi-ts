@@ -75,12 +75,16 @@ export class E621Board extends ImageBoardBase<E621Result, E621Mapping> {
             redoneTags.push("rating:safe");
             query = redoneTags;
         }
-        if (query.length > 0) {
-            params["tags"] = query.join("+");
-        }
-        const [results, status_code] = await this.request<AnyDict>("get", "/posts.json", {
-            params: params,
-        });
+        // if (query.length > 0) {
+        //     params["tags"] = query.join("+");
+        // }
+        const [results, status_code] = await this.request<AnyDict>(
+            "get",
+            `/posts.json?tags=${query.join("+")}`,
+            {
+                params: params,
+            }
+        );
         let resultsFinal;
         if (status_code === 200) {
             let parsedResults = await this.parseJson(results["posts"]);

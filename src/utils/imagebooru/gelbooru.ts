@@ -84,12 +84,16 @@ export class GelbooruBoard extends ImageBoardBase<GelbooruResult, GelbooruMappin
             redoneTags.push("rating:safe");
             query = redoneTags;
         }
-        if (query.length > 0) {
-            params["tags"] = query.join("+");
-        }
-        const [results, status_code] = await this.request<string>("get", "/index.php", {
-            params: params,
-        });
+        // if (query.length > 0) {
+        //     params["tags"] = query.join("+");
+        // }
+        const [results, status_code] = await this.request<string>(
+            "get",
+            `/index.php?tags=${query.join("+")}`,
+            {
+                params: params,
+            }
+        );
         let resultsFinal;
         if (status_code === 200) {
             const convertedXMLs = await this.xmlToJSON(results, "posts.post");

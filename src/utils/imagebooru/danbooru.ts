@@ -39,9 +39,8 @@ interface DanbooruMapping {
 
 export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMapping> {
     private familyFriendly: boolean;
-
     constructor(safe_version = false) {
-        super("https://danbooru.donmai.us");
+        super("https://danbooru.donmai.us", true);
         this.familyFriendly = safe_version;
         this.logger = MainLogger.child({ cls: "DanbooruBoard" });
         this.mappings = {
@@ -75,12 +74,16 @@ export class DanbooruBoard extends ImageBoardBase<DanbooruResult, DanbooruMappin
             redoneTags.push("rating:safe");
             query = redoneTags;
         }
-        if (query.length > 0) {
-            params["tags"] = query.join("+");
-        }
-        const [results, status_code] = await this.request<AnyDict>("get", "/posts.json", {
-            params: params,
-        });
+        // if (query.length > 0) {
+        //     params["tags"] = query.join("+");
+        // }
+        const [results, status_code] = await this.request<AnyDict>(
+            "get",
+            `/posts.json?tags=${query.join("+")}`,
+            {
+                params: params,
+            }
+        );
         let resultsFinal;
         if (status_code === 200) {
             const parsedResults = await this.parseJson(results);

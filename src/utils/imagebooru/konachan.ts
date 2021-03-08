@@ -73,12 +73,16 @@ export class KonachanBoard extends ImageBoardBase<KonachanResult, KonachanMappin
             redoneTags.push("rating:safe");
             query = redoneTags;
         }
-        if (query.length > 0) {
-            params["tags"] = query.join("+");
-        }
-        const [results, status_code] = await this.request<AnyDict>("get", "/post.json", {
-            params: params,
-        });
+        // if (query.length > 0) {
+        //     params["tags"] = query.join("+");
+        // }
+        const [results, status_code] = await this.request<AnyDict>(
+            "get",
+            `/post.json?tags=${query.join("+")}`,
+            {
+                params: params,
+            }
+        );
         let resultsFinal;
         if (status_code === 200) {
             const parsedResults = await this.parseJson(results);
