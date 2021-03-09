@@ -31,12 +31,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import argparse
 import hashlib
 import json
 import os
 import pathlib
 import shutil
 import sys
+
+parser = argparse.ArgumentParser(prog="ihaapiBuildTools")
+parser.add_argument("-D", "--dry-run", action="store_true", dest="dried", help="Dry run the program")
+args = parser.parse_args()
 
 
 def cache_path():
@@ -75,20 +80,24 @@ _CACHE_PATHS = cache_path()
 
 print("==> Reading package-lock.json")
 _PACKAGE_LOCK_CONTENTS = read_json(_PACKAGE_LOCK)
+_PACKAGE_LOCK_REQUIRE = {
+    "packages": _PACKAGE_LOCK_CONTENTS["packages"],
+    "dependencies": _PACKAGE_LOCK_CONTENTS["dependencies"]
+}
 print("==> Reading package.json")
 _PACKAGE_CONTENTS = read_json(_PACKAGE)
 
 print("==> Hashing dependencies data")
 _PACKAGE_DEPS = {**_PACKAGE_CONTENTS["devDependencies"], **_PACKAGE_CONTENTS["dependencies"]}
 _HASH_PACKAGE = hash_contents(_PACKAGE_DEPS)
-_HASH_LOCKFILE = hash_contents(_PACKAGE_LOCK_CONTENTS)
+_HASH_LOCKFILE = hash_contents(_PACKAGE_LOCK_REQUIRE)
 
 _CACHE_NAME = f"npmcache_{_HASH_LOCKFILE}_{_HASH_PACKAGE}.7z"
 
 print(f"==> package.json: {_HASH_PACKAGE}")
 print(f"==> package-lock.json: {_HASH_LOCKFILE}")
 
-if not os.path.isdir(_CACHE_PATHS):
+if not os.path.isdir(_CACHE_PATHS) and not args.drieds:
     os.makedirs(_CACHE_PATHS)
 
 _CACHE_FILES = os.path.join(_CACHE_PATHS, _CACHE_NAME)
@@ -96,17 +105,20 @@ print(f"==> Checking for cache: {_CACHE_NAME}")
 if not os.path.isfile(_CACHE_FILES):
     print("==> No cache files, running npm ci")
     os.chdir(_PARENT_PATH)
-    os.system("npm ci")
-    run_build_and_restart()
+    if not args.dried:
+        os.system("npm ci")
+        run_build_and_restart()
     print("==> Caching files...")
-    os.system(f"7z a \"{_CACHE_FILES}\" \"{_NODE_MODULES}\"")
-    sys.exit(0)
+    if not args.dried:
+        os.system(f"7z a \"{_CACHE_FILES}\" \"{_NODE_MODULES}\"")
+        sys.exit(0)
 
 print("==> Cache found, removing node_modules folder if exist!")
-if os.path.isdir(_NODE_MODULES):
+if os.path.isdir(_NODE_MODULES) and not args.dried:
     shutil.rmtree(_NODE_MODULES)
 
 os.chdir(_PARENT_PATH)
 print("==> Extracting contents of the cache files")
-os.system(f"7z x \"{_CACHE_FILES}\"")
-run_build_and_restart()
+if not args.dried:
+    os.system(f"7z x \"{_CACHE_FILES}\"")
+    run_build_and_restart()
