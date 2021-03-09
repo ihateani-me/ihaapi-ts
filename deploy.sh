@@ -6,10 +6,5 @@ cd /var/www/ihaapi-ts
 
 git pull
 
-npm ci
-npm run build
-
-# Supress output
-echo "Restarting PM2 ihaAPI process"
-pm2 --silent restart ihaAPI &> /dev/null
-echo "Process ihaAPI is restarted!"
+# Use custom build script because fuck yoo npm, you slow ass fuck
+python3 tools/buildTools.py
