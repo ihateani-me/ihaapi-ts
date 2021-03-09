@@ -6,5 +6,5 @@ cd /var/www/ihaapi-ts
 
 git pull
 
-# Use custom build script because fuck yoo npm, you slow ass fuck
+# Use custom build script because fuck you npm, you slow ass fuck
 python3 tools/buildTools.py
