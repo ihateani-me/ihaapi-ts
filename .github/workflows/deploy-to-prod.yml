@@ -12,7 +12,7 @@ jobs:
       !contains(github.event.head_commit.message, 'skip deploy')
     environment:
       name: Production
-      url: https://panel.naoti.me/
+      url: https://api.ihateani.me/
     runs-on: ubuntu-latest
     steps:
       - name: Execute deployment script
