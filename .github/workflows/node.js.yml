@@ -26,9 +26,15 @@ jobs:
         node-version: ${{ matrix.node-version }}
     - name: Clean Install and Build
       run: |
-        npm ci
+        pnpm install
         cp ./src/config.ts.example ./src/config.ts
         cp ./.env.example ./.env
-        npm run build --if-present
+        pnpm run build
     - name: Run Test
-      run: npm run testall
+      run: pnpm run testall
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v1.0.14
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        name: ihaapi-codecov
