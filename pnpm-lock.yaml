@@ -5,6 +5,7 @@ dependencies:
   apollo-server-express: 2.22.2_graphql@15.5.0
   axios: 0.21.1
   base64-url: 2.3.3
+  bson: 4.2.3
   cheerio: 1.0.0-rc.5
   compression: 1.7.4
   consolidate: 0.16.0
@@ -8308,6 +8309,7 @@ specifiers:
   apollo-server-express: ^2.20.0
   axios: ^0.21.1
   base64-url: ^2.3.3
+  bson: ^4.2.3
   cheerio: ^1.0.0-rc.3
   compression: ^1.7.4
   consolidate: ^0.16.0

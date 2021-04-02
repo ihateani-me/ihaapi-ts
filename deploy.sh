@@ -12,6 +12,10 @@ git pull
 echo "Installing dependencies..."
 pnpm install
 
+# Build deps
+echo "Building apps..."
+pnpm run build
+
 # Destroy hopes and dreams
 echo "Restarting PM2 Process..."
 pm2 restart --silent ihaAPI
