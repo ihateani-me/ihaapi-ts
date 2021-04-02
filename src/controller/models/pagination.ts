@@ -219,6 +219,7 @@ export function remapSchemaToDatabase(key: string, type: "v" | "ch", defaults?: 
 }
 
 export const findPaginationMongoose = async <TDocument extends BaseDocument>(
+    // @ts-ignore
     model: Model<Document & Extract<TDocument>>,
     { first, after, last, before, query = {}, sort: originalSort = {}, projection = {} }: FindPaginatedParams
 ): Promise<FindPaginatedResult<TDocument>> => {

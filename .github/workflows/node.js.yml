@@ -35,7 +35,7 @@ jobs:
         run_install: true
     - name: Copy config
       run: |
-        cp ./src/config.ts/example ./src/config.ts
+        cp ./src/config.ts.example ./src/config.ts
         cp ./.env.example ./.env
     - name: Run Test
       run: pnpm run testall

@@ -26,6 +26,7 @@ dependencies:
   mongo-cursor-pagination-alt: 1.0.0_mongodb@3.6.5
   mongodb: 3.6.5
   mongoose: 5.12.3
+  qs: 6.10.1
   ts-mongoose: 0.0.24_a4f8872f389e1a216669157f54aa0188
   unofficial-jisho-api: 2.0.13
   winston: 3.3.3
@@ -53,6 +54,7 @@ devDependencies:
   '@types/mongodb': 3.6.11
   '@types/mongoose': 5.10.4
   '@types/nodemon': 1.19.0
+  '@types/qs': 6.9.6
   '@types/rimraf': 3.0.0
   '@types/shelljs': 0.8.8
   '@types/swagger-jsdoc': 6.0.0
@@ -61,7 +63,7 @@ devDependencies:
   '@typescript-eslint/parser': 4.20.0_eslint@7.23.0+typescript@4.2.3
   ejs-lint: 1.1.0
   eslint: 7.23.0
-  eslint-config-prettier: 7.2.0_eslint@7.23.0
+  eslint-config-prettier: 8.1.0_eslint@7.23.0
   fs-extra: 9.1.0
   jest: 26.6.3_ts-node@9.1.1
   nodemon: 2.0.7
@@ -3197,7 +3199,7 @@ packages:
       source-map: 0.6.1
     resolution:
       integrity: sha512-mmHKys/C8BFUGI+MAWNcSYoORYLMdPzjrknd2Vc+bUsjN5bXcr8EhrNB+UTqfL1y3I9c4fw2ihgtMPQLBRiQxw==
-  /eslint-config-prettier/7.2.0_eslint@7.23.0:
+  /eslint-config-prettier/8.1.0_eslint@7.23.0:
     dependencies:
       eslint: 7.23.0
     dev: true
@@ -3205,7 +3207,7 @@ packages:
     peerDependencies:
       eslint: '>=7.0.0'
     resolution:
-      integrity: sha512-rV4Qu0C3nfJKPOAhFujFxB7RMP+URFyQqqOZW9DMRD7ZDTFyjaIlETU3xzHELt++4ugC0+Jm084HQYkkJe+Ivg==
+      integrity: sha512-oKMhGv3ihGbCIimCAjqkdzx2Q+jthoqnXSP+d86M9tptwugycmTFdVR4IpLgq2c4SHifbwO90z2fQ8/Aio73yw==
   /eslint-scope/5.1.1:
     dependencies:
       esrecurse: 4.3.0
@@ -6418,6 +6420,14 @@ packages:
       node: '>=8'
     resolution:
       integrity: sha512-l1jNAspIBSFqbT+y+5FosojNpVpF94nlI+wDUpqP9enwOTfHx9f0gh5nB96vl+6yTpsJsypeNrwfzPrKuHB41A==
+  /qs/6.10.1:
+    dependencies:
+      side-channel: 1.0.4
+    dev: false
+    engines:
+      node: '>=0.6'
+    resolution:
+      integrity: sha512-M528Hph6wsSVOBiYUnGf+K/7w0hNshs/duGsNXPUCLH5XAqjEtiPGwNONLV0tBH8NoGb0mvD5JubnUTrujKDTg==
   /qs/6.5.2:
     dev: true
     engines:
@@ -7020,6 +7030,14 @@ packages:
     optional: true
     resolution:
       integrity: sha512-vFwSUfQvqybiICwZY5+DAWIPLKsWO31Q91JSKl3UYv+K5c2QRPzn0qzec6QPu1Qc9eHYItiP3NdJqNVqetYAww==
+  /side-channel/1.0.4:
+    dependencies:
+      call-bind: 1.0.2
+      get-intrinsic: 1.1.1
+      object-inspect: 1.9.0
+    dev: false
+    resolution:
+      integrity: sha512-q5XPytqFEIKHkGdiMIrY10mvLRvnQh42/+GoBlFW3b2LXLE2xxJpZFdm94we0BaoV3RwJyGqg5wS7epxTv0Zvw==
   /sift/7.0.1:
     dev: false
     resolution:
@@ -8297,6 +8315,7 @@ specifiers:
   '@types/mongodb': ^3.6.6
   '@types/mongoose': ^5.10.3
   '@types/nodemon': ^1.19.0
+  '@types/qs': ^6.9.6
   '@types/rimraf': ^3.0.0
   '@types/shelljs': ^0.8.8
   '@types/swagger-jsdoc': ^6.0.0
@@ -8318,7 +8337,7 @@ specifiers:
   ejs: ^3.1.6
   ejs-lint: ^1.1.0
   eslint: ^7.19.0
-  eslint-config-prettier: ^7.2.0
+  eslint-config-prettier: 8.1.0
   express: ^4.17.1
   express-winston: ^4.0.5
   form-data: ^3.0.0
@@ -8338,6 +8357,7 @@ specifiers:
   nodemon: ^2.0.7
   npm-run-all: ^4.1.5
   pre-push: ^0.1.1
+  qs: ^6.10.1
   rimraf: ^3.0.2
   shelljs: ^0.8.4
   swagger-jsdoc: ^6.0.2
