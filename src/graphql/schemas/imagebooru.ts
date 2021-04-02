@@ -85,7 +85,7 @@ export interface ImageBoardResult {
 }
 
 export interface ImageBoardResults {
-    results: ImageBoardResults[] | never[];
+    results: ImageBoardResults[];
     total: number;
 }
 

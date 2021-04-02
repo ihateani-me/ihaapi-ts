@@ -63,10 +63,11 @@ export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
                         return [];
                     })
             );
-            let executedData = await Promise.all(requesterTasks);
-            executedData = _.flattenDeep(executedData);
+            const executedData = await Promise.all(requesterTasks);
+            // @ts-ignore
+            const finalizedData: ImageBoardResults[] = _.flattenDeep(executedData);
             return {
-                results: executedData,
+                results: finalizedData,
                 total: executedData.length,
             };
         },
@@ -98,10 +99,11 @@ export const ImageBooruGQLResolver: IResolvers<any, ImageBoardContext> = {
                         return [];
                     })
             );
-            let executedData = await Promise.all(requesterTasks);
-            executedData = _.flattenDeep(executedData);
+            const executedData = await Promise.all(requesterTasks);
+            // @ts-ignore
+            const finalizedData: ImageBoardResults[] = _.flattenDeep(executedData);
             return {
-                results: executedData,
+                results: finalizedData,
                 total: executedData.length,
             };
         },
