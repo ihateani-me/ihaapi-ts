@@ -10,7 +10,7 @@ git pull
 
 # Use pnpm
 echo "Installing dependencies..."
-pnpm install
+pnpm install --frozen-lockfile
 
 # Build deps
 echo "Building apps..."
