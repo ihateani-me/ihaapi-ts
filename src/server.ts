@@ -61,6 +61,13 @@ mongoose.connection.on("open", () => {
 });
 
 const app = express();
+
+// Opt-out of FLoC thing, even though I don't use ads
+app.use((_q, res, next) => {
+    res.setHeader("Permissions-Policy", "interest-cohort=()");
+    next();
+});
+
 app.use(
     htmlMinifier({
         override: true,
