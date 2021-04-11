@@ -54,8 +54,8 @@
   "homepage": "https://github.com/ihateani-me/ihaapi-ts#readme",
   "devDependencies": {
     "@apidevtools/swagger-parser": "^10.0.2",
-    "@swc/cli": "^0.1.35",
-    "@swc/core": "^1.2.50",
+    "@swc/cli": "^0.1.36",
+    "@swc/core": "^1.2.52",
     "@swc/jest": "^0.1.2",
     "@types/base64-url": "^2.2.0",
     "@types/cheerio": "^0.22.23",
