@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Request new VTuber
+    url: https://github.com/ihateani-me/vtscheduler-ts/issues/new?assignees=noaione&labels=A-request%2C+C-dataset&template=2.vtuber_request.md&title=%5BRequest%5D+VTuber+Name+Here
+    about: Please use this if you want a new VTuber to be added
