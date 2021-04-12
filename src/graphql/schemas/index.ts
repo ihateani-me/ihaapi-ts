@@ -213,4 +213,23 @@ export const v2Definitions = gql`
         "Image Board Query"
         imagebooru: ImageBoardQuery!
     }
+
+    """
+    ihateani.me API Mutation
+    """
+    type Mutation {
+        """
+        Add a VTuber channel to the database
+        """
+        VTuberAdd(
+            "Channel ID"
+            id: String!
+            "Channel group association"
+            group: String!
+            "Romanized/English channel name"
+            name: String!
+            "Platform name"
+            platform: PlatformName!
+        ): ChannelObject!
+    }
 `;

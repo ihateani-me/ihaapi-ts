@@ -2,7 +2,7 @@ import _ from "lodash";
 import "apollo-cache-control";
 import express from "express";
 import moment from "moment-timezone";
-import { IResolvers } from "apollo-server-express";
+import { ApolloError, IResolvers } from "apollo-server-express";
 
 // Import models
 import {
@@ -19,6 +19,7 @@ import {
     LiveStatus,
     PlatformName,
     SortOrder,
+    VTAddMutationParams,
 } from "../schemas";
 import { VTAPIDataSources } from "../datasources";
 
@@ -35,10 +36,23 @@ import {
 } from "../../utils/swissknife";
 import { logger as TopLogger } from "../../utils/logger";
 import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagination";
+import { VTuberMutation } from "../mutations";
+
+import config from "../../config";
+import { MildomAPI, TwitchHelix } from "../mutations/vtuber/helper";
 
 const MainLogger = TopLogger.child({ cls: "GQLVTuberAPI" });
 
 const ONE_DAY = 864e2;
+
+const TTVConfig = config.vtapi.twitch;
+let TTVAPI: TwitchHelix;
+if (!is_none(TTVConfig)) {
+    if (!is_none(TTVConfig.client) && !is_none(TTVConfig.secret)) {
+        TTVAPI = new TwitchHelix(TTVConfig.client, TTVConfig.secret);
+    }
+}
+const MILDOMHANDLER = new MildomAPI();
 
 interface ChannelParents {
     platform?: PlatformName;
@@ -1150,4 +1164,83 @@ export const VTAPIv2Resolvers: IResolvers = {
         },
     },
     DateTime: DateTimeScalar,
+    Mutation: {
+        VTuberAdd: async (
+            _e,
+            { id, group, name, platform }: VTAddMutationParams,
+            ctx: VTAPIContext
+        ): Promise<ChannelObject> => {
+            const mut = VTuberMutation[platform as keyof typeof VTuberMutation];
+            const header = ctx.req.headers;
+            let authHeader = header.authorization;
+            if (typeof authHeader !== "string") {
+                ctx.res.status(401);
+                throw new ApolloError(
+                    "You need to provide an Authorization header to authenticate!",
+                    "AUTH_MISSING"
+                );
+            }
+            if (!authHeader.startsWith("password ")) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    "Authorization header need to start with `password `",
+                    "AUTH_MISCONFIGURED"
+                );
+            }
+            authHeader = authHeader.slice(9);
+            if (authHeader !== config.secure_password) {
+                ctx.res.status(403);
+                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+            }
+            let is_success: boolean;
+            let message: string;
+            if (platform === "twitch") {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name, TTVAPI);
+            } else if (platform === "mildom") {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name, MILDOMHANDLER);
+            } else {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name);
+            }
+            if (!is_success) {
+                let errCode = 500;
+                let errType = "INTERNAL_ERROR";
+                if (message.toLowerCase().includes("cannot find")) {
+                    errCode = 404;
+                    errType = "VT_NOT_FOUND";
+                }
+                if (message.toLowerCase().includes("already exist")) {
+                    errType = "VT_ALREADY_EXIST";
+                }
+                ctx.res.status(errCode);
+                throw new ApolloError(message as string, errType);
+            }
+            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+            const cache_name = getCacheNameForChannels({}, "singlech", {
+                platform: platform,
+                // @ts-ignore
+                channel_id: id,
+            });
+            const queried = await VTQuery.performQueryOnChannel(
+                { id: [id], platforms: [platform] },
+                ctx.dataSources,
+                {
+                    channel_id: [id],
+                    force_single: true,
+                    type: "channel",
+                    group: group,
+                    platform: platform,
+                }
+            );
+            let ttl = 0;
+            if (!no_cache && queried.docs.length > 0) {
+                ttl = 1800;
+                await ctx.cacheServers.setexBetter(cache_name, ttl, queried);
+            }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            return queried.docs[0];
+        },
+    },
 };

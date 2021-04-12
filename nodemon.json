@@ -9,6 +9,6 @@
         "src/assets/**/*",
         "src/views/**/*"
     ],
-    "exec": "ts-node ./src/main.ts --transpile-only",
+    "exec": "ts-node --transpile-only ./src/main.ts",
     "ext": "ts js"
 }
