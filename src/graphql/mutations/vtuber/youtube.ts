@@ -45,7 +45,11 @@ function checkForYoutubeAPIError(apiReponses: any) {
     return [true, false];
 }
 
-export async function youtubeChannelDataset(channelId: string, group: string, en_name: string) {
+export async function youtubeChannelDataset(
+    channelId: string,
+    group: string,
+    en_name: string
+): Promise<[boolean, string]> {
     const session = axios.create({
         headers: {
             "User-Agent": `ihaapi-ts/${packageJson["version"]} (https://github.com/ihateani-me/ihaapi-ts)`,

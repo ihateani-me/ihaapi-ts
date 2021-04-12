@@ -10,8 +10,8 @@ export async function ttvChannelDataset(
     channelId: string,
     group: string,
     en_name: string,
-    ttvAPI: TwitchHelix | undefined
-) {
+    ttvAPI?: TwitchHelix
+): Promise<[boolean, string]> {
     const logger = MainLogger.child({ fn: "ttvChannelDataset" });
     if (is_none(ttvAPI)) {
         return [false, "Web Admin doesn't give Twitch API information"];

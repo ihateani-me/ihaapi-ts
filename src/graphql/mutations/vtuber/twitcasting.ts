@@ -10,7 +10,11 @@ const CHROME_UA =
     // eslint-disable-next-line max-len
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36";
 
-export async function twcastChannelsDataset(channelId: string, group: string, en_name: string) {
+export async function twcastChannelsDataset(
+    channelId: string,
+    group: string,
+    en_name: string
+): Promise<[boolean, string]> {
     const session = axios.create({
         headers: {
             "User-Agent": CHROME_UA,

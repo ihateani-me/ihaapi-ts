@@ -3,14 +3,18 @@ import moment from "moment-timezone";
 
 import { MildomAPI } from "./helper";
 import { logger as MainLogger } from "../../../utils/logger";
+import { is_none } from "../../../utils/swissknife";
 import { ChannelsData, ChannelStatsHistData } from "../../../controller";
 
 export async function mildomChannelsDataset(
     channelId: string,
     group: string,
     en_name: string,
-    mildomAPI: MildomAPI
-) {
+    mildomAPI?: MildomAPI
+): Promise<[boolean, string]> {
+    if (is_none(mildomAPI)) {
+        return [false, "Web Admin doesn't give Twitch API information"];
+    }
     const logger = MainLogger.child({ fn: "mildomChannelsDataset" });
     const channels = await ChannelsData.findOne({
         id: { $eq: channelId },
