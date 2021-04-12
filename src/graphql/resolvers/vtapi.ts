@@ -1171,6 +1171,27 @@ export const VTAPIv2Resolvers: IResolvers = {
             ctx: VTAPIContext
         ): Promise<ChannelObject> => {
             const mut = VTuberMutation[platform as keyof typeof VTuberMutation];
+            const header = ctx.req.headers;
+            let authHeader = header.authorization;
+            if (typeof authHeader !== "string") {
+                ctx.res.status(401);
+                throw new ApolloError(
+                    "You need to provide an Authorization header to authenticate!",
+                    "AUTH_MISSING"
+                );
+            }
+            if (!authHeader.startsWith("password ")) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    "Authorization header need to start with `password `",
+                    "AUTH_MISCONFIGURED"
+                );
+            }
+            authHeader = authHeader.slice(9);
+            if (authHeader !== config.secure_password) {
+                ctx.res.status(403);
+                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+            }
             let is_success: boolean;
             let message: string;
             if (platform === "twitch") {
@@ -1183,10 +1204,20 @@ export const VTAPIv2Resolvers: IResolvers = {
                 // @ts-ignore
                 [is_success, message] = await mut(id, group, name);
             }
-            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             if (!is_success) {
-                throw new ApolloError(message as string, "500");
+                let errCode = 500;
+                let errType = "INTERNAL_ERROR";
+                if (message.toLowerCase().includes("cannot find")) {
+                    errCode = 404;
+                    errType = "VT_NOT_FOUND";
+                }
+                if (message.toLowerCase().includes("already exist")) {
+                    errType = "VT_ALREADY_EXIST";
+                }
+                ctx.res.status(errCode);
+                throw new ApolloError(message as string, errType);
             }
+            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const cache_name = getCacheNameForChannels({}, "singlech", {
                 platform: platform,
                 // @ts-ignore
