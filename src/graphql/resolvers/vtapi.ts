@@ -39,21 +39,10 @@ import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagi
 import { VTuberMutation } from "../mutations";
 
 import config from "../../config";
-import { MildomAPI, TwitchHelix } from "../mutations/vtuber/helper";
 
 const MainLogger = TopLogger.child({ cls: "GQLVTuberAPI" });
 
 const ONE_DAY = 864e2;
-
-const TTVConfig = config.vtapi.twitch;
-let TTVAPI: TwitchHelix;
-if (!is_none(TTVConfig)) {
-    if (!is_none(TTVConfig.client) && !is_none(TTVConfig.secret)) {
-        TTVAPI = new TwitchHelix(TTVConfig.client, TTVConfig.secret);
-    }
-}
-const MILDOMHANDLER = new MildomAPI();
-
 interface ChannelParents {
     platform?: PlatformName;
     group?: string;
@@ -1171,6 +1160,13 @@ export const VTAPIv2Resolvers: IResolvers = {
             ctx: VTAPIContext
         ): Promise<ChannelObject> => {
             const mut = VTuberMutation[platform as keyof typeof VTuberMutation];
+            if (is_none(mut)) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    `Unknown platform key provided, ${platform} is not available.`,
+                    "VT_UNKNOWN_PLATFORM"
+                );
+            }
             const header = ctx.req.headers;
             let authHeader = header.authorization;
             if (typeof authHeader !== "string") {
@@ -1192,18 +1188,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 ctx.res.status(403);
                 throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
-            let is_success: boolean;
-            let message: string;
-            if (platform === "twitch") {
-                // @ts-ignore
-                [is_success, message] = await mut(id, group, name, TTVAPI);
-            } else if (platform === "mildom") {
-                // @ts-ignore
-                [is_success, message] = await mut(id, group, name, MILDOMHANDLER);
-            } else {
-                // @ts-ignore
-                [is_success, message] = await mut(id, group, name);
-            }
+            const [is_success, message] = await mut(id, group, name);
             if (!is_success) {
                 let errCode = 500;
                 let errType = "INTERNAL_ERROR";
