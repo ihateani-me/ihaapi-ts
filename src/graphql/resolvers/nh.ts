@@ -130,15 +130,17 @@ export const nhGQLResolvers: IResolvers = {
     DateTime: DateTimeScalar,
     Query: {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        info: async (_s, args: nhInfoParams, _c, _i): Promise<nhInfoResult> => {
+        info: async (_s, args: nhInfoParams, ctx, _i): Promise<nhInfoResult> => {
             const [results, status_code] = await nhFetchInfo(maybeStr(args.doujin_id));
             if (status_code != 200) {
                 if (status_code == 404) {
+                    ctx.res.status(404);
                     throw new ApolloError(
                         `Cannot find information for code ${args.doujin_id}`,
                         "INVALID_DOUJIN_CODE"
                     );
                 } else {
+                    ctx.res.status(500);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
@@ -150,7 +152,7 @@ export const nhGQLResolvers: IResolvers = {
             return finalized_response;
         },
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        search: async (_s, args: nhSearchParams, _c, _i): Promise<nhSearchResult> => {
+        search: async (_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> => {
             let fetch_page = getValueFromKey(args, "page", 1) as number;
             fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
             if (fetch_page < 1) {
@@ -162,8 +164,10 @@ export const nhGQLResolvers: IResolvers = {
             );
             if (status_code != 200) {
                 if (status_code == 404) {
+                    ctx.res.status(404);
                     throw new ApolloError(`Cannot find anything with query: ${args.query}`, "NH_NO_RESULTS");
                 } else {
+                    ctx.res.status(500);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
@@ -189,7 +193,7 @@ export const nhGQLResolvers: IResolvers = {
             return finalized_response;
         },
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        latest: async (_s, args: nhSearchParams, _c, _i): Promise<nhSearchResult> => {
+        latest: async (_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> => {
             let fetch_page = getValueFromKey(args, "page", 1) as number;
             fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
             if (fetch_page < 1) {
@@ -198,8 +202,10 @@ export const nhGQLResolvers: IResolvers = {
             const [latest_results, status_code] = await nhLatestDoujin(fetch_page);
             if (status_code != 200) {
                 if (status_code == 404) {
+                    ctx.res.status(404);
                     throw new ApolloError(`Cannot fetch anything latest from nhentai`, "NH_NO_RESULTS");
                 } else {
+                    ctx.res.status(500);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
