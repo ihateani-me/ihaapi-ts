@@ -5,8 +5,11 @@ describe("Filter out empty data from Array", () => {
     test("No data passed.", () => {
         expect(SwissKnife.filter_empty([])).toEqual([]);
     });
-    test("Undefined data and null", () => {
+    test("null data", () => {
         expect(SwissKnife.filter_empty(null)).toEqual([]);
+    });
+    test("undefined data", () => {
+        expect(SwissKnife.filter_empty(undefined)).toEqual([]);
     });
     test("One data passed.", () => {
         expect(SwissKnife.filter_empty(["one"])).toEqual(["one"]);
@@ -301,5 +304,27 @@ describe("Validate the content of a list to the expected data", () => {
     it("Passed data but it's not a list", () => {
         // @ts-ignore
         expect(SwissKnife.validateListData({ a: 1 }, "string")).toEqual({ a: 1 });
+    });
+});
+
+describe("Mock test the resolveCrawlerDelayer", () => {
+    it("Process one", async () => {
+        const testList = ["a", "b", "c", "d", "e"];
+        const promises = testList.map(
+            (res) =>
+                new Promise((resolve, reject) => {
+                    try {
+                        resolve(res);
+                    } catch (e) {
+                        reject(e);
+                    }
+                })
+        );
+        const delayedPromises = SwissKnife.resolveDelayCrawlerPromises(promises, 250);
+        const timeStart = new Date().getTime();
+        await Promise.all(delayedPromises);
+        const timeEnd = new Date().getTime();
+        const deltaTime = timeEnd - timeStart;
+        expect(deltaTime).toBeGreaterThanOrEqual(900);
     });
 });
