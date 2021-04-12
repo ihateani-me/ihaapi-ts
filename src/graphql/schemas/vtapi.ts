@@ -386,3 +386,10 @@ export interface ChannelsResource {
 export interface GroupsResource {
     items: string[];
 }
+
+export interface VTAddMutationParams {
+    id: string;
+    name: string;
+    group: string;
+    platform: PlatformName;
+}
