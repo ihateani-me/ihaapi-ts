@@ -2,7 +2,7 @@ import _ from "lodash";
 import "apollo-cache-control";
 import express from "express";
 import moment from "moment-timezone";
-import { IResolvers } from "apollo-server-express";
+import { ApolloError, IResolvers } from "apollo-server-express";
 
 // Import models
 import {
@@ -19,6 +19,7 @@ import {
     LiveStatus,
     PlatformName,
     SortOrder,
+    VTAddMutationParams,
 } from "../schemas";
 import { VTAPIDataSources } from "../datasources";
 
@@ -35,10 +36,23 @@ import {
 } from "../../utils/swissknife";
 import { logger as TopLogger } from "../../utils/logger";
 import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagination";
+import { VTuberMutation } from "../mutations";
+
+import config from "../../config";
+import { MildomAPI, TwitchHelix } from "../mutations/vtuber/helper";
 
 const MainLogger = TopLogger.child({ cls: "GQLVTuberAPI" });
 
 const ONE_DAY = 864e2;
+
+const TTVConfig = config.vtapi.twitch;
+let TTVAPI: TwitchHelix;
+if (!is_none(TTVConfig)) {
+    if (!is_none(TTVConfig.client) && !is_none(TTVConfig.secret)) {
+        TTVAPI = new TwitchHelix(TTVConfig.client, TTVConfig.secret);
+    }
+}
+const MILDOMHANDLER = new MildomAPI();
 
 interface ChannelParents {
     platform?: PlatformName;
@@ -1150,4 +1164,52 @@ export const VTAPIv2Resolvers: IResolvers = {
         },
     },
     DateTime: DateTimeScalar,
+    Mutation: {
+        VTuberAdd: async (
+            _e,
+            { id, group, name, platform }: VTAddMutationParams,
+            ctx: VTAPIContext
+        ): Promise<ChannelObject> => {
+            const mut = VTuberMutation[platform as keyof typeof VTuberMutation];
+            let is_success: boolean;
+            let message: string;
+            if (platform === "twitch") {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name, TTVAPI);
+            } else if (platform === "mildom") {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name, MILDOMHANDLER);
+            } else {
+                // @ts-ignore
+                [is_success, message] = await mut(id, group, name);
+            }
+            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+            if (!is_success) {
+                throw new ApolloError(message as string, "500");
+            }
+            const cache_name = getCacheNameForChannels({}, "singlech", {
+                platform: platform,
+                // @ts-ignore
+                channel_id: id,
+            });
+            const queried = await VTQuery.performQueryOnChannel(
+                { id: [id], platforms: [platform] },
+                ctx.dataSources,
+                {
+                    channel_id: [id],
+                    force_single: true,
+                    type: "channel",
+                    group: group,
+                    platform: platform,
+                }
+            );
+            let ttl = 0;
+            if (!no_cache && queried.docs.length > 0) {
+                ttl = 1800;
+                await ctx.cacheServers.setexBetter(cache_name, ttl, queried);
+            }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            return queried.docs[0];
+        },
+    },
 };
