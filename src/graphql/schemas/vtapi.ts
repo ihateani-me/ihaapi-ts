@@ -182,6 +182,8 @@ export const VTAPIv2 = gql`
         statistics: ChannelStatistics! @cacheControl(maxAge: 3600)
         "Channel growth data"
         growth: ChannelGrowthData
+        "Channel history data for a week, split in days"
+        history: ChannelsStatsHistory
         "The channel group/organization"
         group: String
         "Is the channel live or not? (BiliBili Only!)"
@@ -265,6 +267,28 @@ export const VTAPIv2 = gql`
     type GroupsResource {
         items: [String!]! @cacheControl(maxAge: 300)
     }
+
+    """
+    History data for a statistics
+    """
+    type HistoryData {
+        "The data or amount of the statistics"
+        data: Int!
+        "The timestamp of the data"
+        time: Int!
+    }
+
+    """
+    The history of the channel statistics
+    """
+    type ChannelsStatsHistory {
+        "The views count history per-day"
+        viewsCount: [HistoryData]
+        "The subscribers count history per-day"
+        subscribersCount: [HistoryData]
+        "The videos count history per-day"
+        videosCount: [HistoryData]
+    }
 `;
 
 // "Enum"
@@ -311,6 +335,18 @@ export interface ChannelGrowthObject {
     viewsGrowth?: Nullable<ChannelGrowth>;
 }
 
+export interface HistoryData {
+    data: number;
+    time: number;
+    sortKey?: string;
+}
+
+export interface ChannelsStatsHistory {
+    viewsCount?: Nullable<HistoryData[]>;
+    subscribersCount?: Nullable<HistoryData[]>;
+    videosCount?: Nullable<HistoryData[]>;
+}
+
 export interface ChannelObject {
     id: string | number;
     user_id?: Nullable<string>;
@@ -322,6 +358,7 @@ export interface ChannelObject {
     image: string;
     statistics?: Nullable<ChannelStatistics>;
     growth?: Nullable<ChannelGrowthObject>;
+    history?: Nullable<ChannelsStatsHistory>;
     group?: Nullable<string>;
     is_live?: Nullable<boolean>;
     platform: PlatformName;

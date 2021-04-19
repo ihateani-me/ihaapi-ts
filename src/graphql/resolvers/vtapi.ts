@@ -11,8 +11,10 @@ import {
     ChannelObject,
     ChannelObjectParams,
     ChannelsResource,
+    ChannelsStatsHistory,
     DateTimeScalar,
     GroupsResource,
+    HistoryData,
     LiveObject,
     LiveObjectParams,
     LivesResource,
@@ -43,6 +45,7 @@ import config from "../../config";
 const MainLogger = TopLogger.child({ cls: "GQLVTuberAPI" });
 
 const ONE_DAY = 864e2;
+const ONE_WEEK = 604800;
 interface ChannelParents {
     platform?: PlatformName;
     group?: string;
@@ -116,6 +119,96 @@ function fallbackGrowthIfNaN(growth: ChannelGrowth): ChannelGrowth {
         sixMonths: sM,
         oneYear: oY,
         lastUpdated: ts,
+    };
+}
+
+function mapHistoryData(
+    platform: PlatformName,
+    channelId: string,
+    historyData?: HistoryGrowthData[]
+): Nullable<ChannelsStatsHistory> {
+    const logger = MainLogger.child({ fn: "mapGrowthData" });
+    if (typeof historyData === "undefined") {
+        return null;
+    }
+    if (_.isNull(historyData)) {
+        return null;
+    }
+    if (historyData.length < 1) {
+        logger.error(`history data is less than one, returning null for ${platform} ${channelId}`);
+        return null;
+    }
+    const maxLookback = moment.tz("UTC").unix() - ONE_WEEK;
+
+    const historyFiltered = historyData.filter((res) => res.timestamp >= maxLookback);
+    // @ts-ignore
+    const rawSubsData: HistoryData[] = historyFiltered.map((res) => {
+        return {
+            data: platform === "youtube" ? res.subscriberCount : res.followerCount,
+            time: res.timestamp,
+            sortKey: moment.unix(res.timestamp).format("MM/DD"),
+        };
+    });
+
+    let rawVideosData: Nullable<HistoryData[]> = [];
+    if (["youtube", "bilibili"].includes(platform)) {
+        // @ts-ignore
+        rawVideosData = historyFiltered.map((res) => {
+            return {
+                data: res.videoCount,
+                time: res.timestamp,
+                sortKey: moment.unix(res.timestamp).format("MM/DD"),
+            };
+        });
+    }
+
+    let rawViewsData: Nullable<HistoryData[]> = [];
+    if (platform !== "twitcasting") {
+        // @ts-ignore
+        rawViewsData = historyFiltered.map((res) => {
+            return {
+                data: res.viewCount,
+                time: res.timestamp,
+                sortKey: moment.unix(res.timestamp).format("MM/DD"),
+            };
+        });
+    }
+
+    const groupedSubsData = _.groupBy(rawSubsData, "sortKey");
+    const groupedViewsData = _.groupBy(rawViewsData, "sortKey");
+    const groupedVideosData = _.groupBy(rawVideosData, "sortKey");
+
+    const formattedSubsData: HistoryData[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [_a, data] of Object.entries(groupedSubsData)) {
+        formattedSubsData.push({
+            time: data[data.length - 1].time,
+            data: data[data.length - 1].data,
+        });
+    }
+
+    const formattedViewsData: HistoryData[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [_b, data] of Object.entries(groupedViewsData)) {
+        formattedViewsData.push({
+            time: data[data.length - 1].time,
+            data: data[data.length - 1].data,
+        });
+    }
+
+    const formattedVideosData: HistoryData[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [_c, data] of Object.entries(groupedVideosData)) {
+        formattedVideosData.push({
+            time: data[data.length - 1].time,
+            data: data[data.length - 1].data,
+        });
+    }
+
+    return {
+        subscribersCount: formattedSubsData,
+        viewsCount: formattedViewsData,
+        videosCount: formattedVideosData,
     };
 }
 
@@ -527,8 +620,9 @@ class VTAPIQuery {
         if (is_none(parents.channel_id)) {
             return null;
         }
+        if (is_none(parents.platform)) return null;
         const histStats = await dataSources.statsHist
-            .getChannelHistory(parents.channel_id[0])
+            .getChannelHistory(parents.channel_id[0], parents.platform)
             .catch((err: any) => {
                 let channel_id;
                 if (is_none(parents.channel_id)) {
@@ -547,6 +641,34 @@ class VTAPIQuery {
             return null;
         }
         return mapGrowthData(parents.platform, histStats["id"], histStats["history"]);
+    }
+
+    async performQueryOnChannelHistory(dataSources: VTAPIDataSources, parents: ChannelParents) {
+        const logger = this.logger.child({ fn: "performQueryOnChannelGrowth" });
+        if (is_none(parents.channel_id)) {
+            return null;
+        }
+        if (is_none(parents.platform)) return null;
+        const histStats = await dataSources.statsHist
+            .getChannelHistory(parents.channel_id[0], parents.platform)
+            .catch((err: any) => {
+                let channel_id;
+                if (is_none(parents.channel_id)) {
+                    channel_id = "Unknown_ID";
+                } else {
+                    channel_id = parents.channel_id[0];
+                }
+                logger.error(
+                    `Failed to perform parents growth on a ${
+                        parents.platform
+                    } ID: ${channel_id} (${err.toString()})`
+                );
+                return { id: channel_id, history: [], platform: parents.platform };
+            });
+        if (is_none(parents.platform)) {
+            return null;
+        }
+        return mapHistoryData(parents.platform, histStats["id"], histStats["history"]);
     }
 
     async performGroupsFetch(dataSources: VTAPIDataSources): Promise<string[]> {
@@ -665,11 +787,11 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
 
 function getCacheNameForChannels(
     args: ChannelObjectParams,
-    type: "channel" | "stats" | "singlech" | "growth",
+    type: "channel" | "stats" | "singlech" | "growth" | "history",
     parent: Nullable<ChannelObject> = null
 ) {
     let final_name = `${VTPrefix}-${type}`;
-    if (type === "stats" || type === "growth") {
+    if (["stats", "growth", "history"].includes(type)) {
         // @ts-ignore
         final_name += `-platforms_${parent.platform}-ch_${parent.id}`;
         return final_name;
@@ -1107,6 +1229,53 @@ export const VTAPIv2Resolvers: IResolvers = {
                 return {
                     subscribersGrowth: null,
                     viewsGrowth: null,
+                };
+            }
+            return results;
+        },
+        history: async (
+            parent: ChannelObject,
+            args: ChannelObjectParams,
+            ctx: VTAPIContext,
+            info
+        ): Promise<ChannelsStatsHistory> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({ maxAge: 1800, scope: "PRIVATE" });
+            // const logger = MainLogger.child({fn: "ChannelObject.growth"});
+            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+            // @ts-ignore
+            const cache_name = getCacheNameForChannels({}, "growth", parent);
+            let [results, ttl]: [Nullable<ChannelsStatsHistory>, number] = await ctx.cacheServers.getBetter(
+                cache_name,
+                true
+            );
+
+            if (is_none(results)) {
+                // @ts-ignore
+                results = await VTQuery.performQueryOnChannelHistory(ctx.dataSources, {
+                    // @ts-ignore
+                    channel_id: [parent.id],
+                    platform: parent.platform,
+                });
+                ttl = 1800;
+                if (
+                    _.get(results, "subscribersGrowth", null) !== null ||
+                    _.get(results, "viewsGrowth", null) !== null
+                ) {
+                    if (!no_cache) {
+                        await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+                    }
+                }
+                if (no_cache) {
+                    ttl = 0;
+                }
+            }
+            ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
+            if (is_none(results)) {
+                return {
+                    subscribersCount: [],
+                    videosCount: [],
+                    viewsCount: [],
                 };
             }
             return results;

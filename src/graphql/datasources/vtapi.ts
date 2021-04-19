@@ -126,11 +126,12 @@ export class VTAPIChannels extends MongooseDataSources<typeof ChannelsData> {
 }
 
 export class VTAPIChannelStatsHist extends MongooseDataSources<typeof ChannelStatsHistData> {
-    async getChannelHistory(channel_id: string): Promise<ChannelStatsHistProps> {
+    async getChannelHistory(channel_id: string, platform: string): Promise<ChannelStatsHistProps> {
         const historyReq = [
             {
                 $match: {
                     id: { $eq: channel_id },
+                    platform: { $eq: platform },
                 },
             },
             {
