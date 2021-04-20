@@ -31,7 +31,7 @@ export interface GroupsResults {
 export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
     async getVideos(
         platforms: string[],
-        status: string,
+        status: string | string[],
         opts?: IVideoOptions,
         pageOpts?: IPaginateOptions
     ): Promise<IPaginateResults<VideoProps>> {
@@ -51,6 +51,12 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         if (!Array.isArray(groups)) {
             groups = [];
         }
+        let properStatus = [];
+        if (Array.isArray(status)) {
+            properStatus = status;
+        } else if (typeof status === "string") {
+            properStatus.push(status);
+        }
         if (!Array.isArray(channelIds)) {
             channelIds = [];
         }
@@ -60,9 +66,14 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         const lookbackMax = moment.tz("UTC").unix() - lookbackTime * 3600;
         const fetchFormat: any = {
             platform: { $in: platforms },
-            status: { $eq: status },
-            $or: [{ "timedata.endTime": { $gte: lookbackMax } }, { "timedata.endTime": { $type: "null" } }],
+            status: { $in: properStatus },
         };
+        if (!properStatus.includes("video")) {
+            fetchFormat["$or"] = [
+                { "timedata.endTime": { $gte: lookbackMax } },
+                { "timedata.endTime": { $type: "null" } },
+            ];
+        }
         if (channelIds.length > 0) {
             fetchFormat["channel_id"] = { $in: channelIds };
         }

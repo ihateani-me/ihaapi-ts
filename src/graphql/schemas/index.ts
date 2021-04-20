@@ -76,7 +76,7 @@ export const v2Definitions = gql`
             "Limit per page, maximum limit is 75"
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 300)
-        "Get uploaded video to Youtube, Twitcasting, Twitch, etc."
+        "Get videos (including livestream) from Youtube, Twitcasting, Twitch, etc."
         videos(
             "The channel ID to be checked, this will limit result to provided channel ID"
             channel_id: [ID]
@@ -88,9 +88,9 @@ export const v2Definitions = gql`
             Sort key to be used, use the key name of the result to select it, use dot notation.
             (Note: not all of key are supported)
             """
-            sort_by: String = "publishedAt"
+            sort_by: String = "timeData.endTime"
             "Sort order"
-            sort_order: SortOrder = asc
+            sort_order: SortOrder = desc
             "Pagination cursor of next page"
             cursor: String
             "Limit per page, maximum limit is 75"

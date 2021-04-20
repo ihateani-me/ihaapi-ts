@@ -476,7 +476,7 @@ class VTAPIQuery {
 
     async performQueryOnLive(
         args: LiveObjectParams,
-        type: LiveStatus,
+        type: LiveStatus | LiveStatus[],
         dataSources: VTAPIDataSources
     ): Promise<IPaginateResults<LiveObject>> {
         // const logger = this.logger.child({fn: "performQueryOnLive"});
@@ -1061,7 +1061,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnLive(args, "video", ctx.dataSources);
+                results = await VTQuery.performQueryOnLive(args, ["video", "past"], ctx.dataSources);
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
