@@ -469,6 +469,7 @@ class VTAPIQuery {
                 level: is_none(res["level"]) ? null : res["level"],
             },
             is_live: is_none(res["is_live"]) ? null : res["is_live"],
+            is_retired: is_none(res["is_retired"]) ? false : res["is_retired"],
             platform: res["platform"],
         };
         return remapped;

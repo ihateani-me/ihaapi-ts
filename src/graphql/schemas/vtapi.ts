@@ -188,6 +188,8 @@ export const VTAPIv2 = gql`
         group: String
         "Is the channel live or not? (BiliBili Only!)"
         is_live: Boolean
+        "Is the VTuber retired/graduated or not, if yes, this will not be tracked anymore but will be kept."
+        is_retired: Boolean!
         "The channel data platform"
         platform: PlatformName!
     }
@@ -361,6 +363,7 @@ export interface ChannelObject {
     history?: Nullable<ChannelsStatsHistory>;
     group?: Nullable<string>;
     is_live?: Nullable<boolean>;
+    is_retired: boolean;
     platform: PlatformName;
     pageInfo?: Nullable<PageInfo>;
 }
