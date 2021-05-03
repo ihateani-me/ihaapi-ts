@@ -84,6 +84,7 @@ export async function twcastChannelsDataset(
             level: udata["level"],
             group: raw_res["group"],
             platform: "twitcasting",
+            is_retired: false,
         };
         insertData.push(mappedNew);
     }

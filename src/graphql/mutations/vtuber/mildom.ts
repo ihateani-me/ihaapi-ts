@@ -57,6 +57,7 @@ export async function mildomChannelsDataset(
             level: result["level"],
             group: group,
             platform: "mildom",
+            is_retired: false,
         };
         insertData.push(mappedNew);
     }

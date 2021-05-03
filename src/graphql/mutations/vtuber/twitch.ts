@@ -69,6 +69,7 @@ export async function ttvChannelDataset(
             videoCount: videosData.length,
             group: group,
             platform: "twitch",
+            is_retired: false,
         };
         newChannels.push(mappedUpdate);
     }

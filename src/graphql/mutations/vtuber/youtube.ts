@@ -2,7 +2,7 @@ import axios from "axios";
 import _ from "lodash";
 import moment from "moment-timezone";
 
-import { ChannelsData, ChannelStatsHistData } from "../../../controller";
+import { ChannelsData, ChannelsProps, ChannelStatsHistData } from "../../../controller";
 import { fallbackNaN, is_none } from "../../../utils/swissknife";
 import { logger as MainLogger } from "../../../utils/logger";
 
@@ -169,6 +169,7 @@ export async function youtubeChannelDataset(
             videoCount: videoCount,
             group: group,
             platform: "youtube",
+            is_retired: false,
         };
         return finalData;
     });
@@ -195,6 +196,7 @@ export async function youtubeChannelDataset(
     let commitFail = false;
     if (to_be_committed.length > 0) {
         logger.info(`committing new data...`);
+        // @ts-ignore
         await ChannelsData.insertMany(to_be_committed).catch((err) => {
             logger.error(`failed to insert new data, ${err.toString()}`);
             commitFail = true;
