@@ -493,10 +493,12 @@ class VTAPIQuery {
         if (!Array.isArray(platforms_choices)) {
             platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
         }
-        if (Array.isArray(platforms_choices) && platforms_choices.length < 1)
+        if (Array.isArray(platforms_choices) && platforms_choices.length < 1) {
             platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+        }
         const groups_choices = getValueFromKey(args, "groups", undefined, true);
         let allowed_users = getValueFromKey(args, "channel_id", undefined, true);
+        let allowedVideoIds = getValueFromKey(args, "id", undefined, true);
         const max_lookforward = fallbackNaN(
             parseFloat,
             getValueFromKey(args, "max_scheduled_time", undefined),
@@ -508,10 +510,13 @@ class VTAPIQuery {
         }
         if (!Array.isArray(allowed_users)) {
             allowed_users = null;
-        } else if (Array.isArray(allowed_users)) {
-            if (typeof allowed_users[0] !== "string") {
-                allowed_users = null;
-            }
+        } else {
+            allowed_users = allowed_users.filter((e) => typeof e === "string");
+        }
+        if (!Array.isArray(allowedVideoIds)) {
+            allowedVideoIds = undefined;
+        } else {
+            allowedVideoIds = allowedVideoIds.filter((e) => typeof e === "string");
         }
         const pageOpts: IPaginateOptions = {
             limit: fallbackNaN(parseInt, _.get(args, "limit", 25), 25),
@@ -528,6 +533,7 @@ class VTAPIQuery {
                 channel_ids: allowed_users,
                 max_lookforward: max_lookforward,
                 max_lookback: max_lookback,
+                id: allowedVideoIds,
             },
             pageOpts
         );

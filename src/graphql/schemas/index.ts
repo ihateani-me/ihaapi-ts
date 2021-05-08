@@ -14,6 +14,8 @@ export const v2Definitions = gql`
     type VTuberQuery {
         "Get currently live VTuber"
         live(
+            "The video ID to be searched, this will limit result to provided Video ID"
+            id: [ID]
             "The channel ID to be checked, this will limit result to provided channel ID"
             channel_id: [ID]
             "The groups to be checked, this will limit result to VTuber from the group"
@@ -34,6 +36,8 @@ export const v2Definitions = gql`
         ): LivesResource
         "Get upcoming live"
         upcoming(
+            "The video ID to be searched, this will limit result to provided Video ID"
+            id: [ID]
             "The channel ID to be checked, this will limit result to provided channel ID"
             channel_id: [ID]
             "The groups to be checked, this will limit result to VTuber from the group"
@@ -56,6 +60,8 @@ export const v2Definitions = gql`
         ): LivesResource
         "Get past live of Youtube livestream up-to 24 hours (before deletion from database)"
         ended(
+            "The video ID to be searched, this will limit result to provided Video ID"
+            id: [ID]
             "The channel ID to be checked, this will limit result to provided channel ID"
             channel_id: [ID]
             "The groups to be checked, this will limit result to VTuber from the group"
@@ -78,6 +84,8 @@ export const v2Definitions = gql`
         ): LivesResource @cacheControl(maxAge: 300)
         "Get videos (including livestream) from Youtube, Twitcasting, Twitch, etc."
         videos(
+            "The video ID to be searched, this will limit result to provided Video ID"
+            id: [ID]
             "The channel ID to be checked, this will limit result to provided channel ID"
             channel_id: [ID]
             "The groups to be checked, this will limit result to VTuber from the group"

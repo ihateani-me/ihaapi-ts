@@ -390,6 +390,7 @@ export interface LiveObject {
 
 // Request-type params/args
 export interface LiveObjectParams {
+    id?: string[];
     channel_id?: string[];
     status?: LiveStatus[];
     groups?: string[];

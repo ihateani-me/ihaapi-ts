@@ -20,6 +20,7 @@ interface IChannelsOptions {
 }
 
 interface IVideoOptions extends IChannelsOptions {
+    id?: string[] | null;
     max_lookback?: number | null;
     max_lookforward?: number | null;
 }
@@ -47,6 +48,7 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         let lookbackTime = fallbackNaN(parseInt, _.get(opts, "max_lookback", 24), 24) as number;
         let groups = _.get(opts, "groups", []);
         let channelIds = _.get(opts, "channel_ids", []);
+        let videoIds = _.get(opts, "id", []);
         const max_lookforward = fallbackNaN(parseInt, _.get(opts, "max_lookforward", undefined), undefined);
         if (!Array.isArray(groups)) {
             groups = [];
@@ -60,6 +62,10 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         if (!Array.isArray(channelIds)) {
             channelIds = [];
         }
+        if (!Array.isArray(videoIds)) {
+            videoIds = [];
+        }
+        videoIds = videoIds.filter((e) => typeof e === "string");
         if (lookbackTime < 1 || lookbackTime > 24) {
             lookbackTime = 24;
         }
@@ -73,6 +79,9 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
                 { "timedata.endTime": { $gte: lookbackMax } },
                 { "timedata.endTime": { $type: "null" } },
             ];
+        }
+        if (videoIds.length > 0) {
+            fetchFormat["id"] = { $in: videoIds };
         }
         if (channelIds.length > 0) {
             fetchFormat["channel_id"] = { $in: channelIds };
