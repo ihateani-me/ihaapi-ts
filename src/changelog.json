@@ -102,5 +102,9 @@
     "2.5.2": [
         "Added Jisho support, this includes the kanji info, and sentences info",
         "Migrate the v1 API Docs from ReDoc to RapiDoc"
+    ],
+    "2.5.3": [
+        "Make videos query on VTuber API to support all status type, this also introduce new query parameters `id` (available to all VTAPI Query) to fetch specific video and `statuses` (only available to `videos` query)",
+        "Added Mutations support, currently only allow adding new VTuber."
     ]
 }

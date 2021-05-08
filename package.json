@@ -1,6 +1,6 @@
 {
   "name": "ihaapi-ts",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "A maybe-pretty-fast API endpoint mainly made for VTuber stuff.",
   "main": "src/main.ts",
   "scripts": {
