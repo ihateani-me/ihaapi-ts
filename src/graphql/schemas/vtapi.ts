@@ -394,6 +394,7 @@ export interface LiveObjectParams {
     channel_id?: string[];
     status?: LiveStatus[];
     groups?: string[];
+    statuses?: LiveStatus[];
     platforms?: PlatformName[];
     max_lookback?: number;
     max_scheduled_time?: number;

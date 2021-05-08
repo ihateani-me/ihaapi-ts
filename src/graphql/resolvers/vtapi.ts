@@ -696,6 +696,10 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         getValueFromKey(args, "channel_id", [], true) as string[],
         "string"
     ) as string[];
+    const videoid_filters = validateListData(
+        getValueFromKey(args, "id", [], true) as string[],
+        "string"
+    ) as string[];
     const platforms = validateListData(
         getValueFromKey(
             args,
@@ -754,9 +758,14 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         final_name += `-groups_${groups_filters.join("_")}`;
     }
     if (channels_filters.length < 1) {
-        final_name += "-nospecifics";
+        final_name += "-nospecific_chid";
     } else {
         final_name += `-channels_${channels_filters.join("_")}`;
+    }
+    if (videoid_filters.length < 1) {
+        final_name += "-nospecific_id";
+    } else {
+        final_name += `-videoid_${videoid_filters.join("_")}`;
     }
     if (platforms.length < 1) {
         // not possible to get but okay.
@@ -1068,7 +1077,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnLive(args, ["video", "past"], ctx.dataSources);
+                results = await VTQuery.performQueryOnLive(
+                    args,
+                    args.statuses || ["video", "past"],
+                    ctx.dataSources
+                );
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.

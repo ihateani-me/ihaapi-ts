@@ -82,7 +82,11 @@ export const v2Definitions = gql`
             "Limit per page, maximum limit is 75"
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 300)
-        "Get videos (including livestream) from Youtube, Twitcasting, Twitch, etc."
+        """
+        Get videos (including livestream) from Youtube, Twitcasting, Twitch, etc.
+        It's recomendded for users to use the live/upcoming/past query if they want to query specific status.
+        Since this would return all status, bloating the data
+        """
         videos(
             "The video ID to be searched, this will limit result to provided Video ID"
             id: [ID]
@@ -92,6 +96,8 @@ export const v2Definitions = gql`
             groups: [String]
             "The platform that will be checked, will limit to the selected platforms"
             platforms: [PlatformName]
+            "The status that will be included, deafult to only includes video and past stream"
+            statuses: [LiveStatus] = [video, past]
             """
             Sort key to be used, use the key name of the result to select it, use dot notation.
             (Note: not all of key are supported)
