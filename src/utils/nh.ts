@@ -12,6 +12,12 @@ import config from "../config";
 
 const MainLogger = TopLogger.child({ cls: "nHentai" });
 
+interface ImageNHData {
+    h: number;
+    w: number;
+    t: "p" | "j" | "g";
+}
+
 interface nhTagsData {
     artists?: (string | number)[][];
     categories?: (string | number)[][];
@@ -167,13 +173,13 @@ async function nhParseJson(
     }
     parsed_data["tags"] = parsed_tags;
 
-    const images = image_set["pages"];
+    const images = image_set["pages"] as ImageNHData[];
     const img_list: string[] = [];
     const size_list: any[][] = [];
 
     for (let i = 0; i < images.length; i++) {
         const elem_img = images[i];
-        const img_ext = getValueFromKey(elem_img, elem_img["t"], "jpg");
+        const img_ext = getValueFromKey(exts_map, elem_img["t"], "jpg");
         const img_url = `https://api.ihateani.me/v1/nh/i/${media_id}/${i + 1}.${img_ext}`;
         const img_px = [elem_img["w"], elem_img["h"]];
         img_list.push(img_url);
