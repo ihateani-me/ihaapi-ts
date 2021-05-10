@@ -9,6 +9,7 @@ import { getValueFromKey, is_none, Nulled, removeKeyFromObjects, sortObjectsByKe
 import { RedisDB } from "../controller";
 
 import config from "../config";
+import { nhImage } from "../graphql/schemas";
 
 const MainLogger = TopLogger.child({ cls: "nHentai" });
 
@@ -36,7 +37,7 @@ export interface nhInfoData {
         japanese?: string;
         other?: string;
     };
-    cover: string;
+    cover: nhImage;
     tags: nhTagsData;
     images: string[];
     images_size?: number[][];
@@ -104,7 +105,8 @@ async function nhParseJson(
         media_id: "",
         title: "",
         original_title: { japanese: "", other: "" },
-        cover: "",
+        // @ts-ignore
+        cover: {},
         tags: {},
         images: [],
         url: "",
@@ -152,13 +154,24 @@ async function nhParseJson(
     parsed_data["original_title"]["other"] = getValueFromKey(titles, "english", "") as string;
 
     const image_set = res_data["images"];
+    const cover_sizes = [image_set["cover"]["w"], image_set["cover"]["h"]];
     const cover_image_ext = image_set["cover"]["t"];
 
-    parsed_data["cover"] = `https://api.ihateani.me/v1/nh/t/${media_id}/cover.${getValueFromKey(
+    const parsedCoverURL = `https://api.ihateani.me/v1/nh/t/${media_id}/cover.${getValueFromKey(
         exts_map,
         cover_image_ext,
         "jpg"
     )}`;
+
+    parsed_data["cover"] = {
+        url: parsedCoverURL,
+        original_url: parsedCoverURL.replace(
+            "https://api.ihateani.me/v1/nh/t/",
+            "https://t.nhentai.net/galleries/"
+        ),
+        sizes: cover_sizes,
+        type: "thumbnail",
+    };
 
     // Parse tags
     const tags = res_data["tags"];

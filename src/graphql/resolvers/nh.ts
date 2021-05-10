@@ -42,11 +42,9 @@ async function reparseInformationData(result: nhInfoData): Promise<nhInfoResult>
     mapped_data["title"] = title_map;
     const cover_art: nhImage = {
         type: "thumbnail",
-        url: result["cover"],
-        original_url: result["cover"].replace(
-            "https://api.ihateani.me/v1/nh/t/",
-            "https://t.nhentai.net/galleries/"
-        ),
+        url: result["cover"].url,
+        original_url: result["cover"].original_url,
+        sizes: result["cover"].sizes,
     };
     if (cover_art["url"] === cover_art["original_url"]) {
         // handle old dangling cache
@@ -140,7 +138,7 @@ export const nhGQLResolvers: IResolvers = {
                         "INVALID_DOUJIN_CODE"
                     );
                 } else {
-                    ctx.res.status(500);
+                    ctx.res.status(status_code);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
@@ -167,7 +165,7 @@ export const nhGQLResolvers: IResolvers = {
                     ctx.res.status(404);
                     throw new ApolloError(`Cannot find anything with query: ${args.query}`, "NH_NO_RESULTS");
                 } else {
-                    ctx.res.status(500);
+                    ctx.res.status(status_code);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
@@ -205,7 +203,7 @@ export const nhGQLResolvers: IResolvers = {
                     ctx.res.status(404);
                     throw new ApolloError(`Cannot fetch anything latest from nhentai`, "NH_NO_RESULTS");
                 } else {
-                    ctx.res.status(500);
+                    ctx.res.status(status_code);
                     throw new ApolloError(
                         `Unknown error occured, got response code ${status_code} from API`,
                         "NH_API_ERROR"
