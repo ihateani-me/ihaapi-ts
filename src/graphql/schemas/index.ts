@@ -31,7 +31,7 @@ export const v2Definitions = gql`
             sort_order: SortOrder = asc
             "Pagination cursor of next page"
             cursor: String
-            "Limit per page, maximum limit is 75"
+            "Limit per page, maximum limit is 100"
             limit: Int = 25
         ): LivesResource
         "Get upcoming live"
@@ -55,7 +55,7 @@ export const v2Definitions = gql`
             max_scheduled_time: Int
             "Pagination cursor of next page"
             cursor: String
-            "Limit per page, maximum limit is 75"
+            "Limit per page, maximum limit is 100"
             limit: Int = 25
         ): LivesResource
         "Get past live of Youtube livestream up-to 24 hours (before deletion from database)"
@@ -79,7 +79,7 @@ export const v2Definitions = gql`
             cursor: String
             "The maximum lookback past stream that will be returned, in hours (maximum is 24)"
             max_lookback: Int = 6
-            "Limit per page, maximum limit is 75"
+            "Limit per page, maximum limit is 100"
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 300)
         """
@@ -107,7 +107,7 @@ export const v2Definitions = gql`
             sort_order: SortOrder = desc
             "Pagination cursor of next page"
             cursor: String
-            "Limit per page, maximum limit is 75"
+            "Limit per page, maximum limit is 100"
             limit: Int = 25
         ): LivesResource @cacheControl(maxAge: 1800)
         "Get a list of channel information including statistics"
@@ -127,7 +127,7 @@ export const v2Definitions = gql`
             sort_order: SortOrder = asc
             "Pagination cursor of next page"
             cursor: String
-            "Limit per page, maximum limit is 75"
+            "Limit per page, maximum limit is 100"
             limit: Int = 25
         ): ChannelsResource @cacheControl(maxAge: 1800)
         "Get a list of available groups in the database"
@@ -230,6 +230,7 @@ export const v2Definitions = gql`
 
     """
     ihateani.me API Mutation
+    All of this require authentication
     """
     type Mutation {
         """
@@ -244,6 +245,21 @@ export const v2Definitions = gql`
             name: String!
             "Platform name"
             platform: PlatformName!
+        ): ChannelObject!
+        """
+        Remove a VTuber channel from the database
+        """
+        VTuberRemove("Channel ID" id: String!, "Platform name" platform: PlatformName!): MutatedRemovedVTuber!
+        """
+        Retire a VTuber, can be used to unretired to by setting the retire params to false.
+        """
+        VTuberRetired(
+            "Channel ID"
+            id: String!
+            "Platform name"
+            platform: PlatformName!
+            "Should we retire this VTuber or not, default to true"
+            retire: Boolean = true
         ): ChannelObject!
     }
 `;

@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _, { find } from "lodash";
 import "apollo-cache-control";
 import express from "express";
 import moment from "moment-timezone";
@@ -19,13 +19,16 @@ import {
     LiveObjectParams,
     LivesResource,
     LiveStatus,
+    MutatedRemovedVTuber,
     PlatformName,
     SortOrder,
     VTAddMutationParams,
+    VTMutationBase,
+    VTRetiredMutationParams,
 } from "../schemas";
 import { VTAPIDataSources } from "../datasources";
 
-import { ChannelsProps, VideoProps } from "../../controller/models";
+import { ChannelsData, ChannelsProps, VideoProps } from "../../controller/models";
 import { CustomRedisCache } from "../caches/redis";
 import { getGroup } from "../../utils/filters";
 import {
@@ -896,8 +899,8 @@ export const VTAPIv2Resolvers: IResolvers = {
         live: async (_s, args: LiveObjectParams, ctx: VTAPIContext, info): Promise<LivesResource> => {
             const logger = MainLogger.child({ fn: "live" });
             let limit = getValueFromKey(args, "limit", 25) as number;
-            if (limit >= 75) {
-                limit = 75;
+            if (limit >= 100) {
+                limit = 100;
             }
             logger.info("Processing live()");
             logger.info("Checking for cache...");
@@ -953,8 +956,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({ maxAge: 20, scope: "PRIVATE" });
             const logger = MainLogger.child({ fn: "upcoming" });
             let limit = getValueFromKey(args, "limit", 25) as number;
-            if (limit >= 75) {
-                limit = 75;
+            if (limit >= 100) {
+                limit = 100;
             }
             logger.info("Processing upcoming()");
             logger.info("Checking for cache...");
@@ -1006,8 +1009,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({ maxAge: 300, scope: "PRIVATE" });
             const logger = MainLogger.child({ fn: "ended" });
             let limit = getValueFromKey(args, "limit", 25) as number;
-            if (limit >= 75) {
-                limit = 75;
+            if (limit >= 100) {
+                limit = 100;
             }
             logger.info("Processing ended()");
             logger.info("Checking for cache...");
@@ -1059,8 +1062,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({ maxAge: 1800, scope: "PRIVATE" });
             const logger = MainLogger.child({ fn: "videos" });
             let limit = getValueFromKey(args, "limit", 25) as number;
-            if (limit >= 75) {
-                limit = 75;
+            if (limit >= 100) {
+                limit = 100;
             }
             logger.info("Processing videos()");
             logger.info("Checking for cache...");
@@ -1121,8 +1124,8 @@ export const VTAPIv2Resolvers: IResolvers = {
             info.cacheControl.setCacheHint({ maxAge: 1800, scope: "PRIVATE" });
             const logger = MainLogger.child({ fn: "channels" });
             let limit = getValueFromKey(args, "limit", 25) as number;
-            if (limit >= 75) {
-                limit = 75;
+            if (limit > 100) {
+                limit = 100;
             }
             logger.info("Processing channels()");
             logger.info("Checking for cache...");
@@ -1415,6 +1418,143 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return queried.docs[0];
+        },
+        VTuberRemove: async (
+            _e,
+            { id, platform }: VTMutationBase,
+            ctx: VTAPIContext
+        ): Promise<MutatedRemovedVTuber> => {
+            const header = ctx.req.headers;
+            let authHeader = header.authorization;
+            if (typeof authHeader !== "string") {
+                ctx.res.status(401);
+                throw new ApolloError(
+                    "You need to provide an Authorization header to authenticate!",
+                    "AUTH_MISSING"
+                );
+            }
+            if (!authHeader.startsWith("password ")) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    "Authorization header need to start with `password `",
+                    "AUTH_MISCONFIGURED"
+                );
+            }
+            authHeader = authHeader.slice(9);
+            if (authHeader !== config.secure_password) {
+                ctx.res.status(403);
+                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+            }
+            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const realData = findVTuber.docs;
+            if (realData.length < 1) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+            const theOneAndOnly = find(realData, (o) => o.id === id);
+            if (is_none(theOneAndOnly)) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+
+            try {
+                const removedData = await ChannelsData.deleteOne({
+                    id: { $eq: id },
+                    platform: { $eq: platform },
+                });
+                if (typeof removedData.deletedCount === "number" && removedData.deletedCount > 0) {
+                    return {
+                        id,
+                        platform,
+                        isRemoved: true,
+                    };
+                } else {
+                    ctx.res.status(500);
+                    throw new ApolloError(
+                        "Failed to remove the mentioned VTuber, please try again later",
+                        "REMOVAL_FAILURE"
+                    );
+                }
+            } catch (e) {
+                ctx.res.status(500);
+                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+            }
+        },
+        VTuberRetired: async (
+            _e,
+            { id, platform, retire }: VTRetiredMutationParams,
+            ctx: VTAPIContext
+        ): Promise<ChannelObject> => {
+            const header = ctx.req.headers;
+            let authHeader = header.authorization;
+            if (typeof authHeader !== "string") {
+                ctx.res.status(401);
+                throw new ApolloError(
+                    "You need to provide an Authorization header to authenticate!",
+                    "AUTH_MISSING"
+                );
+            }
+            if (!authHeader.startsWith("password ")) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    "Authorization header need to start with `password `",
+                    "AUTH_MISCONFIGURED"
+                );
+            }
+            authHeader = authHeader.slice(9);
+            if (authHeader !== config.secure_password) {
+                ctx.res.status(403);
+                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+            }
+
+            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const realData = findVTuber.docs;
+            if (realData.length < 1) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+            const theOneAndOnly = find(realData, (o) => o.id === id);
+            if (is_none(theOneAndOnly)) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+
+            const is_retired = map_bool(retire);
+
+            try {
+                const changedData = await ChannelsData.updateOne(
+                    {
+                        id: { $eq: id },
+                        platform: { $eq: platform },
+                    },
+                    { $set: { is_retired: is_retired } }
+                );
+                if (changedData.nModified > 0) {
+                    theOneAndOnly["is_retired"] = is_retired;
+                    return VTQuery.mapChannelResultToSchema(theOneAndOnly);
+                } else {
+                    ctx.res.status(500);
+                    throw new ApolloError(
+                        "Failed to update the mentioned VTuber, please try again later",
+                        "UPDATE_FAILURE"
+                    );
+                }
+            } catch (e) {
+                ctx.res.status(500);
+                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+            }
         },
     },
 };

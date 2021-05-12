@@ -291,6 +291,15 @@ export const VTAPIv2 = gql`
         "The videos count history per-day"
         videosCount: [HistoryData]
     }
+
+    """
+    Remove VTuber data
+    """
+    type MutatedRemovedVTuber {
+        id: ID!
+        platform: PlatformName!
+        isRemoved: Boolean!
+    }
 `;
 
 // "Enum"
@@ -429,9 +438,22 @@ export interface GroupsResource {
     items: string[];
 }
 
-export interface VTAddMutationParams {
+export interface MutatedRemovedVTuber {
     id: string;
+    platform: PlatformName;
+    isRemoved: boolean;
+}
+
+export interface VTMutationBase {
+    id: string;
+    platform: PlatformName;
+}
+
+export interface VTAddMutationParams extends VTMutationBase {
     name: string;
     group: string;
-    platform: PlatformName;
+}
+
+export interface VTRetiredMutationParams extends VTMutationBase {
+    retire: boolean;
 }
