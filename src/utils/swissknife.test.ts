@@ -107,6 +107,9 @@ describe("Map a string to a boolean", () => {
     it("Passed an object. (should be `false`)", () => {
         expect(SwissKnife.map_bool({ test: 1 })).toBeFalsy();
     });
+    it("Passed a boolean", () => {
+        expect(SwissKnife.map_bool(true)).toBeTruthy();
+    });
     it("Passed everything other than needed data. (should be `false`)", () => {
         expect(SwissKnife.map_bool(parseInt)).toBeFalsy();
     });
