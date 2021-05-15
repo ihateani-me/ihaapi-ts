@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Build Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pnpm modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-pnpm-modules
+      with:
+        path: ~/.pnpm-store
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
+    - uses: pnpm/action-setup@v2.0.1
+      with:
+        version: 6.2.5
+        run_install: true
+    - name: Copy config for build sample
+      run: |
+        cp ./src/config.ts.example ./src/config.ts
+        cp ./.env.example ./.env
+    - name: Start build on ${{ matrix.node-version }}
+      run: pnpm run build
+  
+  tests:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Unittests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pnpm modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-pnpm-modules
+      with:
+        path: ~/.pnpm-store
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
+    - uses: pnpm/action-setup@v2.0.1
+      with:
+        version: 6.2.5
+        run_install: true
+    - name: Start testing on ${{ matrix.node-version }}
+      run: pnpm run testall
+    - name: Upload Coverage to Codecov
+      if: matrix.node-version == '12.x'
+      uses: codecov/codecov-action@v1.0.14
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        name: ihaapi-codecov
+
+  lint:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Lint Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pnpm modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-pnpm-modules
+      with:
+        path: ~/.pnpm-store
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
+    - uses: pnpm/action-setup@v2.0.1
+      with:
+        version: 6.2.5
+        run_install: true
+    - name: Run Lint
+      run: pnpm run lint
+
+  deploy:
+    name: Deploy to Production
+    if: |
+      !contains(github.event.head_commit.message, 'skip ci') &&
+      !contains(github.event.head_commit.message, 'skip deploy')
+    environment:
+      name: Production
+      url: https://api.ihateani.me/
+    needs: [build, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          port: 22
+          script: |
+            curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" ${{ secrets.CONFIG_PATH }} > /var/www/ihaapi-ts/src/config.ts
+            sh /var/www/ihaapi-ts/deploy.sh
