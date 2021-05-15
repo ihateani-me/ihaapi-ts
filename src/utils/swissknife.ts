@@ -117,6 +117,8 @@ export function map_bool<T extends any>(input_data: T): boolean {
         data = input_data.toString().toLowerCase() as string;
     } else if (typeof input_data === "object") {
         data = JSON.stringify(input_data);
+    } else if (typeof input_data === "boolean") {
+        return input_data;
     } else {
         // @ts-ignore
         data = input_data.toString().toLowerCase();

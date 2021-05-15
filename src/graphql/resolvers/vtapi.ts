@@ -1463,6 +1463,8 @@ export const VTAPIv2Resolvers: IResolvers = {
                 );
             }
 
+            let shouldThrowError = false;
+
             try {
                 const removedData = await ChannelsData.deleteOne({
                     id: { $eq: id },
@@ -1476,20 +1478,30 @@ export const VTAPIv2Resolvers: IResolvers = {
                     };
                 } else {
                     ctx.res.status(500);
-                    throw new ApolloError(
-                        "Failed to remove the mentioned VTuber, please try again later",
-                        "REMOVAL_FAILURE"
-                    );
+                    shouldThrowError = true;
                 }
             } catch (e) {
                 ctx.res.status(500);
                 throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
             }
+
+            if (shouldThrowError) {
+                throw new ApolloError(
+                    "Failed to remove the mentioned VTuber, please try again later",
+                    "REMOVAL_FAILURE"
+                );
+            }
+            return {
+                id,
+                platform,
+                isRemoved: false,
+            };
         },
         VTuberRetired: async (
             _e,
             { id, platform, retire }: VTRetiredMutationParams,
             ctx: VTAPIContext
+            // @ts-ignore
         ): Promise<ChannelObject> => {
             const header = ctx.req.headers;
             let authHeader = header.authorization;
@@ -1533,6 +1545,8 @@ export const VTAPIv2Resolvers: IResolvers = {
 
             const is_retired = map_bool(retire);
 
+            let shouldThrowError = false;
+
             try {
                 const changedData = await ChannelsData.updateOne(
                     {
@@ -1541,19 +1555,24 @@ export const VTAPIv2Resolvers: IResolvers = {
                     },
                     { $set: { is_retired: is_retired } }
                 );
-                if (changedData.nModified > 0) {
+                if (changedData.ok === 1) {
                     theOneAndOnly["is_retired"] = is_retired;
                     return VTQuery.mapChannelResultToSchema(theOneAndOnly);
                 } else {
                     ctx.res.status(500);
-                    throw new ApolloError(
-                        "Failed to update the mentioned VTuber, please try again later",
-                        "UPDATE_FAILURE"
-                    );
+                    shouldThrowError = true;
                 }
             } catch (e) {
+                console.error(e);
                 ctx.res.status(500);
                 throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+            }
+
+            if (shouldThrowError) {
+                throw new ApolloError(
+                    "Failed to update the mentioned VTuber, please try again later",
+                    "UPDATE_FAILURE"
+                );
             }
         },
     },
