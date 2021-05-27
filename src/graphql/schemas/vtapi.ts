@@ -222,6 +222,13 @@ export const VTAPIv2 = gql`
         peakViewers: Int
         "Average viewers of the streams (only available when it's ended)"
         averageViewers: Int
+        """
+        Is there any other channels mentioned from video description.
+        Basically act like if they're collabing with another VTuber or not,
+        but don't trust it blindly since there's some false-positive.
+        Available to YouTube only for now.
+        """
+        mentions: [ChannelObject!] @cacheControl(maxAge: 1800)
         "Is the video privated or not? if it's null assume no"
         is_missing: Boolean
         "Is it a premiere video or not? if it's null assume no"
@@ -389,6 +396,7 @@ export interface LiveObject {
     viewers?: Nullable<number>;
     peakViewers?: Nullable<number>;
     averageViewers?: Nullable<number>;
+    mentions?: ChannelObject[];
     is_missing?: Nullable<boolean>;
     is_premiere?: Nullable<boolean>;
     is_member?: Nullable<boolean>;

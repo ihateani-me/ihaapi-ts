@@ -687,6 +687,67 @@ class VTAPIQuery {
         const stringResults = await dataSources.channels.getGroups();
         return stringResults;
     }
+
+    async getMentionedChannels(
+        videoInfo: LiveObject,
+        dataSources: VTAPIDataSources,
+        cacheServers: CustomRedisCache,
+        noCache?: boolean
+    ) {
+        const logger = this.logger.child({ fn: "getMentionedChannels" });
+        logger.info(`Fetching mentioned channel for ${videoInfo.id} (${videoInfo.platform})`);
+        const rawVideoResults = await dataSources.videos.getVideos(
+            [videoInfo.platform],
+            videoInfo.status,
+            {},
+            {
+                project: {
+                    id: 1,
+                    platform: 1,
+                    mentioned: 1,
+                },
+            }
+        );
+
+        if (rawVideoResults.docs.length < 1) {
+            logger.warn(`${videoInfo.id}: cannot find it in database for some reason, ignoring...`);
+            return [];
+        }
+        const findMatching = rawVideoResults.docs.filter(
+            (e) => e.id === videoInfo.id && e.platform === videoInfo.platform
+        );
+        if (findMatching.length < 1) {
+            logger.warn(`${videoInfo.id}: cannot find it in database for some reason, ignoring...`);
+            return [];
+        }
+        const theOnlyOne = findMatching[0];
+        const mentionedData = theOnlyOne.mentioned || [];
+        if (mentionedData.length < 1) {
+            logger.info(`${videoInfo.id}: no mentioned channel, ignoring...`);
+            return [];
+        }
+        const allMentioned = mentionedData.map((r) => r.id).sort();
+        const cacheName = getCacheNameForChannels({ id: allMentioned }, "mentioned");
+        let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await cacheServers.getBetter(
+            cacheName,
+            true
+        );
+        if (is_none(results)) {
+            results = await this.performQueryOnChannel({}, dataSources, {
+                channel_id: allMentioned,
+                type: "channel",
+            });
+            if (!noCache && results.docs.length > 0) {
+                ttl = 1800;
+                await cacheServers.setexBetter(cacheName, ttl, results);
+            }
+        }
+        if (results.docs.length < 1) {
+            logger.error(`${videoInfo.id}: failed to fetch mentioned channels, ignoring...`);
+            return [];
+        }
+        return results.docs;
+    }
 }
 
 const VTPrefix = "vtapi-gqlcache";
@@ -806,7 +867,7 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
 
 function getCacheNameForChannels(
     args: ChannelObjectParams,
-    type: "channel" | "stats" | "singlech" | "growth" | "history",
+    type: "channel" | "stats" | "singlech" | "growth" | "history" | "mentioned",
     parent: Nullable<ChannelObject> = null
 ) {
     let final_name = `${VTPrefix}-${type}`;
@@ -818,6 +879,10 @@ function getCacheNameForChannels(
     if (type === "singlech") {
         // @ts-ignore
         final_name += `-platforms_${parent.platform}-ch_${parent.channel_id}`;
+        return final_name;
+    }
+    if (type === "mentioned") {
+        final_name += `-platforms_multi-chmention_${args.id?.join(",")}`;
         return final_name;
     }
     const groups_filters = validateListData(
@@ -1342,6 +1407,23 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return results.docs[0];
+        },
+        mentions: async (
+            parent: LiveObject,
+            _a: ChannelObjectParams,
+            ctx: VTAPIContext,
+            info
+        ): Promise<ChannelObject[]> => {
+            // @ts-ignore
+            info.cacheControl.setCacheHint({ maxAge: 1800, scope: "PRIVATE" });
+            const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
+            const fetchedChannels = await VTQuery.getMentionedChannels(
+                parent,
+                ctx.dataSources,
+                ctx.cacheServers,
+                no_cache
+            );
+            return fetchedChannels;
         },
     },
     DateTime: DateTimeScalar,
