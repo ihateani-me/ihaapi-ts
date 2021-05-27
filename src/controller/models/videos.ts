@@ -30,6 +30,11 @@ const VideosSchema = createSchema({
     averageViewers: Type.number(),
     channel_uuid: Type.string(), // Twitch specific
     channel_id: Type.string({ required: true }),
+    mentioned: Type.array().of({
+        // YouTube specific
+        id: Type.string({ required: true }),
+        platform: Type.string({ required: true, enum: PlatformData }),
+    }),
     thumbnail: Type.string({ required: true }),
     group: Type.string({ required: true }),
     platform: Type.string({ required: true, enum: PlatformData }),
