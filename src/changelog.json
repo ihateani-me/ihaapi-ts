@@ -106,5 +106,8 @@
     "2.5.3": [
         "Make videos query on VTuber API to support all status type, this also introduce new query parameters `id` (available to all VTAPI Query) to fetch specific video and `statuses` (only available to `videos` query)",
         "Added Mutations support, currently only allow adding new VTuber."
+    ],
+    "2.5.4": [
+        "Added `mentions` key to Video info in VTuber GQL API, this would allow to check if there's another VTuber mentioned in the stream/video just in case it's a collab or not, please take this with a grain of salt since it's automated."
     ]
 }
