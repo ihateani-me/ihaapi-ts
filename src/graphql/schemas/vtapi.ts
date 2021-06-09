@@ -192,6 +192,8 @@ export const VTAPIv2 = gql`
         is_retired: Boolean!
         "The channel data platform"
         platform: PlatformName!
+        "Talent's note that was put on by the Maintainer of the database/API"
+        extraNote: String
     }
 
     """
@@ -381,7 +383,7 @@ export interface ChannelObject {
     is_live?: Nullable<boolean>;
     is_retired: boolean;
     platform: PlatformName;
-    pageInfo?: Nullable<PageInfo>;
+    extraNote?: Nullable<string>;
 }
 
 export interface LiveObject {
@@ -464,4 +466,8 @@ export interface VTAddMutationParams extends VTMutationBase {
 
 export interface VTRetiredMutationParams extends VTMutationBase {
     retire: boolean;
+}
+
+export interface VTSetNoteMutationParams extends VTMutationBase {
+    newNote?: Nullable<string>;
 }

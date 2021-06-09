@@ -25,6 +25,7 @@ import {
     VTAddMutationParams,
     VTMutationBase,
     VTRetiredMutationParams,
+    VTSetNoteMutationParams,
 } from "../schemas";
 import { VTAPIDataSources } from "../datasources";
 
@@ -474,6 +475,7 @@ class VTAPIQuery {
             is_live: is_none(res["is_live"]) ? null : res["is_live"],
             is_retired: is_none(res["is_retired"]) ? false : res["is_retired"],
             platform: res["platform"],
+            extraNote: is_none(res["note"]) ? null : res["note"],
         };
         return remapped;
     }
@@ -1639,6 +1641,87 @@ export const VTAPIv2Resolvers: IResolvers = {
                 );
                 if (changedData.ok === 1) {
                     theOneAndOnly["is_retired"] = is_retired;
+                    return VTQuery.mapChannelResultToSchema(theOneAndOnly);
+                } else {
+                    ctx.res.status(500);
+                    shouldThrowError = true;
+                }
+            } catch (e) {
+                console.error(e);
+                ctx.res.status(500);
+                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+            }
+
+            if (shouldThrowError) {
+                throw new ApolloError(
+                    "Failed to update the mentioned VTuber, please try again later",
+                    "UPDATE_FAILURE"
+                );
+            }
+        },
+        VTuberSetNote: async (
+            _e,
+            { id, platform, newNote }: VTSetNoteMutationParams,
+            ctx: VTAPIContext
+            // @ts-ignore
+        ) => {
+            const header = ctx.req.headers;
+            let authHeader = header.authorization;
+            if (typeof authHeader !== "string") {
+                ctx.res.status(401);
+                throw new ApolloError(
+                    "You need to provide an Authorization header to authenticate!",
+                    "AUTH_MISSING"
+                );
+            }
+            if (!authHeader.startsWith("password ")) {
+                ctx.res.status(400);
+                throw new ApolloError(
+                    "Authorization header need to start with `password `",
+                    "AUTH_MISCONFIGURED"
+                );
+            }
+            authHeader = authHeader.slice(9);
+            if (authHeader !== config.secure_password) {
+                ctx.res.status(403);
+                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+            }
+
+            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const realData = findVTuber.docs;
+            if (realData.length < 1) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+            const theOneAndOnly = find(realData, (o) => o.id === id) as Nullable<ChannelsProps>;
+            if (is_none(theOneAndOnly)) {
+                ctx.res.status(404);
+                throw new ApolloError(
+                    "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
+                    "NOT_FOUND"
+                );
+            }
+
+            let theRealNote = null;
+            if (typeof newNote === "string" && newNote.replace(/\s+/g, "").length > 0) {
+                theRealNote = newNote;
+            }
+
+            let shouldThrowError = false;
+
+            try {
+                const changedData = await ChannelsData.updateOne(
+                    {
+                        id: { $eq: id },
+                        platform: { $eq: platform },
+                    },
+                    { $set: { note: theRealNote as string | undefined } }
+                );
+                if (changedData.ok === 1) {
+                    theOneAndOnly["note"] = theRealNote as string | undefined;
                     return VTQuery.mapChannelResultToSchema(theOneAndOnly);
                 } else {
                     ctx.res.status(500);
