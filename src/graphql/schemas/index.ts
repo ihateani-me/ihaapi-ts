@@ -271,6 +271,6 @@ export const v2Definitions = gql`
             platform: PlatformName!
             "The note that would be set"
             newNote: String = ""
-        )
+        ): ChannelObject!
     }
 `;
