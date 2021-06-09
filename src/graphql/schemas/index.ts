@@ -261,5 +261,16 @@ export const v2Definitions = gql`
             "Should we retire this VTuber or not, default to true"
             retire: Boolean = true
         ): ChannelObject!
+        """
+        Set a maintainer note to the VTuber channel. Can be anything.
+        """
+        VTuberSetNote(
+            "Channel ID"
+            id: String!
+            "Platform name"
+            platform: PlatformName!
+            "The note that would be set"
+            newNote: String = ""
+        )
     }
 `;
