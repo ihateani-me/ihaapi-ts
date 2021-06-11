@@ -697,11 +697,13 @@ class VTAPIQuery {
         noCache?: boolean
     ) {
         const logger = this.logger.child({ fn: "getMentionedChannels" });
-        logger.info(`Fetching mentioned channel for ${videoInfo.id} (${videoInfo.platform})`);
+        logger.info(
+            `Fetching mentioned channel for ${videoInfo.id} (${videoInfo.platform}) [${videoInfo.status}]`
+        );
         const rawVideoResults = await dataSources.videos.getVideos(
             [videoInfo.platform],
             videoInfo.status,
-            {},
+            { id: [videoInfo.id] },
             {
                 project: {
                     id: 1,
@@ -712,7 +714,7 @@ class VTAPIQuery {
         );
 
         if (rawVideoResults.docs.length < 1) {
-            logger.warn(`${videoInfo.id}: cannot find it in database for some reason, ignoring...`);
+            logger.warn(`${videoInfo.id}: query return is empty for some reason, ignoring...`);
             return [];
         }
         const findMatching = rawVideoResults.docs.filter(
