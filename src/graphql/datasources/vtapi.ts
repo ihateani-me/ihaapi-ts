@@ -23,6 +23,7 @@ interface IVideoOptions extends IChannelsOptions {
     id?: string[] | null;
     max_lookback?: number | null;
     max_lookforward?: number | null;
+    is_mention_check?: boolean;
 }
 
 export interface GroupsResults {
@@ -74,7 +75,7 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
             platform: { $in: platforms },
             status: { $in: properStatus },
         };
-        if (!properStatus.includes("video")) {
+        if (!properStatus.includes("video") && !opts?.is_mention_check) {
             fetchFormat["$or"] = [
                 { "timedata.endTime": { $gte: lookbackMax } },
                 { "timedata.endTime": { $type: "null" } },

@@ -394,6 +394,16 @@ function calcDuration(realDuration: number, startTime?: number, endTime?: number
     return null;
 }
 
+function setAsNaNAsNone(tocheck: Nullable<number>): Nullable<number> {
+    if (is_none(tocheck)) {
+        return null;
+    }
+    if (isNaN(tocheck)) {
+        return null;
+    }
+    return tocheck;
+}
+
 class VTAPIQuery {
     logger = TopLogger.child({ cls: "VTAPIQuery" });
 
@@ -426,16 +436,20 @@ class VTAPIQuery {
             timeData: {
                 scheduledStartTime: is_none(_.get(timeObject, "scheduledStartTime", null))
                     ? null
-                    : _.get(timeObject, "scheduledStartTime"),
+                    : setAsNaNAsNone(_.get(timeObject, "scheduledStartTime")),
                 startTime: is_none(_.get(timeObject, "startTime", null))
                     ? null
-                    : _.get(timeObject, "startTime"),
-                endTime: is_none(_.get(timeObject, "endTime", null)) ? null : _.get(timeObject, "endTime"),
-                duration: duration,
+                    : setAsNaNAsNone(_.get(timeObject, "startTime")),
+                endTime: is_none(_.get(timeObject, "endTime", null))
+                    ? null
+                    : setAsNaNAsNone(_.get(timeObject, "endTime")),
+                duration: setAsNaNAsNone(duration),
                 publishedAt: is_none(_.get(timeObject, "publishedAt", null))
                     ? null
                     : _.get(timeObject, "publishedAt"),
-                lateBy: is_none(_.get(timeObject, "lateTime", null)) ? null : _.get(timeObject, "lateTime"),
+                lateBy: is_none(_.get(timeObject, "lateTime", null))
+                    ? null
+                    : setAsNaNAsNone(_.get(timeObject, "lateTime")),
             },
             channel_id: res["channel_id"],
             viewers: is_none(_.get(res, "viewers", null)) ? null : res["viewers"],
@@ -703,7 +717,7 @@ class VTAPIQuery {
         const rawVideoResults = await dataSources.videos.getVideos(
             [videoInfo.platform],
             videoInfo.status,
-            { id: [videoInfo.id] },
+            { id: [videoInfo.id], is_mention_check: true },
             {
                 project: {
                     id: 1,
