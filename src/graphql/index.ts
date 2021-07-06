@@ -48,7 +48,13 @@ export const GQLAPIv2Server = new ApolloServer({
         cacheServers,
     }),
     subscriptions: {
-        path: "/v2/graphql",
+        path: "/v2/graphqlws",
+        onConnect: (connParams, webSocket, context) => {
+            logger.info(`A new connection established, ${webSocket.url}`);
+        },
+        onDisconnect: (webSocket, context) => {
+            logger.info(`A connection has been severed, ${webSocket.url}`);
+        },
     },
     dataSources: () => ({
         videos: new VTAPIVideos(VideosData),

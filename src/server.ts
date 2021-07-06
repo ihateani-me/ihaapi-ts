@@ -243,6 +243,8 @@ app.use(
         },
     })
 );
+
+// @ts-ignore
 GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
 
 export { app, replicaEnabled, GQLAPIv2Server };
