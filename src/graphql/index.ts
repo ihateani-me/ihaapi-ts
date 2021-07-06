@@ -26,7 +26,7 @@ const cacheServers = new CustomRedisCache({
 
 let typeDefs = [VTAPIv2, SauceAPIGQL, nHGQLSchemas, ImageBooruSchemas, v2Definitions];
 const v2ResolversFinal = v2Resolvers;
-if (!is_none(process.env.REPLICA_SET) && process.env.REPLICA_SET.length > 0) {
+if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
     logger.info("Enabling replica subscription (schemas)...");
     typeDefs = _.concat(typeDefs, v2SubscriptionSchemas);
 }

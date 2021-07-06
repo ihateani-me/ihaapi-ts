@@ -6,6 +6,8 @@ import { VideoProps, VideosData } from "../../controller";
 import { is_none } from "../../utils/swissknife";
 import { logger as MainLogger } from "../../utils/logger";
 
+import config from "../../config";
+
 const logger = MainLogger.child({ cls: "VTAPISubscription" });
 const vtpubsub = new PubSub();
 
@@ -34,7 +36,7 @@ export const VIDEO_DB_CHANGED = "VIDEO_DB_CHANGE";
 export const VIDEO_DB_NEW = "VIDEO_DB_NEW";
 let VTAPISubscription: any;
 
-if (!is_none(process.env.REPLICA_SET) && process.env.REPLICA_SET.length > 0) {
+if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
     logger.info("Started watching status update...");
     VideosData.watch([{ $match: { operationType: "update" } }], { fullDocument: "updateLookup" }).on(
         "change",
