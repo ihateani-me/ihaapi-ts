@@ -14,6 +14,7 @@ import { fallbackNaN } from "../../utils/swissknife";
 
 const VideosSchema = createSchema({
     id: Type.string({ required: true }),
+    schedule_id: Type.string(), // TTV Specific, used for schedule checking :)
     room_id: Type.string(), // B2 Specific
     title: Type.string({ required: true }),
     status: Type.string({ required: true, enum: LiveStatus }),

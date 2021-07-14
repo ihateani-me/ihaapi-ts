@@ -14,6 +14,7 @@ import { fallbackNaN } from "../../utils/swissknife";
 
 const ChannelsSchema = createSchema({
     id: Type.string({ required: true }),
+    yt_custom_id: Type.string(), // Youtube specific
     room_id: Type.string(), // Bilibili Specific
     user_id: Type.string(), // Twitch Specific
     name: Type.string({ required: true }),
@@ -30,7 +31,6 @@ const ChannelsSchema = createSchema({
     platform: Type.string({ required: true, enum: PlatformData }),
     is_live: Type.boolean(), // B2 Specific
     is_retired: Type.boolean(),
-    note: Type.string(),
 });
 
 const ChannelStatsHistorySchema = createSchema({

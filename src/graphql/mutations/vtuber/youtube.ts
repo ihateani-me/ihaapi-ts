@@ -140,6 +140,7 @@ export async function youtubeChannelDataset(
         const desc = snippets["description"];
         const pubAt = snippets["publishedAt"];
         const enName = en_name;
+        const customUrl = snippets["customUrl"] || null;
 
         const thumbs = getBestThumbnail(snippets["thumbnails"], "");
         let subsCount = 0,
@@ -159,6 +160,7 @@ export async function youtubeChannelDataset(
         // @ts-ignore
         const finalData: ChannelsProps = {
             id: ch_id,
+            yt_custom_id: customUrl,
             name: title,
             en_name: enName,
             description: desc,
