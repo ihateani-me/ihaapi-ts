@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServerExpressConfig } from "apollo-server-express";
 import { ApolloServerPluginInlineTraceDisabled } from "apollo-server-core";
 
 import { CustomRedisCache } from "./caches/redis";
@@ -35,7 +35,7 @@ if (Object.keys(SubscriptionResolver["Subscription"]).length > 0) {
     _.merge(v2ResolversFinal, SubscriptionResolver);
 }
 
-export const GQLAPIv2Server = new ApolloServer({
+export const serverConfig: ApolloServerExpressConfig = {
     typeDefs: typeDefs,
     resolvers: v2ResolversFinal,
     cache: cacheServers,
@@ -64,4 +64,6 @@ export const GQLAPIv2Server = new ApolloServer({
         iqdb: new IQDBAPI(),
     }),
     plugins: [ApolloServerPluginInlineTraceDisabled()],
-});
+};
+
+// export const GQLAPIv2Server = new ApolloServer();

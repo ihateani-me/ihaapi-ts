@@ -6,12 +6,15 @@ import express_cors from "cors";
 import moment from "moment-timezone";
 import mongoose from "mongoose";
 import path from "path";
+import { ApolloServer } from "apollo-server-express";
 import { altairExpress } from "altair-express-middleware";
 import { readFileSync } from "fs";
+import { collectDefaultMetrics, register } from "prom-client";
+import { createPrometheusExporterPlugin } from "@bmatei/apollo-prometheus-exporter";
 
 import * as Logger from "./utils/logger";
 import * as Routes from "./routes";
-import { GQLAPIv2Server } from "./graphql";
+import { serverConfig } from "./graphql";
 
 import htmlMinifier from "./utils/minifier";
 import { capitalizeIt, is_none } from "./utils/swissknife";
@@ -20,6 +23,8 @@ import config from "./config";
 import packageJson from "../package.json";
 
 const logger = Logger.logger;
+
+collectDefaultMetrics();
 
 let mongouri = config.mongodb.uri;
 if (typeof mongouri === "string" && mongouri.endsWith("/")) {
@@ -61,6 +66,10 @@ mongoose.connection.on("open", () => {
 });
 
 const app = express();
+const prometheusExporterPlugin = createPrometheusExporterPlugin({ app });
+
+serverConfig.plugins?.push(prometheusExporterPlugin);
+const GQLAPIv2Server = new ApolloServer(serverConfig);
 
 // Opt-out of FLoC thing, even though I don't use ads
 app.use((_q, res, next) => {
@@ -137,6 +146,15 @@ app.head("/echo", (_, res) => {
 
 app.get("/echo", (_, res) => {
     res.send("OK");
+});
+
+app.get("/metrics", async (_res, res) => {
+    try {
+        res.set("Content-Type", register.contentType);
+        res.end(await register.metrics());
+    } catch (err) {
+        res.status(500).end(err);
+    }
 });
 
 // Version 1 API

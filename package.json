@@ -99,6 +99,7 @@
     "typesync": "^0.8.0"
   },
   "dependencies": {
+    "@bmatei/apollo-prometheus-exporter": "^1.2.0",
     "altair-express-middleware": "^3.1.0",
     "apollo-cache-control": "^0.12.0",
     "apollo-datasource-rest": "^0.10.0",
@@ -128,6 +129,7 @@
     "mongo-cursor-pagination-alt": "^1.0.0",
     "mongodb": "^3.6.4",
     "mongoose": "^5.11.15",
+    "prom-client": "^13.1.0",
     "qs": "^6.10.1",
     "ts-mongoose": "^0.0.24",
     "unofficial-jisho-api": "^2.0.13",

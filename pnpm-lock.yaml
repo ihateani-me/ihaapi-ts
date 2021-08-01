@@ -2,6 +2,7 @@ lockfileVersion: 5.3
 
 specifiers:
   '@apidevtools/swagger-parser': ^10.0.2
+  '@bmatei/apollo-prometheus-exporter': ^1.2.0
   '@swc/cli': ^0.1.36
   '@swc/core': ^1.2.52
   '@swc/jest': ^0.1.2
@@ -67,6 +68,7 @@ specifiers:
   nodemon: ^2.0.7
   npm-run-all: ^4.1.5
   pre-push: ^0.1.1
+  prom-client: ^13.1.0
   qs: ^6.10.1
   rimraf: ^3.0.2
   shelljs: ^0.8.4
@@ -81,6 +83,7 @@ specifiers:
   xml2js: ^0.4.23
 
 dependencies:
+  '@bmatei/apollo-prometheus-exporter': 1.2.0_prom-client@13.1.0
   altair-express-middleware: 3.2.2
   apollo-cache-control: 0.12.0_graphql@15.5.0
   apollo-datasource-rest: 0.10.0_graphql@15.5.0
@@ -110,6 +113,7 @@ dependencies:
   mongo-cursor-pagination-alt: 1.0.0_mongodb@3.6.5
   mongodb: 3.6.5
   mongoose: 5.12.3
+  prom-client: 13.1.0
   qs: 6.10.1
   ts-mongoose: 0.0.24_a4f8872f389e1a216669157f54aa0188
   unofficial-jisho-api: 2.0.13
@@ -568,6 +572,14 @@ packages:
   /@bcoe/v8-coverage/0.2.3:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
+
+  /@bmatei/apollo-prometheus-exporter/1.2.0_prom-client@13.1.0:
+    resolution: {integrity: sha512-Rnr5ibt5x1Kc9y8UUmx0EF/3CjFnhwz8gytU9WJhm1GuL4v1HXgiyjQqvtJrJ+1UKYbQaThamyZT9NjbcrURLg==}
+    peerDependencies:
+      prom-client: ^12.0.0 || ^13.0.0
+    dependencies:
+      prom-client: 13.1.0
+    dev: false
 
   /@cnakazawa/watch/1.0.4:
     resolution: {integrity: sha512-v9kIhKwjeZThiWrLmj0y17CWoyddASLj9O2yvbZkbvw/N3rWOYy9zkV66ursAoVr0mV15bL8g0c4QZUE6cdDoQ==}
@@ -2270,6 +2282,10 @@ packages:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
     dev: true
+
+  /bintrees/1.0.1:
+    resolution: {integrity: sha1-DmVcm5wkNeqraL9AJyJtK1WjRSQ=}
+    dev: false
 
   /bl/2.2.1:
     resolution: {integrity: sha512-6Pesp1w0DEX1N550i/uGV/TqucVL4AM/pgThFSN/Qq9si1/DF9aIHs1BxD8V/QU0HoeHO6cQRTAuYnLPKq1e4g==}
@@ -6406,6 +6422,13 @@ packages:
     engines: {node: '>=0.4.0'}
     dev: true
 
+  /prom-client/13.1.0:
+    resolution: {integrity: sha512-jT9VccZCWrJWXdyEtQddCDszYsiuWj5T0ekrPszi/WEegj3IZy6Mm09iOOVM86A4IKMWq8hZkT2dD9MaSe+sng==}
+    engines: {node: '>=10'}
+    dependencies:
+      tdigest: 0.1.1
+    dev: false
+
   /prompts/2.4.1:
     resolution: {integrity: sha512-EQyfIuO2hPDsX1L/blblV+H7I0knhgAd82cVneCwcdND9B8AuCDuRcBH6yIcG4dFzlOUqbazQqwGjx5xmsNLuQ==}
     engines: {node: '>= 6'}
@@ -7422,6 +7445,12 @@ packages:
       slice-ansi: 4.0.0
       string-width: 4.2.2
     dev: true
+
+  /tdigest/0.1.1:
+    resolution: {integrity: sha1-Ljyyw56kSeVdHmzZEReszKRYgCE=}
+    dependencies:
+      bintrees: 1.0.1
+    dev: false
 
   /term-size/2.2.1:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
