@@ -9,7 +9,7 @@ import path from "path";
 import { ApolloServer } from "apollo-server-express";
 import { altairExpress } from "altair-express-middleware";
 import { readFileSync } from "fs";
-import { collectDefaultMetrics, register } from "prom-client";
+// import { collectDefaultMetrics, register } from "prom-client";
 import { createPrometheusExporterPlugin } from "@bmatei/apollo-prometheus-exporter";
 
 import * as Logger from "./utils/logger";
@@ -24,7 +24,7 @@ import packageJson from "../package.json";
 
 const logger = Logger.logger;
 
-collectDefaultMetrics();
+// collectDefaultMetrics();
 
 let mongouri = config.mongodb.uri;
 if (typeof mongouri === "string" && mongouri.endsWith("/")) {
@@ -148,14 +148,14 @@ app.get("/echo", (_, res) => {
     res.send("OK");
 });
 
-app.get("/metrics", async (_res, res) => {
-    try {
-        res.set("Content-Type", register.contentType);
-        res.end(await register.metrics());
-    } catch (err) {
-        res.status(500).end(err);
-    }
-});
+// app.get("/metrics", async (_res, res) => {
+//     try {
+//         res.set("Content-Type", register.contentType);
+//         res.end(await register.metrics());
+//     } catch (err) {
+//         res.status(500).end(err);
+//     }
+// });
 
 // Version 1 API
 
