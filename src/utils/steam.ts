@@ -466,7 +466,7 @@ export async function fetch_steam_game_info(app_id: string): Promise<[SteamGameD
 export async function do_search_on_steam(query_search: string): Promise<SteamGameSearch[]> {
     const logger = MainLogger.child({ fn: "do_search_on_steam" });
     const ENDPOINT = "https://store.steampowered.com/api/storesearch";
-    const qparam = { cc: "id", l: "en", term: encodeURIComponent(query_search) };
+    const qparam = { cc: "id", l: "en", term: query_search };
     logger.info(`Searching: ${query_search}...`);
     const response = await axios.get(ENDPOINT, {
         params: qparam,
