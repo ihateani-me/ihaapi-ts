@@ -167,7 +167,7 @@ function mapHistoryData(
     }
 
     let rawViewsData: Nullable<HistoryData[]> = [];
-    if (platform !== "twitcasting") {
+    if (!["twitcasting", "twitter"].includes(platform)) {
         // @ts-ignore
         rawViewsData = historyFiltered.map((res) => {
             return {
@@ -504,16 +504,16 @@ class VTAPIQuery {
             getValueFromKey(
                 args,
                 "platforms",
-                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"],
                 true
             ) as PlatformName[],
             "string"
         ) as PlatformName[];
         if (!Array.isArray(platforms_choices)) {
-            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"];
         }
         if (Array.isArray(platforms_choices) && platforms_choices.length < 1) {
-            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"];
         }
         const groups_choices = getValueFromKey(args, "groups", undefined, true);
         let allowed_users = getValueFromKey(args, "channel_id", undefined, true);
@@ -575,16 +575,16 @@ class VTAPIQuery {
             getValueFromKey(
                 args,
                 "platforms",
-                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"],
                 true
             ) as PlatformName[],
             "string"
         ) as PlatformName[];
         if (!Array.isArray(platforms_choices)) {
-            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"];
         }
         if (Array.isArray(platforms_choices) && platforms_choices.length < 1)
-            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom"];
+            platforms_choices = ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"];
         if (!Array.isArray(user_ids_limit)) {
             user_ids_limit = null;
         } else if (Array.isArray(user_ids_limit)) {
@@ -595,8 +595,9 @@ class VTAPIQuery {
         const groups_choices = getValueFromKey(args, "groups", null);
 
         if (parents.force_single) {
+            const parentPlatform = [parents.platform] as PlatformName[];
             const singleChResult = await dataSources.channels.getChannels(
-                ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+                parentPlatform,
                 {
                     channel_ids: user_ids_limit,
                 },
@@ -786,7 +787,7 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         getValueFromKey(
             args,
             "platforms",
-            ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+            ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"],
             true
         ) as PlatformName[],
         "string"
@@ -857,7 +858,8 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         platforms.includes("bilibili") &&
         platforms.includes("twitch") &&
         platforms.includes("twitcasting") &&
-        platforms.includes("mildom")
+        platforms.includes("mildom") &&
+        platforms.includes("twitter")
     ) {
         final_name += "-allplatforms";
     } else {
@@ -876,6 +878,9 @@ function getCacheNameForLive(args: LiveObjectParams, type: LiveStatus): string {
         }
         if (platforms.includes("mildom")) {
             final_name += "mildom_";
+        }
+        if (platforms.includes("twitter")) {
+            final_name += "twitter_";
         }
         final_name = _.truncate(final_name, { omission: "", length: final_name.length - 1 });
     }
@@ -915,7 +920,7 @@ function getCacheNameForChannels(
         getValueFromKey(
             args,
             "platforms",
-            ["youtube", "bilibili", "twitch", "twitcasting", "mildom"],
+            ["youtube", "bilibili", "twitch", "twitcasting", "mildom", "twitter"],
             true
         ) as PlatformName[],
         "string"
@@ -947,7 +952,8 @@ function getCacheNameForChannels(
         platforms.includes("bilibili") &&
         platforms.includes("twitch") &&
         platforms.includes("twitcasting") &&
-        platforms.includes("mildom")
+        platforms.includes("mildom") &&
+        platforms.includes("twitter")
     ) {
         final_name += "-allplatforms";
     } else {
@@ -966,6 +972,9 @@ function getCacheNameForChannels(
         }
         if (platforms.includes("mildom")) {
             final_name += "mildom_";
+        }
+        if (platforms.includes("twitter")) {
+            final_name += "twitter_";
         }
         final_name = _.truncate(final_name, { omission: "", length: final_name.length - 1 });
     }

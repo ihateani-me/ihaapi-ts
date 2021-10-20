@@ -49,6 +49,8 @@ export const VTAPIv2 = gql`
         twitcasting
         "mildom.com"
         mildom
+        "twitter.com spaces"
+        twitter
     }
 
     """
@@ -314,7 +316,7 @@ export const VTAPIv2 = gql`
 // "Enum"
 export type SortOrder = "ascending" | "descending" | "asc" | "desc";
 export type LiveStatus = "live" | "upcoming" | "past" | "video";
-export type PlatformName = "youtube" | "bilibili" | "twitch" | "twitcasting" | "mildom";
+export type PlatformName = "youtube" | "bilibili" | "twitch" | "twitcasting" | "mildom" | "twitter";
 
 // Return-type
 export interface PageInfo {
