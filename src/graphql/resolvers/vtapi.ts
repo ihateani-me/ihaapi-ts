@@ -466,7 +466,7 @@ class VTAPIQuery {
     }
 
     mapChannelResultToSchema(res: ChannelsProps): ChannelObject {
-        let subsCount = ["twitch", "twitcasting", "mildom"].includes(res["platform"])
+        let subsCount = ["twitch", "twitcasting", "mildom", "twitter"].includes(res["platform"])
             ? res["followerCount"]
             : res["subscriberCount"];
         subsCount = is_none(subsCount) ? 0 : subsCount;
