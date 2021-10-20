@@ -325,7 +325,7 @@ function mapGrowthData(
             subscribersGrowth: fallbackGrowthIfNaN(subsGrowth),
             viewsGrowth: fallbackGrowthIfNaN(viewsGrowth),
         };
-    } else if (platform === "twitcasting") {
+    } else if (platform === "twitcasting" || platform === "twitter") {
         const subsGrowth: ChannelGrowth = {
             // @ts-ignore: why
             oneDay: oneDayEnd["followerCount"] - oneDayStart["followerCount"],
@@ -1320,10 +1320,14 @@ export const VTAPIv2Resolvers: IResolvers = {
                 cache_name,
                 true
             );
+            let parentId = parent.id;
+            if (parent.platform === "twitter") {
+                parentId = parent.user_id as string;
+            }
             if (is_none(results)) {
                 results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources, {
                     // @ts-ignore
-                    channel_id: [parent.id],
+                    channel_id: [parentId],
                     platform: parent.platform,
                 });
                 ttl = 1800;
@@ -1365,11 +1369,16 @@ export const VTAPIv2Resolvers: IResolvers = {
                 true
             );
 
+            let parentId = parent.id;
+            if (parent.platform === "twitter") {
+                parentId = parent.user_id as string;
+            }
+
             if (is_none(results)) {
                 // @ts-ignore
                 results = await VTQuery.performQueryOnChannelHistory(ctx.dataSources, {
                     // @ts-ignore
-                    channel_id: [parent.id],
+                    channel_id: [parentId],
                     platform: parent.platform,
                 });
                 ttl = 1800;
