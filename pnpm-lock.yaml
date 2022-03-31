@@ -28,6 +28,7 @@ specifiers:
   '@types/rimraf': ^3.0.0
   '@types/shelljs': ^0.8.8
   '@types/swagger-jsdoc': ^6.0.0
+  '@types/whatwg-url': ^8.2.1
   '@types/xml2js': ^0.4.8
   '@typescript-eslint/eslint-plugin': ^4.15.0
   '@typescript-eslint/parser': ^4.15.0
@@ -79,6 +80,7 @@ specifiers:
   typescript: ^4.1.4
   typesync: ^0.8.0
   unofficial-jisho-api: ^2.0.13
+  whatwg-url: ^11.0.0
   winston: ^3.3.3
   xml2js: ^0.4.23
 
@@ -117,6 +119,7 @@ dependencies:
   qs: 6.10.1
   ts-mongoose: 0.0.24_a4f8872f389e1a216669157f54aa0188
   unofficial-jisho-api: 2.0.13
+  whatwg-url: 11.0.0
   winston: 3.3.3
   xml2js: 0.4.23
 
@@ -147,6 +150,7 @@ devDependencies:
   '@types/rimraf': 3.0.0
   '@types/shelljs': 0.8.8
   '@types/swagger-jsdoc': 6.0.0
+  '@types/whatwg-url': 8.2.1
   '@types/xml2js': 0.4.8
   '@typescript-eslint/eslint-plugin': 4.20.0_7448dc1756632cc6400f187319207d38
   '@typescript-eslint/parser': 4.20.0_eslint@7.23.0+typescript@4.2.3
@@ -938,14 +942,6 @@ packages:
       source-map: 0.7.3
     dev: true
 
-  /@swc/core-android-arm64/1.2.51:
-    resolution: {integrity: sha512-qXH7YrUWG6WFu5DHUJvHYMhQfe+00SxVkFV3Clzv2PBfKOnoSdCFPkRk670iLnCYB/Ejxt7fCNCxyfFIu+uubA==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [android]
-    dev: true
-    optional: true
-
   /@swc/core-android-arm64/1.2.52:
     resolution: {integrity: sha512-RrUB8ogycH9EhS3eVx1gSQTnYdgW2hICzgV2YSPDBg8lzzwtTwLkHJCgsd5ARfhu2T1/QgeDr0j2JC+TAJoOOQ==}
     engines: {node: '>=10'}
@@ -954,26 +950,10 @@ packages:
     dev: true
     optional: true
 
-  /@swc/core-darwin-arm64/1.2.51:
-    resolution: {integrity: sha512-cbAWwiaV6SWcWFreMLzOl4jYj9S6WhnnhvC2L1Zr0rL9IPwtBqPSbix95reK1cTDsbShQC9mL2Lbz+qR8lMCgg==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [darwin]
-    dev: true
-    optional: true
-
   /@swc/core-darwin-arm64/1.2.52:
     resolution: {integrity: sha512-W/G745elJTybHFq4QhAMAcOpdMYIEvhVsCKas0H3a/bzcg427uAbnitGrwJZkb6KrYx48U8VwQQhhVN/x2Qrnw==}
     engines: {node: '>=10'}
     cpu: [arm64]
-    os: [darwin]
-    dev: true
-    optional: true
-
-  /@swc/core-darwin-x64/1.2.51:
-    resolution: {integrity: sha512-sULg0Cjh1RoGyG0E/wP6TLAfiitqe0n/FzCwIeN/iwiJbjvBJHt+A2qlUuXtIP6ApEhkL89sIJx9tp04m816Lg==}
-    engines: {node: '>=10'}
-    cpu: [x64]
     os: [darwin]
     dev: true
     optional: true
@@ -986,26 +966,10 @@ packages:
     dev: true
     optional: true
 
-  /@swc/core-linux-arm-gnueabihf/1.2.51:
-    resolution: {integrity: sha512-Wqk8lwhGKBwocrf1Itq4TXTjYk0461Zhfm7bQBewvwNgJpcDSljzARGaCVPdFM71F38N4AXo+f6c1Ce8H2JkUg==}
-    engines: {node: '>=10'}
-    cpu: [arm]
-    os: [linux]
-    dev: true
-    optional: true
-
   /@swc/core-linux-arm-gnueabihf/1.2.52:
     resolution: {integrity: sha512-f8884gTC1DgAr9hL5HpqGCi40XMIs/CkF4hoBfD+BSL67m4J/ufYC1no6jEqKv5Xr6B0QPh9PLvyHsgkkWxmvw==}
     engines: {node: '>=10'}
     cpu: [arm]
-    os: [linux]
-    dev: true
-    optional: true
-
-  /@swc/core-linux-arm64-gnu/1.2.51:
-    resolution: {integrity: sha512-oNYitaOmrjHLrV5/oEJW0k2Okvc4eDh15rm2YJVpV+RbwvuuUIh6MBlq2BnFX2r/lkgDWGFCWcvxS3cCEoPSJw==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
     os: [linux]
     dev: true
     optional: true
@@ -1018,24 +982,8 @@ packages:
     dev: true
     optional: true
 
-  /@swc/core-linux-x64-gnu/1.2.51:
-    resolution: {integrity: sha512-6U4h1poon+T8sdqG20hrEuT4uWXvHrf+lIeN1WNphx+gvyZzneIcVe4/kzCqiK5/OcFmYF6XM1IzTr39+yvjPA==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [linux]
-    dev: true
-    optional: true
-
   /@swc/core-linux-x64-gnu/1.2.52:
     resolution: {integrity: sha512-0eAD8rvLG88D+Hxn5QDGeaFObIPcdPWCgLaWBNFOeX3ERUMQ+wsTGfkY0W+4Msi5oCpdnyJ8+VAES69RF20c8A==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [linux]
-    dev: true
-    optional: true
-
-  /@swc/core-linux-x64-musl/1.2.51:
-    resolution: {integrity: sha512-rH1Y11w232s7J2M+BICd8kbn/gUv0n7lg1A1UfqVRfa6IgdYR5q5THfxQ807YFdRldHgSJ0bN/ASZGvQkMpNcA==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
@@ -1050,26 +998,10 @@ packages:
     dev: true
     optional: true
 
-  /@swc/core-win32-ia32-msvc/1.2.51:
-    resolution: {integrity: sha512-MRe1Q6eHVo7LUxE/MbD1M0aSQ0LQLYEPdW9H7LsrzGQDWVOauOHOQiWsNfzN3IsMeqybhx33EMAx1DUYGmDe/g==}
-    engines: {node: '>=10'}
-    cpu: [ia32]
-    os: [win32]
-    dev: true
-    optional: true
-
   /@swc/core-win32-ia32-msvc/1.2.52:
     resolution: {integrity: sha512-c8Eeunxgo3/y2JkAlILyLiTXEQzNA/EmZXsIydSisrYKn9HvnsOx8yJv2dOBJJQxZSrYzbii7mGwWBCiAYuzTw==}
     engines: {node: '>=10'}
     cpu: [ia32]
-    os: [win32]
-    dev: true
-    optional: true
-
-  /@swc/core-win32-x64-msvc/1.2.51:
-    resolution: {integrity: sha512-Nnff2Hp2tfOc3wJMDyFBNBbBqmchDtnUt3zgm0jX8pjg4ehGk1MEtDc0WiEPomJD+Ib6dKqOeiD1z5T3H1x1/A==}
-    engines: {node: '>=10'}
-    cpu: [x64]
     os: [win32]
     dev: true
     optional: true
@@ -1088,15 +1020,15 @@ packages:
     dependencies:
       '@node-rs/helper': 1.1.0
     optionalDependencies:
-      '@swc/core-android-arm64': 1.2.51
-      '@swc/core-darwin-arm64': 1.2.51
-      '@swc/core-darwin-x64': 1.2.51
-      '@swc/core-linux-arm-gnueabihf': 1.2.51
-      '@swc/core-linux-arm64-gnu': 1.2.51
-      '@swc/core-linux-x64-gnu': 1.2.51
-      '@swc/core-linux-x64-musl': 1.2.51
-      '@swc/core-win32-ia32-msvc': 1.2.51
-      '@swc/core-win32-x64-msvc': 1.2.51
+      '@swc/core-android-arm64': 1.2.52
+      '@swc/core-darwin-arm64': 1.2.52
+      '@swc/core-darwin-x64': 1.2.52
+      '@swc/core-linux-arm-gnueabihf': 1.2.52
+      '@swc/core-linux-arm64-gnu': 1.2.52
+      '@swc/core-linux-x64-gnu': 1.2.52
+      '@swc/core-linux-x64-musl': 1.2.52
+      '@swc/core-win32-ia32-msvc': 1.2.52
+      '@swc/core-win32-x64-msvc': 1.2.52
     dev: true
 
   /@swc/core/1.2.52:
@@ -1488,6 +1420,17 @@ packages:
     resolution: {integrity: sha512-EGkrJD5Uy+Pg0NUR8uA4bJ5WMfljyad0G+784vLCNUkD+QwOJXUbBYExXfVGf7YtyzdQp3L/XMYcliB987kL5Q==}
     dependencies:
       source-map: 0.6.1
+    dev: true
+
+  /@types/webidl-conversions/6.1.1:
+    resolution: {integrity: sha512-XAahCdThVuCFDQLT7R7Pk/vqeObFNL3YqRyFZg+AqAP/W1/w3xHaIxuW7WszQqTbIBOPRcItYJIou3i/mppu3Q==}
+    dev: true
+
+  /@types/whatwg-url/8.2.1:
+    resolution: {integrity: sha512-2YubE1sjj5ifxievI5Ge1sckb9k/Er66HyR2c+3+I6VDUUg1TLPdYYTEbQ+DjRkS4nTxMJhgWfSfMRD2sl2EYQ==}
+    dependencies:
+      '@types/node': 16.0.0
+      '@types/webidl-conversions': 6.1.1
     dev: true
 
   /@types/ws/7.4.6:
@@ -6463,7 +6406,6 @@ packages:
   /punycode/2.1.1:
     resolution: {integrity: sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==}
     engines: {node: '>=6'}
-    dev: true
 
   /pupa/2.1.1:
     resolution: {integrity: sha512-l1jNAspIBSFqbT+y+5FosojNpVpF94nlI+wDUpqP9enwOTfHx9f0gh5nB96vl+6yTpsJsypeNrwfzPrKuHB41A==}
@@ -7579,6 +7521,13 @@ packages:
       punycode: 2.1.1
     dev: true
 
+  /tr46/3.0.0:
+    resolution: {integrity: sha512-l7FvfAHlcmulp8kr+flpQZmVwtu7nfRV7NZujtN0OqES8EL4O4e0qqzL0DC5gAvx/ZC/9lk6rhcUwYvkBnBnYA==}
+    engines: {node: '>=12'}
+    dependencies:
+      punycode: 2.1.1
+    dev: false
+
   /triple-beam/1.3.0:
     resolution: {integrity: sha512-XrHUvV5HpdLmIj4uVMxHggLbFSZYIn7HEWsqePZcI50pco+MPqJ50wMGY794X7AOOhxOBAjbkqfAbEe/QMp2Lw==}
     dev: false
@@ -7966,6 +7915,11 @@ packages:
     engines: {node: '>=10.4'}
     dev: true
 
+  /webidl-conversions/7.0.0:
+    resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
+    engines: {node: '>=12'}
+    dev: false
+
   /whatwg-encoding/1.0.5:
     resolution: {integrity: sha512-b5lim54JOPN9HtzvK9HFXvBma/rnfFeqsic0hSpjtDbVxR3dJKLc+KB4V6GgiGOvl7CY/KNh8rxSo9DKQrnUEw==}
     dependencies:
@@ -7975,6 +7929,14 @@ packages:
   /whatwg-mimetype/2.3.0:
     resolution: {integrity: sha512-M4yMwr6mAnQz76TbJm914+gPpB/nCwvZbJU28cUD6dR004SAxDLOOSUaB1JDRqLtaOV/vi0IC5lEAGFgrjGv/g==}
     dev: true
+
+  /whatwg-url/11.0.0:
+    resolution: {integrity: sha512-RKT8HExMpoYx4igMiVMY83lN6UeITKJlBQ+vR/8ZJ8OCdSiN3RwCq+9gH0+Xzj0+5IrM6i4j/6LuvzbZIQgEcQ==}
+    engines: {node: '>=12'}
+    dependencies:
+      tr46: 3.0.0
+      webidl-conversions: 7.0.0
+    dev: false
 
   /whatwg-url/8.5.0:
     resolution: {integrity: sha512-fy+R77xWv0AiqfLl4nuGUlQ3/6b5uNfQ4WAbGQVMYshCTCCPK9psC1nWh3XHuxGVCtlcDDQPQW1csmmIQo+fwg==}

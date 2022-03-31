@@ -9,13 +9,22 @@ import {
     nhInfoParams,
     nhInfoResult,
     nhPageInfo,
+    nhPageSearchParams,
+    nhPageSearchResult,
+    nhSearchMode,
     nhSearchParams,
     nhSearchResult,
     nhTags,
     nhTitle,
 } from "../schemas";
 
-import { nhFetchInfo, nhInfoData, nhLatestDoujin, nhSearchDoujin } from "../../utils/nh";
+import {
+    nhFetchInfo,
+    nhInfoData,
+    nhLatestDoujin,
+    nhSearchDoujin,
+    nhSearchDoujinScrapper,
+} from "../../utils/nh";
 import { fallbackNaN, getValueFromKey, is_none } from "../../utils/swissknife";
 
 function maybeStr(input: any): string {
@@ -227,6 +236,25 @@ export const nhGQLResolvers: IResolvers = {
             }
             finalized_response["results"] = reparsed_data;
             return finalized_response;
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        searchweb: async (_s, args: nhPageSearchParams, ctx, _i): Promise<nhPageSearchResult> => {
+            let fetch_page = getValueFromKey(args, "page", 1) as number;
+            fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
+            if (fetch_page < 1) {
+                fetch_page = 1;
+            }
+            const query = decodeURIComponent(args.query as string);
+            let queryMode = getValueFromKey(args, "mode", "RECENT") as nhSearchMode;
+            if (!["RECENT", "POPULAR_TODAY", "POPULAR_WEEK", "POPULAR_ALL"].includes(queryMode)) {
+                queryMode = "RECENT";
+            }
+            const searchResults = await nhSearchDoujinScrapper(query, fetch_page, queryMode);
+            if (is_none(searchResults)) {
+                ctx.res.status(404);
+                throw new ApolloError(`Cannot find anything with query: ${args.query}`, "NH_NO_RESULTS");
+            }
+            return searchResults;
         },
     },
 };

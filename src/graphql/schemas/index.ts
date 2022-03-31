@@ -168,6 +168,17 @@ export const v2Definitions = gql`
         ): SauceResource!
     }
 
+    enum nHentaiSearchMode {
+        """Return the recent uploads"""
+        RECENT
+        """Return the today most popular uploads"""
+        POPULAR_TODAY
+        """Return the today week popular uploads"""
+        POPULAR_WEEK
+        """Return the all time popular uploads"""
+        POPULAR_ALL
+    }
+
     """
     Query through nHentai API with easy to use wrapper.
     This is a drop in replacement for /v1/nh, except the Image route.
@@ -184,6 +195,15 @@ export const v2Definitions = gql`
         ): nhSearchResult!
         "Get latest nHentai doujin(shi)"
         latest("The page you want to see" page: Int = 1): nhSearchResult!
+        "Search nHentai for some doujin(shi) via parsing the website"
+        searchweb(
+            "Query params, support advanced params too!"
+            query: String!
+            "The page you want to see"
+            page: Int = 1
+            "The search mode, default to RECENT"
+            mode: nHentaiSearchMode = RECENT
+        )
     }
 
     """

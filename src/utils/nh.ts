@@ -1,15 +1,24 @@
 import moment from "moment-timezone";
 import getMimeType from "mime-type-check";
-import axios, { AxiosInstance } from "axios";
+import cheerio from "cheerio";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { basename } from "path";
+import { URLSearchParams } from "whatwg-url";
 
 import { logger as TopLogger } from "./logger";
-import { getValueFromKey, is_none, Nulled, removeKeyFromObjects, sortObjectsByKey } from "./swissknife";
+import {
+    getValueFromKey,
+    is_none,
+    Nullable,
+    Nulled,
+    removeKeyFromObjects,
+    sortObjectsByKey,
+} from "./swissknife";
 
 import { RedisDB } from "../controller";
 
 import config from "../config";
-import { nhImage } from "../graphql/schemas";
+import { nhImage, nhPageSearchInfoResult, nhPageSearchResult, nhSearchMode } from "../graphql/schemas";
 
 const MainLogger = TopLogger.child({ cls: "nHentai" });
 
@@ -452,4 +461,106 @@ export async function nhImagePathProxy(
         return [{ status_code: 404, message: "image not found" }, ""];
     }
     return [image_buffer, mimetype];
+}
+
+export async function nhSearchDoujinScrapper(
+    query: string,
+    page: number,
+    mode: nhSearchMode = "RECENT"
+): Promise<Nullable<nhPageSearchResult>> {
+    const logger = MainLogger.child({ fn: "nhSearchDoujinScrapper" });
+    const params: {
+        q: string;
+        page: number;
+        sort?: string;
+    } = {
+        q: query,
+        page: page,
+    };
+    switch (mode) {
+        case "RECENT":
+            break;
+        case "POPULAR_ALL":
+            params["sort"] = "popular";
+            break;
+        case "POPULAR_TODAY":
+            params["sort"] = "popular-today";
+            break;
+        case "POPULAR_WEEK":
+            params["sort"] = "popular-week";
+            break;
+        default:
+            break;
+    }
+    logger.info(`Searching doujin: ${query} (${mode})`);
+    let results: AxiosResponse<string>;
+    try {
+        results = await axios.get("https://nhentai.net/search", {
+            params: params,
+            responseType: "text",
+            headers: {
+                "User-Agent": CHROME_UA,
+            },
+        });
+    } catch (e) {
+        logger.error(e);
+        return null;
+    }
+
+    const enFlags = "12227";
+    const jpFlags = "6346";
+    const cnFlags = "29963";
+
+    const $ = cheerio.load(results.data);
+
+    const galleries = $("div.gallery");
+    const paginations = $("section.pagination");
+
+    const actualResults: nhPageSearchInfoResult[] = [];
+    galleries.each((_, gallery) => {
+        const $gal = $(gallery);
+        const dataTags = $gal.attr("data-tags") ?? "";
+        const image = $gal.find("img.lazyload");
+        const imgUrl = image.attr("data-src") ?? image.attr("src") ?? "";
+        const imgWidth = parseInt(image.attr("width") || "250");
+        const imgHeight = parseInt(image.attr("height") || "370");
+        const actualLink = $gal.find("a.cover").attr("href") ?? "";
+        const splittedLink = actualLink.split("/").filter(Boolean);
+        const doujinId = splittedLink[splittedLink.length - 1];
+
+        const doujinTitle = $gal.find("div.caption").text().replace(/\s+/g, " ");
+        let language = "unknown";
+        if (dataTags.includes(enFlags)) {
+            language = "english";
+        } else if (dataTags.includes(jpFlags)) {
+            language = "japanese";
+        } else if (dataTags.includes(cnFlags)) {
+            language = "chinese";
+        }
+
+        actualResults.push({
+            id: doujinId,
+            title: doujinTitle,
+            language: language,
+            cover_art: {
+                type: "thumbnail",
+                url: imgUrl,
+                original_url: imgUrl,
+                sizes: [imgWidth, imgHeight],
+            },
+        });
+    });
+
+    const currentPage = new URLSearchParams(paginations.find("a.current").attr("href") ?? "/unknown");
+    const actualCurrentPage = parseInt(currentPage.get("page") ?? "1");
+    const maximumPage = new URLSearchParams(paginations.find("a.last").attr("href") ?? "/unknown");
+    const actualMaximumPage = parseInt(maximumPage.get("page") ?? "1");
+    return {
+        results: actualResults,
+        pageInfo: {
+            current: actualCurrentPage,
+            total: actualMaximumPage,
+        },
+        query,
+    };
 }

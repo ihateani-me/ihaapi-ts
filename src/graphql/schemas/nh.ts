@@ -104,6 +104,32 @@ export const nHGQLSchemas = gql`
         "Page information for paginating"
         pageInfo: nhPageInfo!
     }
+
+    """
+    Search result information from website query.
+    """
+    type nhPageSearchInfoResult {
+        "The doujin code"
+        id: ID!
+        "The doujin title"
+        title: String!
+        "The cover art or thumbnail or first image"
+        cover_art: nhImage!
+        "The language of the doujin"
+        language: String!
+    }
+
+    """
+    Search result information from website query.
+    """
+    type nhPageSearchResult {
+        "Provided query"
+        query: String
+        "The results of it"
+        results: [nhPageSearchInfoResult!]
+        "Page information for paginating"
+        pageInfo: nhPageInfo!
+    }
 `;
 
 export interface nhTitle {
@@ -158,6 +184,19 @@ export interface nhSearchResult {
     pageInfo: nhPageInfo;
 }
 
+export interface nhPageSearchInfoResult {
+    id: string;
+    title: string;
+    cover_art: nhImage;
+    language: string;
+}
+
+export interface nhPageSearchResult {
+    query?: string;
+    results?: nhPageSearchInfoResult[];
+    pageInfo: nhPageInfo;
+}
+
 export interface nhInfoParams {
     doujin_id: number;
 }
@@ -165,4 +204,10 @@ export interface nhInfoParams {
 export interface nhSearchParams {
     query?: string;
     page?: number;
+}
+
+export type nhSearchMode = "RECENT" | "POPULAR_TODAY" | "POPULAR_WEEK" | "POPULAR_ALL";
+
+export interface nhPageSearchParams extends nhSearchParams {
+    mode?: nhSearchMode;
 }
