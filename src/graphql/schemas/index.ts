@@ -169,13 +169,21 @@ export const v2Definitions = gql`
     }
 
     enum nHentaiSearchMode {
-        """Return the recent uploads"""
+        """
+        Return the recent uploads
+        """
         RECENT
-        """Return the today most popular uploads"""
+        """
+        Return the today most popular uploads
+        """
         POPULAR_TODAY
-        """Return the today week popular uploads"""
+        """
+        Return the today week popular uploads
+        """
         POPULAR_WEEK
-        """Return the all time popular uploads"""
+        """
+        Return the all time popular uploads
+        """
         POPULAR_ALL
     }
 
@@ -203,7 +211,7 @@ export const v2Definitions = gql`
             page: Int = 1
             "The search mode, default to RECENT"
             mode: nHentaiSearchMode = RECENT
-        )
+        ): nhPageSearchResult!
     }
 
     """
