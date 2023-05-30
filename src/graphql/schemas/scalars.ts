@@ -54,6 +54,29 @@ export const SimilarityScalar = new GraphQLScalarType({
 });
 
 export const GQLScalarSchema = `#graphql
+    """The scope of the cache control directive"""
+    enum CacheControlScope {
+        """Cache is shared among all users."""
+        PUBLIC
+        """Cache is specific to an individual user."""
+        PRIVATE
+    }
+
+    """
+    Define caching behavior either for a single field, or for all fields that return a particular type.
+    """
+    directive @cacheControl(
+        """The maximum amount of time the field's cached value is valid, in seconds. The default value is 0"""
+        maxAge: Int
+        """If PRIVATE, the field's value is specific to a single user. The default value is PUBLIC."""
+        scope: CacheControlScope
+        """
+        If true, this field inherits the maxAge of its parent field instead of using the default maxAge.
+        Do not provide maxAge if you provide this argument.
+        """
+        inheritMaxAge: Boolean
+    ) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
+
     """
     A datetime string format, using ISO 8601 format.
     """
