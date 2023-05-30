@@ -111,7 +111,6 @@ export function bindGQLServer(app: Express, server: ApolloServer, options: GQLBi
     server.startInBackgroundHandlingStartupErrorsByLoggingAndFailingAllRequests();
     app.use(
         "/v2/graphql",
-        cors<cors.CorsRequest>(),
         json(),
         expressMiddleware(server, {
             context: async ({ req, res }) => {
