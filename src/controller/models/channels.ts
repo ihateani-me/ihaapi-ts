@@ -1,47 +1,47 @@
 import { FilterQuery } from "mongoose";
-import { getModelForClass, prop, ReturnModelType } from "@typegoose/typegoose";
+import { getModelForClass, prop, PropType, ReturnModelType } from "@typegoose/typegoose";
 
 import { PlatformData, PlatformDataType } from "./extras";
 import paginationHelper, { IPaginateOptions } from "./pagination";
 
 export class Channels {
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public id!: string;
-    @prop()
+    @prop({ type: () => String })
     public yt_custom_id?: string;
-    @prop()
+    @prop({ type: () => String })
     public room_id?: string;
-    @prop()
+    @prop({ type: () => String })
     public user_id?: string;
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public name!: string;
-    @prop()
+    @prop({ type: () => String })
     public en_name?: string;
-    @prop()
+    @prop({ type: () => String })
     public description?: string;
-    @prop()
+    @prop({ type: () => String })
     public publishedAt?: string;
-    @prop()
+    @prop({ type: () => Number })
     public subscriberCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public viewCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public videoCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public followerCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public level?: number;
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public thumbnail!: string;
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public group!: string;
-    @prop({ required: true, enum: PlatformData })
+    @prop({ required: true, enum: PlatformData, type: () => String })
     public platform!: PlatformDataType;
-    @prop()
+    @prop({ type: () => Boolean })
     public is_live?: boolean;
-    @prop()
+    @prop({ type: () => Boolean })
     public is_retired?: boolean;
-    @prop()
+    @prop({ type: () => String })
     public note?: string;
 
     public static async paginate(
@@ -54,28 +54,28 @@ export class Channels {
 }
 
 class ChannelStatsHistory {
-    @prop({ required: true })
+    @prop({ required: true, type: () => Number })
     public timestamp!: number;
-    @prop()
+    @prop({ type: () => Number })
     public subscriberCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public viewCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public videoCount?: number;
-    @prop()
+    @prop({ type: () => Number })
     public level?: number;
-    @prop()
+    @prop({ type: () => Number })
     public followerCount?: number; // TWCast/Mildom specific
 }
 
 export class ChannelStats {
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public id!: string;
-    @prop()
+    @prop({ type: () => [ChannelStatsHistory] }, PropType.ARRAY)
     public history?: ChannelStatsHistory[];
-    @prop({ required: true })
+    @prop({ required: true, type: () => String })
     public group!: string;
-    @prop({ required: true, enum: PlatformData })
+    @prop({ required: true, enum: PlatformData, type: () => String })
     public platform!: PlatformDataType;
 }
 
