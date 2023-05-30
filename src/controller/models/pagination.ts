@@ -248,7 +248,6 @@ export interface FindPaginatedParams {
 }
 
 export const findPaginationMongoose = async <TDocument extends AnyParamConstructor<any>>(
-    // @ts-ignore
     model: ReturnModelType<TDocument>,
     { first, after, last, before, query = {}, sort: originalSort = {}, projection = {} }: FindPaginatedParams
 ): Promise<FindPaginatedResult<InstanceType<TDocument>>> => {
@@ -272,7 +271,6 @@ export const findPaginationMongoose = async <TDocument extends AnyParamConstruct
         },
     ];
     if (typeof projection === "object" && Object.keys(projection).length > 1) {
-        // @ts-ignore
         aggroParams.push({ $project: projection });
     }
 

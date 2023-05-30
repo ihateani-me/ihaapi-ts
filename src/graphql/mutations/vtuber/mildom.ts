@@ -1,10 +1,10 @@
 import _ from "lodash";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 
 import { MildomAPI } from "./helper";
 import { logger as MainLogger } from "../../../utils/logger";
 import { is_none } from "../../../utils/swissknife";
-import { ChannelsData, ChannelStatsHistData } from "../../../controller";
+import { Channels, ChannelsModel, ChannelStats, ChannelStatsModel } from "../../../controller";
 
 export async function mildomChannelsDataset(
     channelId: string,
@@ -16,7 +16,7 @@ export async function mildomChannelsDataset(
         return [false, "Web Admin doesn't give Twitch API information"];
     }
     const logger = MainLogger.child({ fn: "mildomChannelsDataset" });
-    const channels = await ChannelsData.findOne({
+    const channels = await ChannelStatsModel.findOne({
         id: { $eq: channelId },
         platform: { $eq: "mildom" },
     }).catch((_e) => {
@@ -33,7 +33,7 @@ export async function mildomChannelsDataset(
     }
     logger.info(`parsing API results...`);
     const insertData = [];
-    const currentTimestamp = moment.tz("UTC").unix();
+    const currentTimestamp = DateTime.utc().toSeconds();
     for (let i = 0; i < [mildom_results].length; i++) {
         const result = mildom_results;
         logger.info(`parsing and fetching followers and videos ${result["id"]}`);
@@ -45,8 +45,7 @@ export async function mildomChannelsDataset(
             level: result["level"],
             videoCount: videosData.length,
         });
-        // @ts-ignore
-        const mappedNew: MildomChannelProps = {
+        const mappedNew: Channels = {
             id: result["id"],
             name: result["name"],
             en_name: en_name,
@@ -62,9 +61,8 @@ export async function mildomChannelsDataset(
         insertData.push(mappedNew);
     }
 
-    // @ts-ignore
-    const historyDatas: ChannelStatsHistProps[] = insertData.map((res) => {
-        const timestamp = moment.tz("UTC").unix();
+    const historyDatas: ChannelStats[] = insertData.map((res) => {
+        const timestamp = DateTime.utc().toSeconds();
         return {
             id: res["id"],
             history: [
@@ -83,11 +81,11 @@ export async function mildomChannelsDataset(
     let commitFail = false;
     if (insertData.length > 0) {
         logger.info(`committing new data...`);
-        await ChannelsData.insertMany(insertData).catch((err) => {
+        await ChannelsModel.insertMany(insertData).catch((err) => {
             logger.error(`failed to insert new data, ${err.toString()}`);
             commitFail = true;
         });
-        await ChannelStatsHistData.insertMany(historyDatas).catch((err) => {
+        await ChannelStatsModel.insertMany(historyDatas).catch((err) => {
             logger.error(`Failed to insert new history data, ${err.toString()}`);
         });
         if (commitFail) {

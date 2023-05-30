@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import moment from "moment-timezone";
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { DateTime } from "luxon";
 import _ from "lodash";
 import { Logger } from "winston";
 
@@ -60,13 +60,15 @@ export class TwitchHelix {
     }
 
     private current() {
-        return moment.tz("UTC").unix();
+        return DateTime.utc().toSeconds();
     }
 
-    private async handleRateLimitRequest(config: AxiosRequestConfig): Promise<AxiosRequestConfig> {
+    private async handleRateLimitRequest(
+        config: InternalAxiosRequestConfig<any>
+    ): Promise<InternalAxiosRequestConfig<any>> {
         const logger = this.logger.child({ fn: "handleRateLimit" });
         if (this.remainingBucket < 1 && this.remainingBucket !== -1) {
-            const currentTime = moment.tz("UTC").unix();
+            const currentTime = this.current();
             if (this.nextReset > currentTime) {
                 logger.info(`currently rate limited, delaying by ${this.nextReset - currentTime} seconds`);
                 await this.delayBy((this.nextReset - currentTime) * 1000);
@@ -83,8 +85,7 @@ export class TwitchHelix {
         return response;
     }
 
-    // @ts-ignore
-    private async getReq(url: string, params: AnyDict, headers: AnyDict = null) {
+    private async getReq(url: string, params: AnyDict, headers?: AnyDict) {
         let param_url = "";
         if (typeof params === "object" && Array.isArray(params)) {
             param_url = params.join("&");
@@ -108,8 +109,7 @@ export class TwitchHelix {
         }
     }
 
-    // @ts-ignore
-    private async postReq(url: string, params: AnyDict, headers: AnyDict = null) {
+    private async postReq(url: string, params: AnyDict, headers?: AnyDict) {
         if (is_none(headers)) {
             const resp = await this.session.post(url, null, {
                 params: params,

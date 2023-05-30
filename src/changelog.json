@@ -113,5 +113,8 @@
     "2.6.0": [
         "Update all dependencies to latest version if possible",
         "Remove some dead code or bad code(?)"
+    ],
+    "2.6.1": [
+        "Migrate the forgotten Mutation for VT API from ts-mongoose to typegoose"
     ]
 }

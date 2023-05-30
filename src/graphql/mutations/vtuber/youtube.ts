@@ -1,13 +1,13 @@
 import axios from "axios";
 import _ from "lodash";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 
-import { ChannelsData, ChannelsProps, ChannelStatsHistData } from "../../../controller";
 import { fallbackNaN, is_none } from "../../../utils/swissknife";
 import { logger as MainLogger } from "../../../utils/logger";
 
 import config from "../../../config";
 import packageJson from "../../../../package.json";
+import { Channels, ChannelsModel, ChannelStats, ChannelStatsModel } from "../../../controller";
 
 interface AnyDict {
     [key: string]: any;
@@ -60,7 +60,7 @@ export async function youtubeChannelDataset(
         return [false, "Web Admin doesn't have YouTube API Key provided on config."];
     }
 
-    const parsed_yt_channel = await ChannelsData.findOne({
+    const parsed_yt_channel = await ChannelsModel.findOne({
         id: { $eq: channelId },
         platform: { $eq: "youtube" },
     }).catch((_e) => {
@@ -70,7 +70,6 @@ export async function youtubeChannelDataset(
         return [false, "Channel already exist on database"];
     }
 
-    // @ts-ignore
     const channelIds = [{ id: channelId, group: group, name: en_name }];
 
     const chunked_channels_set = _.chunk(channelIds, 40);
@@ -93,12 +92,9 @@ export async function youtubeChannelDataset(
             .then((result) => {
                 const yt_result = result.data;
                 const items = yt_result["items"].map((res: any) => {
-                    // @ts-ignore
                     const channel_data = _.find(channelIds, { id: res.id });
-                    // @ts-ignore
-                    res["groupData"] = channel_data["group"];
-                    // @ts-ignore
-                    res["enName"] = channel_data["name"];
+                    res["groupData"] = channel_data?.group;
+                    res["enName"] = channel_data?.name;
                     return res;
                 });
                 return items;
@@ -157,8 +153,7 @@ export async function youtubeChannelDataset(
             videoCount = fallbackNaN(parseInt, statistics["videoCount"], statistics["videoCount"]);
         }
 
-        // @ts-ignore
-        const finalData: ChannelsProps = {
+        const finalData: Channels = {
             id: ch_id,
             yt_custom_id: customUrl,
             name: title,
@@ -176,9 +171,8 @@ export async function youtubeChannelDataset(
         return finalData;
     });
 
-    // @ts-ignore
-    const historyDatas: ChannelStatsHistProps[] = to_be_committed.map((res) => {
-        const timestamp = moment.tz("UTC").unix();
+    const historyDatas: ChannelStats[] = to_be_committed.map((res) => {
+        const timestamp = DateTime.utc().toSeconds();
         return {
             id: res["id"],
             history: [
@@ -198,15 +192,14 @@ export async function youtubeChannelDataset(
     let commitFail = false;
     if (to_be_committed.length > 0) {
         logger.info(`committing new data...`);
-        // @ts-ignore
-        await ChannelsData.insertMany(to_be_committed).catch((err) => {
+        await ChannelsModel.insertMany(to_be_committed).catch((err) => {
             logger.error(`failed to insert new data, ${err.toString()}`);
             commitFail = true;
         });
     }
     if (historyDatas.length > 0) {
         logger.info(`youtubeChannelDataset(${group}) committing new history data...`);
-        await ChannelStatsHistData.insertMany(historyDatas).catch((err) => {
+        await ChannelStatsModel.insertMany(historyDatas).catch((err) => {
             logger.error(`failed to insert new history data, ${err.toString()}`);
             commitFail = true;
         });

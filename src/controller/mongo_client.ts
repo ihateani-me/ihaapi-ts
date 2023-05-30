@@ -11,7 +11,7 @@ const server_url = config["mongodb"]["uri"];
 export class MongoConnection {
     private client: MongoClient;
     private logger: winston.Logger;
-    db: Db | undefined;
+    db?: Db;
     db_name: string;
     is_connected: boolean;
     version: string;
@@ -62,17 +62,12 @@ export class MongoConnection {
     }
 
     open_collection(collection_name: string): Promise<any[]> {
-        let cb_func;
         if (is_none(this.db)) {
             this.connect();
-            // @ts-ignore
-            const collection = this.db.collection(collection_name);
-            cb_func = collection.find().toArray();
-        } else {
-            const collection = this.db.collection(collection_name);
-            cb_func = collection.find().toArray();
         }
-        return cb_func;
+        const collection = this.db?.collection(collection_name);
+        const cb_func = collection?.find().toArray();
+        return cb_func ?? new Promise<any[]>((resolve) => resolve([]));
     }
 
     getCollection(collection_name: string) {

@@ -1,11 +1,11 @@
 import _ from "lodash";
-import moment from "moment-timezone";
-import axios, { AxiosInstance } from "axios";
+import { DateTime } from "luxon";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import { Logger } from "winston";
 
 import { logger as MainLogger } from "../../../../utils/logger";
 import { is_none } from "../../../../utils/swissknife";
-import { ChannelsProps, VideoProps } from "../../../../controller";
+import { Channels, Video } from "../../../../controller";
 
 interface AnyDict {
     [key: string]: any;
@@ -51,12 +51,16 @@ export class MildomAPI {
             });
             results = rawResults.data;
         } catch (e) {
-            if (e.response) {
+            if (e instanceof AxiosError && e.response) {
                 results = e.response.data;
             } else {
-                logger.error(`Failed to fetch user ${userId}, ${e.toString()}`);
+                let errStr = "Unknown error";
+                if (e instanceof Error) {
+                    errStr = e.toString();
+                }
+                logger.error(`Failed to fetch user ${userId}, ${errStr}`);
                 console.error(e);
-                results = { body: {}, code: -1, message: e.toString() };
+                results = { body: {}, code: -1, message: errStr };
             }
         }
 
@@ -66,8 +70,6 @@ export class MildomAPI {
             return undefined;
         }
 
-        // @ts-ignore
-        const properResults: ChannelsProps = {};
         const bodyRes = _.get(results, "body", {});
         const userInfo = _.get(bodyRes, "user_info", {});
         if (is_none(userInfo)) {
@@ -75,13 +77,16 @@ export class MildomAPI {
             return undefined;
         }
 
-        properResults["id"] = userInfo["my_id"];
-        properResults["name"] = userInfo["loginname"];
-        properResults["description"] = userInfo["intro"];
-        properResults["followerCount"] = userInfo["fans"];
-        properResults["level"] = userInfo["level"];
-        properResults["thumbnail"] = userInfo["avatar"];
-        properResults["platform"] = "mildom";
+        const properResults: Channels = {
+            id: userInfo.my_id,
+            name: userInfo.loginname,
+            description: userInfo.intro,
+            followerCount: userInfo.fans,
+            level: userInfo.level,
+            thumbnail: userInfo.avatar,
+            platform: "mildom",
+            group: "vtuber-temp",
+        };
         return properResults;
     }
 
@@ -143,12 +148,16 @@ export class MildomAPI {
             });
             results = rawResults.data;
         } catch (e) {
-            if (e.response) {
+            if (e instanceof AxiosError && e.response) {
                 results = e.response.data;
             } else {
-                logger.error(`Failed to fetch user ${userId}, ${e.toString()}`);
+                let errStr = "Unknown error";
+                if (e instanceof Error) {
+                    errStr = e.toString();
+                }
+                logger.error(`Failed to fetch user ${userId}, ${errStr}`);
                 console.error(e);
-                results = { body: {}, code: -1, message: e.toString() };
+                results = { body: {}, code: -1, message: errStr };
             }
         }
 
@@ -158,8 +167,6 @@ export class MildomAPI {
             return undefined;
         }
 
-        // @ts-ignore
-        const properResults: VideoProps = {};
         const liveInfo = _.get(results, "body", {});
         if (is_none(liveInfo)) {
             logger.error(`User ID ${userId} missing required data to process`);
@@ -171,23 +178,22 @@ export class MildomAPI {
             return undefined;
         }
 
-        const liveStart = moment.tz(liveInfo["live_start_ms"], "UTC");
+        const liveStart = DateTime.fromMillis(liveInfo["live_start_ms"], { zone: "UTC" });
 
-        properResults["id"] = liveInfo["log_id"];
-        properResults["title"] = liveInfo["anchor_intro"];
-        properResults["status"] = "live";
-        properResults["timedata"] = {
-            startTime: liveStart.unix(),
-            // @ts-ignore
-            endTime: null,
-            // @ts-ignore
-            duration: null,
-            publishedAt: liveStart.format(),
+        const properResults: Video = {
+            id: liveInfo["log_id"],
+            title: liveInfo["anchor_intro"],
+            status: "live",
+            timedata: {
+                startTime: liveStart.toSeconds(),
+                publishedAt: liveStart.toISO() ?? undefined,
+            },
+            viewers: liveInfo["viewers"],
+            channel_id: userId,
+            thumbnail: liveInfo["pic"],
+            platform: "mildom",
+            group: "vtuber-temp",
         };
-        properResults["viewers"] = liveInfo["viewers"];
-        properResults["channel_id"] = userId;
-        properResults["thumbnail"] = liveInfo["pic"];
-        properResults["platform"] = "mildom";
         return properResults;
     }
 }

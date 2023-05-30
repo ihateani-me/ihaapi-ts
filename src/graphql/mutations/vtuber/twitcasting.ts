@@ -1,8 +1,8 @@
 import axios from "axios";
 import _ from "lodash";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 
-import { ChannelsData, ChannelsProps, ChannelStatsHistData } from "../../../controller";
+import { Channels, ChannelsModel, ChannelStats, ChannelStatsModel } from "../../../controller";
 import { logger as MainLogger } from "../../../utils/logger";
 import { is_none } from "../../../utils/swissknife";
 
@@ -23,7 +23,7 @@ export async function twcastChannelsDataset(
     const logger = MainLogger.child({ fn: "twcastChannelDataset" });
 
     logger.info("checking if channel exist...");
-    const channels = await ChannelsData.findOne({
+    const channels = await ChannelsModel.findOne({
         id: { $eq: channelId },
         platform: { $eq: "twitcasting" },
     }).catch((_e: any) => {
@@ -32,7 +32,6 @@ export async function twcastChannelsDataset(
     if (_.get(channels, "id")) {
         return [false, "Channel already exist on database"];
     }
-    // @ts-ignore
     const channelIds = [{ id: channelId, group: group }];
 
     logger.info("creating fetch jobs...");
@@ -56,7 +55,7 @@ export async function twcastChannelsDataset(
     const collectedChannels = (await Promise.all(channelPromises)).filter(
         (res) => Object.keys(res["data"]).length > 0
     );
-    const insertData: ChannelsProps[] = [];
+    const insertData: Channels[] = [];
     for (let i = 0; i < collectedChannels.length; i++) {
         const raw_res = collectedChannels[i];
         const result = raw_res["data"];
@@ -73,8 +72,7 @@ export async function twcastChannelsDataset(
         if (profile_img.startsWith("//")) {
             profile_img = "https:" + profile_img;
         }
-        // @ts-ignore
-        const mappedNew: ChannelsProps = {
+        const mappedNew: Channels = {
             id: udata["id"],
             name: udata["name"],
             en_name: en_name,
@@ -89,9 +87,8 @@ export async function twcastChannelsDataset(
         insertData.push(mappedNew);
     }
 
-    // @ts-ignore
-    const historyDatas: ChannelStatsHistProps[] = insertData.map((res) => {
-        const timestamp = moment.tz("UTC").unix();
+    const historyDatas: ChannelStats[] = insertData.map((res) => {
+        const timestamp = DateTime.utc().toSeconds();
         return {
             id: res["id"],
             history: [
@@ -109,12 +106,11 @@ export async function twcastChannelsDataset(
     if (insertData.length > 0) {
         logger.info(`committing new data...`);
         let isCommitError = false;
-        // @ts-ignore
-        await ChannelsData.insertMany(insertData).catch((err) => {
+        await ChannelsModel.insertMany(insertData).catch((err) => {
             logger.error(`failed to insert new data, ${err.toString()}`);
             isCommitError = true;
         });
-        await ChannelStatsHistData.insertMany(historyDatas).catch((err) => {
+        await ChannelStatsModel.insertMany(historyDatas).catch((err) => {
             logger.error(`Failed to insert new history data, ${err.toString()}`);
             isCommitError = true;
         });

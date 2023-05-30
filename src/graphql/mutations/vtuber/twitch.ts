@@ -1,7 +1,7 @@
 import _ from "lodash";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 
-import { ChannelsData, ChannelsProps, ChannelStatsHistData } from "../../../controller";
+import { Channels, ChannelsModel, ChannelStats, ChannelStatsModel } from "../../../controller";
 import { logger as MainLogger } from "../../../utils/logger";
 import { is_none } from "../../../utils/swissknife";
 import { TwitchHelix } from "./helper";
@@ -18,7 +18,7 @@ export async function ttvChannelDataset(
     }
     logger.info(`Searching for ${channelId} on group ${group} with name ${en_name}`);
 
-    const channels = await ChannelsData.findOne({
+    const channels = await ChannelsModel.findOne({
         id: { $eq: channelId },
         platform: { $eq: "twitch" },
     }).catch((_e) => {
@@ -27,7 +27,6 @@ export async function ttvChannelDataset(
     if (_.get(channels, "id")) {
         return [false, "Channel already exist on database"];
     }
-    // @ts-ignore
     const channelIds = [{ id: channelId, group: group }];
     logger.info("fetching to API...");
     const twitch_results: any[] = await ttvAPI.fetchChannels([channelId]);
@@ -36,7 +35,7 @@ export async function ttvChannelDataset(
         return [false, "Cannot find that Twitch Channel"];
     }
     logger.info("parsing API results...");
-    const newChannels: ChannelsProps[] = [];
+    const newChannels: Channels[] = [];
     for (let i = 0; i < twitch_results.length; i++) {
         const result = twitch_results[i];
         logger.info(`parsing and fetching followers and videos ${result["login"]}`);
@@ -50,13 +49,11 @@ export async function ttvChannelDataset(
                 return [{ viewable: "private" }];
             })
         ).filter((vid) => vid["viewable"] === "public");
-        // @ts-ignore
-        const channels_map: VTuberModel = _.find(channelIds, { id: result["login"] });
+        const channels_map = _.find(channelIds, { id: result["login"] });
         if (is_none(channels_map)) {
             continue;
         }
-        // @ts-ignore
-        const mappedUpdate: ChannelsProps = {
+        const mappedUpdate: Channels = {
             id: result["login"],
             user_id: result["id"],
             name: result["display_name"],
@@ -74,9 +71,8 @@ export async function ttvChannelDataset(
         newChannels.push(mappedUpdate);
     }
 
-    // @ts-ignore
-    const historyDatas: ChannelStatsHistProps[] = newChannels.map((res) => {
-        const timestamp = moment.tz("UTC").unix();
+    const historyDatas: ChannelStats[] = newChannels.map((res) => {
+        const timestamp = DateTime.utc().toSeconds();
         return {
             id: res["id"],
             history: [
@@ -95,12 +91,11 @@ export async function ttvChannelDataset(
     let commitFail = false;
     if (newChannels.length > 0) {
         logger.info(`committing new data...`);
-        // @ts-ignore
-        await ChannelsData.insertMany(newChannels).catch((err) => {
+        await ChannelsModel.insertMany(newChannels).catch((err) => {
             logger.error(`failed to insert new data, ${err.toString()}`);
             commitFail = true;
         });
-        await ChannelStatsHistData.insertMany(historyDatas).catch((err) => {
+        await ChannelStatsModel.insertMany(historyDatas).catch((err) => {
             logger.error(`Failed to insert new history data, ${err.toString()}`);
             commitFail = true;
         });
