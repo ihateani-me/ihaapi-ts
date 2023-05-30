@@ -3,17 +3,23 @@ import { logger } from "../utils/logger";
 import { Server as HTTPServer } from "http";
 
 import { WebSocketServer } from "ws";
-import { Express, json } from "express";
+import { Express } from "express";
 import { ApolloServer, ApolloServerPlugin } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
+import {
+    ApolloServerPluginInlineTraceDisabled,
+    ApolloServerPluginLandingPageDisabled,
+    ApolloServerPluginSchemaReportingDisabled,
+    ApolloServerPluginUsageReportingDisabled,
+} from "@apollo/server/plugin/disabled";
 import { Redis } from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { useServer } from "graphql-ws/lib/use/ws";
-import cors from "cors";
 import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
+import cors from "cors";
+import { json } from "body-parser";
 
 import typeDefsCollects from "./schemas";
 import { v2Resolvers } from "./resolvers";
@@ -52,6 +58,9 @@ export function createGQLServer(options: GQLServerStartupOptions) {
     const plugins: ApolloServerPlugin<GQLContext>[] = [
         ApolloServerPluginDrainHttpServer({ httpServer }),
         ApolloServerPluginInlineTraceDisabled(),
+        ApolloServerPluginSchemaReportingDisabled(),
+        ApolloServerPluginUsageReportingDisabled(),
+        ApolloServerPluginLandingPageDisabled(),
     ];
 
     if (options.wsServer) {
@@ -107,10 +116,13 @@ interface GQLBindingOptions {
     redisDB: RedisDB;
 }
 
-export function bindGQLServer(app: Express, server: ApolloServer, options: GQLBindingOptions) {
-    server.startInBackgroundHandlingStartupErrorsByLoggingAndFailingAllRequests();
+export async function bindGQLServer(app: Express, server: ApolloServer, options: GQLBindingOptions) {
+    logger.info("Starting GraphQL Server");
+    await server.start();
+    logger.info("Binding GraphQL Server");
     app.use(
         "/v2/graphql",
+        cors<cors.CorsRequest>(),
         json(),
         expressMiddleware(server, {
             context: async ({ req, res }) => {

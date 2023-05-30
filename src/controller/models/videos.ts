@@ -90,5 +90,13 @@ export class VideoView {
     public platform!: PlatformDataType;
 }
 
-export const VideoModel = getModelForClass(Video);
-export const VideoViewModel = getModelForClass(VideoView);
+export const VideoModel = getModelForClass(Video, {
+    schemaOptions: {
+        collection: "videosdatas",
+    },
+});
+export const VideoViewModel = getModelForClass(VideoView, {
+    schemaOptions: {
+        collection: "viewersdatas",
+    },
+});

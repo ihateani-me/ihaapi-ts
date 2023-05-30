@@ -58,7 +58,7 @@ interface ChannelParents {
 }
 
 interface VTAPIContext extends GQLContext {
-    dataSources: VTAPIDataSources;
+    dataSources: { vtapi: VTAPIDataSources };
 }
 
 interface HistoryGrowthData {
@@ -1020,12 +1020,13 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnLive(args, "live", ctx.dataSources);
-                logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
+                results = await VTQuery.performQueryOnLive(args, "live", ctx.dataSources.vtapi);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
+                    logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                     await ctx.redisCache.setex(cache_name, 20, results);
-                    ctx.res.set("Cache-Control", "private, max-age=20");
+                    logger.info("Cache saved!");
+                    ctx.res.setHeader("Cache-Control", "private, max-age=20");
                 }
             }
             let hasNextPage = _.get(_.get(results, "pageInfo", {}), "hasNextPage", false);
@@ -1048,6 +1049,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                     hasNextPage: hasNextPage,
                 },
             };
+
+            logger.info("Sending response...");
+            logger.info(JSON.stringify(info));
 
             // @ts-ignore
             info.cacheControl.setCacheHint({ maxAge: 20, scope: "PRIVATE" });
@@ -1076,7 +1080,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnLive(args, "upcoming", ctx.dataSources);
+                results = await VTQuery.performQueryOnLive(args, "upcoming", ctx.dataSources.vtapi);
                 logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
@@ -1129,7 +1133,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnLive(args, "past", ctx.dataSources);
+                results = await VTQuery.performQueryOnLive(args, "past", ctx.dataSources.vtapi);
                 logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
@@ -1185,7 +1189,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 results = await VTQuery.performQueryOnLive(
                     args,
                     args.statuses || ["video", "past"],
-                    ctx.dataSources
+                    ctx.dataSources.vtapi
                 );
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.docs.length > 0) {
@@ -1248,7 +1252,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             } else {
                 logger.info("Missing cache, requesting manually...");
                 logger.info(`Arguments -> ${JSON.stringify(args, null, 4)}`);
-                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
+                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources.vtapi, {
                     channel_id: args.id,
                     type: "channel",
                     force_single: false,
@@ -1299,7 +1303,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             } else {
                 logger.info("Missing cache, requesting manually...");
-                results = await VTQuery.performGroupsFetch(ctx.dataSources);
+                results = await VTQuery.performGroupsFetch(ctx.dataSources.vtapi);
                 logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
                 if (results.length > 0) {
                     // dont cache for reason.
@@ -1335,7 +1339,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 parentId = parent.user_id as string;
             }
             if (is_none(results)) {
-                results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources, {
+                results = await VTQuery.performQueryOnChannelGrowth(ctx.dataSources.vtapi, {
                     // @ts-ignore
                     channel_id: [parentId],
                     platform: parent.platform,
@@ -1433,7 +1437,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 true
             );
             if (is_none(results)) {
-                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources, {
+                results = await VTQuery.performQueryOnChannel(args, ctx.dataSources.vtapi, {
                     // @ts-ignore
                     channel_id: [parent.channel_id],
                     force_single: true,
@@ -1465,7 +1469,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const fetchedChannels = await VTQuery.getMentionedChannels(
                 parent,
-                ctx.dataSources,
+                ctx.dataSources.vtapi,
                 ctx.redisCache,
                 no_cache
             );
@@ -1530,7 +1534,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             });
             const queried = await VTQuery.performQueryOnChannel(
                 { id: [id], platforms: [platform] },
-                ctx.dataSources,
+                ctx.dataSources.vtapi,
                 {
                     channel_id: [id],
                     force_single: true,
@@ -1573,7 +1577,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 ctx.res.status(403);
                 throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
-            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const findVTuber = await ctx.dataSources.vtapi.channels.getChannels([platform], {
+                channel_ids: [id],
+            });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);
@@ -1653,7 +1659,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
 
-            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const findVTuber = await ctx.dataSources.vtapi.channels.getChannels([platform], {
+                channel_ids: [id],
+            });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);
@@ -1731,7 +1739,9 @@ export const VTAPIv2Resolvers: IResolvers = {
                 throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
 
-            const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
+            const findVTuber = await ctx.dataSources.vtapi.channels.getChannels([platform], {
+                channel_ids: [id],
+            });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);

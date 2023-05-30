@@ -79,5 +79,13 @@ export class ChannelStats {
     public platform!: PlatformDataType;
 }
 
-export const ChannelsModel = getModelForClass(Channels);
-export const ChannelStatsModel = getModelForClass(ChannelStats);
+export const ChannelsModel = getModelForClass(Channels, {
+    schemaOptions: {
+        collection: "channelsdatas",
+    },
+});
+export const ChannelStatsModel = getModelForClass(ChannelStats, {
+    schemaOptions: {
+        collection: "channelstatshistdatas",
+    },
+});

@@ -23,6 +23,8 @@ export class MongoConnection {
         };
         if (config.mongodb.replica_set) {
             mongoConf.replicaSet = config.mongodb.replica_set;
+            mongoConf.directConnection = true;
+            mongoConf.readPreference = "primary";
         }
         this.client = new MongoClient(server_url, mongoConf);
         this.is_connected = false;
@@ -36,7 +38,7 @@ export class MongoConnection {
     }
 
     connect() {
-        this.logger.info(`connecting to ${this.db_name}...`);
+        this.logger.info(`connecting to ${this.db_name} (${server_url})...`);
         this.client
             .connect()
             .then(() => {

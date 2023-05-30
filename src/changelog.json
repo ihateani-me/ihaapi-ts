@@ -116,5 +116,10 @@
     ],
     "2.6.1": [
         "Migrate the forgotten Mutation for VT API from ts-mongoose to typegoose"
+    ],
+    "2.6.2": [
+        "Fix all typing problems",
+        "Move some of the app.use()",
+        "Set the collection name for the database models"
     ]
 }

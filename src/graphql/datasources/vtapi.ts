@@ -6,6 +6,9 @@ import { MongooseDataSources } from "./models";
 import { fallbackNaN } from "../../utils/swissknife";
 import { Channels, ChannelStats, Video } from "../../controller/models";
 import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagination";
+import { logger as TopLogger } from "../../utils/logger";
+
+const MainLogger = TopLogger.child({ cls: "VTAPIDataSource" });
 
 interface IChannelsOptions {
     groups?: string[] | null;
@@ -30,6 +33,7 @@ export class VTAPIVideos extends MongooseDataSources<typeof Video> {
         opts?: IVideoOptions,
         pageOpts?: IPaginateOptions
     ): Promise<IPaginateResults<Video>> {
+        const logger = MainLogger.child({ fn: "getVideos" });
         const defaultsPageOpts: IPaginateOptions = {
             limit: 25,
             cursor: undefined,
@@ -86,6 +90,8 @@ export class VTAPIVideos extends MongooseDataSources<typeof Video> {
         if (typeof max_lookforward === "number") {
             fetchFormat["timedata.scheduledStartTime"] = { $lte: max_lookforward };
         }
+        logger.info("Paginating with Mongoose...");
+        logger.info(JSON.stringify(fetchFormat, null, 2));
         const livesData = await this.model.paginate(fetchFormat, mergedPageOpts);
         return livesData;
     }

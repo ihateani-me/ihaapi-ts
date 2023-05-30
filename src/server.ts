@@ -17,7 +17,6 @@ import config from "./config";
 import packageJson from "../package.json";
 import { DateTime } from "luxon";
 import { MongoClientOptions } from "mongodb";
-import { createGQLServer } from "./graphql";
 
 const logger = Logger.logger;
 
@@ -40,9 +39,12 @@ const mongooseConfig: MongoClientOptions = {
     authSource: "admin",
 };
 if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
-    mongooseConfig["replicaSet"] = config.mongodb.replica_set;
+    mongooseConfig.replicaSet = config.mongodb.replica_set;
+    mongooseConfig.directConnection = true;
+    mongooseConfig.readPreference = "primary";
     replicaEnabled = true;
 }
+logger.info(`Replica set enabled: ${replicaEnabled} (${mongouri}/${config.mongodb.dbname})`);
 mongoose.connect(`${mongouri}/${config.mongodb.dbname}`, mongooseConfig);
 
 mongoose.connection.on("open", () => {

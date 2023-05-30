@@ -9,6 +9,7 @@ import { FilterQuery, PipelineStage } from "mongoose";
 import { SortOrder } from "../../graphql/schemas";
 import { fallbackNaN, Nullable } from "../../utils/swissknife";
 import { AnyParamConstructor, ReturnModelType } from "@typegoose/typegoose/lib/types";
+import { logger as TopLogger } from "../../utils/logger";
 
 export type BaseDocument = {
     _id: ObjectId;
@@ -47,6 +48,8 @@ export interface IPaginateResults<T> {
     docs: T[];
     pageInfo: Nullable<IPaginationInfo>;
 }
+
+const MainLogger = TopLogger.child({ cls: "MongoosePaginator" });
 
 export const buildCursor = <TDocument extends AnyParamConstructor<any>>(
     document: TDocument,
@@ -251,6 +254,7 @@ export const findPaginationMongoose = async <TDocument extends AnyParamConstruct
     model: ReturnModelType<TDocument>,
     { first, after, last, before, query = {}, sort: originalSort = {}, projection = {} }: FindPaginatedParams
 ): Promise<FindPaginatedResult<InstanceType<TDocument>>> => {
+    const logger = MainLogger.child("findPaginationMongoose");
     const { limit, cursor, sort, paginatingBackwards } = normalizeDirectionParams({
         first,
         after,
@@ -274,7 +278,9 @@ export const findPaginationMongoose = async <TDocument extends AnyParamConstruct
         aggroParams.push({ $project: projection });
     }
 
+    logger.info(`Aggregation Params: ${JSON.stringify(aggroParams)}`);
     const allDocuments = (await model.aggregate(aggroParams).exec()) as InstanceType<TDocument>[];
+    logger.info(`Found ${allDocuments.length} documents`);
 
     const extraDocument = allDocuments[limit];
     const hasMore = Boolean(extraDocument);
