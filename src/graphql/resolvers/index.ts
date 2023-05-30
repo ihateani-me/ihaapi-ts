@@ -1,31 +1,36 @@
-import _ from "lodash";
-import { IResolvers } from "apollo-server-express";
+import { IExecutableSchemaDefinition } from "@graphql-tools/schema";
 
 import { SauceGQLResoler } from "./saucefinder";
 import { VTAPIv2Resolvers } from "./vtapi";
 import { nhGQLResolvers } from "./nh";
 import { ImageBooruGQLResolver } from "./imagebooru";
+import { GQLScalarsResolver } from "./scalars";
+import { GQLContext } from "../types";
 
 export * from "./vtapi";
 export * from "./nh";
 export * from "./saucefinder";
+export * from "./imagebooru";
+export * from "./scalars";
 
-const multiResolvers: IResolvers = {
+type IResolver = IExecutableSchemaDefinition<GQLContext>["resolvers"];
+
+const multiResolvers: IResolver = {
     Query: {
         vtuber: () => ({}),
         sauce: () => ({}),
         nhentai: () => ({}),
         imagebooru: () => ({}),
     },
+    // @ts-ignore
     VTuberQuery: VTAPIv2Resolvers["Query"],
+    // @ts-ignore
     SauceQuery: SauceGQLResoler["Query"],
+    // @ts-ignore
     nHentaiQuery: nhGQLResolvers["Query"],
+    // @ts-ignore
     ImageBoardQuery: ImageBooruGQLResolver["Query"],
+    ...GQLScalarsResolver,
 };
-
-const vtresolver = _.omit(VTAPIv2Resolvers, ["Query"]);
-const sauceresolver = _.omit(SauceGQLResoler, ["Query"]);
-const nhresolver = _.omit(nhGQLResolvers, ["Query"]);
-_.merge(multiResolvers, vtresolver, sauceresolver, nhresolver);
 
 export { multiResolvers as v2Resolvers };

@@ -1,75 +1,43 @@
-import IORedis from "ioredis";
-import { RedisCache } from "apollo-server-cache-redis";
+import { RedisDB } from "../../controller";
 
-import { fallbackNaN, is_none } from "../../utils/swissknife";
-import { logger as MainLogger } from "../../utils/logger";
+export interface RCacheResult {
+    value: any;
+    ttl: number;
+}
 
-// This is just reimplementation of dbconn/redis_client
-export class CustomRedisCache extends RedisCache {
-    client!: IORedis.Redis;
+interface KeyValueCache<V> {
+    get(key: string): Promise<V | undefined>;
+    // ttl is specified in seconds
+    set(key: string, value: V, options?: { ttl?: number | null }): Promise<void>;
+    delete(key: string): Promise<boolean | void>;
+}
 
-    constructor(options: IORedis.RedisOptions) {
-        const logger = MainLogger.child({ cls: "GQLRedisCache" });
-        logger.info(`Connecting to ${options.host}:${options.port}`);
-        super(options);
+export default class RedisCache implements KeyValueCache<RCacheResult> {
+    redis: RedisDB;
+
+    constructor(redis: RedisDB) {
+        this.redis = redis;
     }
 
-    private stringify(value: any): string {
-        if (Array.isArray(value)) {
-            value = JSON.stringify(value);
-        } else if (typeof value === "object" && Object.keys(value).length > 0) {
-            value = JSON.stringify(value);
-        } else if (typeof value === "number") {
-            value = value.toString();
-        }
-        return value;
+    async get(key: string): Promise<RCacheResult> {
+        const [result, ttl] = await this.redis.get(key, true);
+
+        return {
+            value: result,
+            ttl: ttl,
+        };
     }
 
-    private toOriginal(value: any): any {
-        if (is_none(value)) {
-            return null;
+    async set(key: string, value: RCacheResult, options?: { ttl?: number | null }): Promise<void> {
+        if (options?.ttl) {
+            await this.redis.setex(key, options.ttl, value.value);
+        } else {
+            await this.redis.set(key, value.value);
         }
-        if (Buffer.isBuffer(value)) {
-            return value;
-        }
-        try {
-            // @ts-ignore
-            value = JSON.parse(value);
-        } catch (e) {}
-        if (typeof value === "string") {
-            value = fallbackNaN(parseFloat, value);
-        }
-        return value;
     }
 
-    async getBetter(key: string, return_ttl: boolean = false): Promise<any> {
-        let res = await this.client.get(key);
-        res = this.toOriginal(res);
-        if (return_ttl && !is_none(res)) {
-            const ttl_left = await this.client.ttl(key);
-            return [res, ttl_left];
-        } else if (return_ttl && is_none(res)) {
-            return [res, 0];
-        }
-        return res;
-    }
-
-    async setBetter(key: string, value: any): Promise<boolean> {
-        const res = await this.client.set(key, this.stringify(value));
-        if (res == "OK") {
-            return true;
-        }
-        return false;
-    }
-
-    async setexBetter(key: string, expired: number, value: any): Promise<any> {
-        if (Number.isInteger(expired)) {
-            expired = Math.ceil(expired);
-        }
-        const res = await this.client.setex(key, expired, this.stringify(value));
-        if (res == "OK") {
-            return true;
-        }
-        return false;
+    async delete(key: string): Promise<boolean | void> {
+        const res = await this.redis.client.del(key);
+        return res >= 1;
     }
 }

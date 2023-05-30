@@ -1,8 +1,7 @@
-import { gql, PubSub } from "apollo-server-express";
-import { ChangeEventCR, ChangeEventUpdate } from "mongodb";
+import { PubSub } from "graphql-subscriptions";
 
 import { VTQuery } from "../resolvers";
-import { VideoProps, VideosData } from "../../controller";
+import { VideoModel } from "../../controller";
 import { is_none } from "../../utils/swissknife";
 import { logger as MainLogger } from "../../utils/logger";
 
@@ -11,7 +10,7 @@ import config from "../../config";
 const logger = MainLogger.child({ cls: "VTAPISubscription" });
 const vtpubsub = new PubSub();
 
-export const VTAPISubscriptionSchemas = gql`
+export const VTAPISubscriptionSchemas = `#graphql
     """
     The subscription change type for LiveObject
     """
@@ -38,10 +37,9 @@ let VTAPISubscription: any;
 
 if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
     logger.info("Started watching status update...");
-    VideosData.watch([{ $match: { operationType: "update" } }], { fullDocument: "updateLookup" }).on(
+    VideoModel.watch([{ $match: { operationType: "update" } }], { fullDocument: "updateLookup" }).on(
         "change",
-        // @ts-ignore
-        (doc: ChangeEventUpdate<VideoProps>) => {
+        (doc) => {
             const updFields = Object.keys(doc["updateDescription"]["updatedFields"]);
             if (updFields.includes("status")) {
                 logger.info("Status change detected, emitting changes!");
@@ -58,10 +56,9 @@ if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 
     );
 
     logger.info("Started watching new video...");
-    VideosData.watch([{ $match: { operationType: "insert" } }], { fullDocument: "updateLookup" }).on(
+    VideoModel.watch([{ $match: { operationType: "insert" } }], { fullDocument: "updateLookup" }).on(
         "change",
-        // @ts-ignore
-        (doc: ChangeEventCR<VideoProps>) => {
+        (doc) => {
             // @ts-ignore
             const result = VTQuery.mapLiveResultToSchema(doc["fullDocument"]);
             vtpubsub.publish(VIDEO_DB_NEW, {

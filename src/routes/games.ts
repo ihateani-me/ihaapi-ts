@@ -164,7 +164,11 @@ GamesRoutes.get("/hltb", async (req, res) => {
         }
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Internal server error occured.", error: err.toString() });
+        let errStr = "An error occured while processing your request.";
+        if (err instanceof Error) {
+            errStr = err.toString();
+        }
+        res.status(500).json({ message: "Internal server error occured.", error: errStr });
     }
 });
 

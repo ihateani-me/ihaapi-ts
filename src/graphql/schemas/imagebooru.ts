@@ -1,7 +1,6 @@
-import { gql } from "apollo-server-express";
 import { Nullable } from "../../utils/swissknife";
 
-export const ImageBooruSchemas = gql`
+export const ImageBooruSchemas = `#graphql
     """
     The board type or the image board name
     """
@@ -85,7 +84,7 @@ export interface ImageBoardResult {
 }
 
 export interface ImageBoardResults {
-    results: ImageBoardResults[];
+    results: ImageBoardResult[];
     total: number;
 }
 

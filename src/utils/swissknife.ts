@@ -105,7 +105,7 @@ export function getValueFromKey<T extends object, K extends keyof T, S = any>(
  * @param { any } input_data - data to map
  * @returns { boolean } mapped boolean
  */
-export function map_bool<T extends any>(input_data: T): boolean {
+export function map_bool<T = any>(input_data: T): boolean {
     if (is_none(input_data)) {
         return false;
     }

@@ -1,4 +1,4 @@
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 import FormData from "form-data";
 import xml2js from "xml2js";
 import winston from "winston";
@@ -1143,8 +1143,8 @@ export class ASCII2D {
     }
 
     private formatPixiv(
-        $html_data: cheerio.Cheerio,
-        $: cheerio.Root
+        $html_data: cheerio.Cheerio<any>,
+        $: cheerio.CheerioAPI
     ): [string, object, string, string, string] {
         const $image_box = $html_data.children(".image-box");
         const $info_box = $html_data.children(".info-box");
@@ -1180,8 +1180,8 @@ export class ASCII2D {
     }
 
     private formatTwitter(
-        $html_data: cheerio.Cheerio,
-        $: cheerio.Root
+        $html_data: cheerio.Cheerio<any>,
+        $: cheerio.CheerioAPI
     ): [string, object, string, string, string] {
         const $image_box = $html_data.children(".image-box");
         const $info_box = $html_data.children(".info-box");
@@ -1216,7 +1216,7 @@ export class ASCII2D {
         return [title, {}, source, thumbnail, "twitter"];
     }
 
-    private formatGeneric($html_data: cheerio.Cheerio): [string, object, string, string, string] {
+    private formatGeneric($html_data: cheerio.Cheerio<any>): [string, object, string, string, string] {
         const $image_box = $html_data.children(".image-box");
         const $info_box = $html_data.children(".info-box");
 

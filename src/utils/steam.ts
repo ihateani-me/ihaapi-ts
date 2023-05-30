@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 import winston from "winston";
 import xml2js from "xml2js";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
@@ -550,7 +550,11 @@ export async function do_steamdb_search(
         });
     } catch (error) {
         logger.error(`Error occured: ${error}`);
-        return [[], "Exception occured: " + error.toString()];
+        let errStr = "Unknown error occurred.";
+        if (error instanceof Error) {
+            errStr = error.toString();
+        }
+        return [[], "Exception occured: " + errStr];
     }
 
     logger.info("Parsing info...");
@@ -609,8 +613,8 @@ export async function do_steamdb_search(
         let rls_date = "Coming Soon";
         if (hasKey(game_res, "releaseDate")) {
             if (!is_none(game_res["releaseDate"])) {
-                const rls_date_parsed = moment.unix(game_res["releaseDate"]).utc();
-                rls_date = rls_date_parsed.format("DD MMM YYYY");
+                const rls_date_parsed = DateTime.fromSeconds(game_res["releaseDate"]).toUTC();
+                rls_date = rls_date_parsed.toFormat("DD MMM YYYY");
             }
         }
         data["released"] = rls_date;
@@ -659,10 +663,14 @@ export async function fetch_steam_user_info(
         return [steam_res, "Success"];
     } catch (err) {
         logger.error(err);
-        if (err.name == "SteamVanityResolveError") {
+        if (err instanceof SteamVanityResolveError) {
             return [{}, err.problem];
         }
-        return [{}, "Exception occured: " + err.toString()];
+        let errStr = "Unknown error occurred.";
+        if (err instanceof Error) {
+            errStr = err.toString();
+        }
+        return [{}, "Exception occured: " + errStr];
     }
 }
 

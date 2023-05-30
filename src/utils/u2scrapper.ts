@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import _ from "lodash";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 import xml2js from "xml2js";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 import axios, { AxiosInstance } from "axios";
 
 import { filter_empty, is_none, Nullable, sortObjectsByKey } from "./swissknife";
@@ -143,7 +143,11 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
         res = await sess.request(`https://u2.dmhy.org/torrentrss.php?${options}`);
     } catch (err) {
         logger.error(err);
-        return [[], "Exception occured: " + err.toString()];
+        let errStr = "Unknown error occurred.";
+        if (err instanceof Error) {
+            errStr = err.toString();
+        }
+        return [[], "Exception occured: " + errStr];
     }
 
     if (is_none(res) || !res) {
@@ -156,7 +160,11 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
     } catch (err) {
         logger.error(err);
         console.error(err);
-        return [[], "Exception occured: " + err.toString()];
+        let errStr = "Unknown error occurred.";
+        if (err instanceof Error) {
+            errStr = err.toString();
+        }
+        return [[], "Exception occured: " + errStr];
     }
     if (Object.keys(u2_res).length < 1) {
         return [[], "Exception occured: failed to parse U2 data."];
@@ -167,7 +175,8 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
     u2_res["items"].forEach((entry_data) => {
         // @ts-ignore
         const dataset: U2Torrent = {};
-        const title_regex = /\[(?<category>[a-zA-Z0-9_ ]+)\](?<main_title>.*)\[(?<torrent_size>[\d. \w]+)\]\[(?<uploader>.*)\]/gim;
+        const title_regex =
+            /\[(?<category>[a-zA-Z0-9_ ]+)\](?<main_title>.*)\[(?<torrent_size>[\d. \w]+)\]\[(?<uploader>.*)\]/gim;
         const temp_title = entry_data["title"];
         const title_array = title_regex.exec(temp_title)?.groups;
         let temp_author = entry_data["author"];
@@ -176,7 +185,7 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
         }
         const author = temp_author;
 
-        const pubdate_parsed = moment(entry_data["pubdate"]);
+        const pubdate_parsed = DateTime.fromISO(entry_data["pubdate"]);
 
         dataset["title"] = _.get(title_array, "main_title", "");
         dataset["original_title"] = temp_title;
@@ -185,8 +194,10 @@ export async function getU2TorrentsRSS(options: Nullable<string> = null): Promis
         dataset["download_link"] = entry_data["enclosure"]["url"];
         dataset["author"] = author;
         dataset["size"] = _.get(title_array, "torrent_size", "0.0 B");
-        dataset["publishedAt"] = pubdate_parsed.tz("Asia/Jakarta").format("ddd, DD MMM YYYY HH:mm:ss Z");
-        dataset["pubSort"] = pubdate_parsed.unix();
+        dataset["publishedAt"] = pubdate_parsed
+            .setZone("Asia/Jakarta")
+            .toFormat("ddd, DD MMM YYYY HH:mm:ss Z");
+        dataset["pubSort"] = pubdate_parsed.toUnixInteger();
         u2_results.push(dataset);
     });
     u2_results = sortObjectsByKey(u2_results, "pubSort");
@@ -207,7 +218,11 @@ export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> 
         res = await sess.request(`https://u2.dmhy.org/offers.php`);
     } catch (err) {
         logger.error(err);
-        return [[], "Exception occured: " + err.toString()];
+        let errStr = "Unknown error occurred.";
+        if (err instanceof Error) {
+            errStr = err.toString();
+        }
+        return [[], "Exception occured: " + errStr];
     }
 
     if (is_none(res) || !res) {
@@ -221,7 +236,7 @@ export async function getU2TorrentOffers(): Promise<[U2OfferTorrent[], string]> 
     // :FubukiWorry:
     logger.info("processing results...");
     const $main_table = $("table.mainouter");
-    const $torrents_set: cheerio.Cheerio[] = $main_table
+    const $torrents_set: cheerio.Cheerio<any>[] = $main_table
         .find("table.torrents > tbody > tr")
         .map((index, elem) => {
             return $(elem);

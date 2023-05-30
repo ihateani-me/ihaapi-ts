@@ -1,17 +1,10 @@
 import _ from "lodash";
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 
 import { MongooseDataSources } from "./models";
 
 import { fallbackNaN } from "../../utils/swissknife";
-import {
-    ChannelsData,
-    ChannelsProps,
-    ChannelStatsHistData,
-    ChannelStatsHistProps,
-    VideoProps,
-    VideosData,
-} from "../../controller/models";
+import { Channels, ChannelStats, Video } from "../../controller/models";
 import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagination";
 
 interface IChannelsOptions {
@@ -30,13 +23,13 @@ export interface GroupsResults {
     group: string;
 }
 
-export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
+export class VTAPIVideos extends MongooseDataSources<typeof Video> {
     async getVideos(
         platforms: string[],
         status: string | string[],
         opts?: IVideoOptions,
         pageOpts?: IPaginateOptions
-    ): Promise<IPaginateResults<VideoProps>> {
+    ): Promise<IPaginateResults<Video>> {
         const defaultsPageOpts: IPaginateOptions = {
             limit: 25,
             cursor: undefined,
@@ -70,7 +63,7 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         if (lookbackTime < 1 || lookbackTime > 24) {
             lookbackTime = 24;
         }
-        const lookbackMax = moment.tz("UTC").unix() - lookbackTime * 3600;
+        const lookbackMax = DateTime.utc().toUnixInteger() - lookbackTime * 3600;
         const fetchFormat: any = {
             platform: { $in: platforms },
             status: { $in: properStatus },
@@ -93,18 +86,17 @@ export class VTAPIVideos extends MongooseDataSources<typeof VideosData> {
         if (typeof max_lookforward === "number") {
             fetchFormat["timedata.scheduledStartTime"] = { $lte: max_lookforward };
         }
-        // @ts-ignore
         const livesData = await this.model.paginate(fetchFormat, mergedPageOpts);
         return livesData;
     }
 }
 
-export class VTAPIChannels extends MongooseDataSources<typeof ChannelsData> {
+export class VTAPIChannels extends MongooseDataSources<typeof Channels> {
     async getChannels(
         platforms: string[],
         opts?: IChannelsOptions,
         pageOpts?: IPaginateOptions
-    ): Promise<IPaginateResults<ChannelsProps>> {
+    ): Promise<IPaginateResults<Channels>> {
         const defaultsPageOpts: IPaginateOptions = {
             limit: 25,
             cursor: undefined,
@@ -129,25 +121,26 @@ export class VTAPIChannels extends MongooseDataSources<typeof ChannelsData> {
         if (groups.length > 0) {
             fetchFormat["group"] = { $in: groups };
         }
-        // @ts-ignore
         const channelsData = await this.model.paginate(fetchFormat, mergedPageOpts);
         return channelsData;
     }
 
     async getGroups(): Promise<string[]> {
-        const groups_results: GroupsResults[] = await this.model.aggregate([
-            {
-                $project: {
-                    group: 1,
+        const groups_results: GroupsResults[] = await this.model
+            .aggregate([
+                {
+                    $project: {
+                        group: 1,
+                    },
                 },
-            },
-        ]);
+            ])
+            .exec();
         return _.uniq(_.map(groups_results, "group"));
     }
 }
 
-export class VTAPIChannelStatsHist extends MongooseDataSources<typeof ChannelStatsHistData> {
-    async getChannelHistory(channel_id: string, platform: string): Promise<ChannelStatsHistProps> {
+export class VTAPIChannelStatsHist extends MongooseDataSources<typeof ChannelStats> {
+    async getChannelHistory(channel_id: string, platform: string): Promise<ChannelStats> {
         const historyReq = [
             {
                 $match: {
@@ -162,7 +155,7 @@ export class VTAPIChannelStatsHist extends MongooseDataSources<typeof ChannelSta
                 },
             },
         ];
-        const raw_results = await this.model.aggregate(historyReq);
+        const raw_results = await this.model.aggregate(historyReq).exec();
         return _.nth(raw_results, 0);
     }
 }

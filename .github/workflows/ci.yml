@@ -10,17 +10,16 @@ on:
 
 jobs:
   build:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
     name: Build Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12.x, 14.x]
+        node-version: [16.x]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pnpm modules
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         cache-name: cache-pnpm-modules
       with:
@@ -28,9 +27,9 @@ jobs:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
-    - uses: pnpm/action-setup@v2.0.1
+    - uses: pnpm/action-setup@v2
       with:
-        version: 6.2.5
+        version: 8.6.0
         run_install: true
     - name: Copy config for build sample
       run: |
@@ -40,17 +39,16 @@ jobs:
       run: pnpm run build
   
   tests:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
-    name: Unittests
+    name: Unit Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12.x, 14.x]
+        node-version: [16.x]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pnpm modules
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         cache-name: cache-pnpm-modules
       with:
@@ -58,31 +56,30 @@ jobs:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
-    - uses: pnpm/action-setup@v2.0.1
+    - uses: pnpm/action-setup@v2
       with:
-        version: 6.2.5
+        version: 8.6.0
         run_install: true
     - name: Start testing on ${{ matrix.node-version }}
       run: pnpm run testall
     - name: Upload Coverage to Codecov
-      if: matrix.node-version == '12.x'
-      uses: codecov/codecov-action@v1.0.14
+      if: matrix.node-version == '16.x'
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
         name: ihaapi-codecov
 
   lint:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
     name: Lint Check
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [16.x]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pnpm modules
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         cache-name: cache-pnpm-modules
       with:
@@ -90,18 +87,16 @@ jobs:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.node-version }}-
-    - uses: pnpm/action-setup@v2.0.1
+    - uses: pnpm/action-setup@v2
       with:
-        version: 6.2.5
+        version: 8.6.0
         run_install: true
     - name: Run Lint
       run: pnpm run lint
 
   deploy:
     name: Deploy to Production
-    if: |
-      !contains(github.event.head_commit.message, 'skip ci') &&
-      !contains(github.event.head_commit.message, 'skip deploy')
+    if: contains(github.event.head_commit.message, '[deploy]')
     environment:
       name: Production
       url: https://api.ihateani.me/

@@ -1,36 +1,4 @@
-import { gql } from "apollo-server-express";
-import { GraphQLScalarType, Kind } from "graphql";
-
-export const SimilarityScalar = new GraphQLScalarType({
-    name: "Similarity",
-    description: "Similarity for the match, might be a integer or float.",
-    parseValue(value) {
-        return value;
-    },
-    serialize(value) {
-        return value;
-    },
-    parseLiteral(ast) {
-        if (ast.kind === Kind.INT) {
-            return parseInt(ast.value, 10);
-        } else if (ast.kind === Kind.FLOAT) {
-            return parseFloat(ast.value);
-        }
-        return null;
-    },
-});
-
-export const SauceAPIGQL = gql`
-    """
-    A JSON formatted (key-value dictionary)
-    """
-    scalar JSON
-
-    """
-    Similarity for the match, might be a integer or float.
-    """
-    scalar Similarity
-
+export const SauceAPIGQL = `#graphql
     """
     Possible matching image sauce
     """

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import winston from "winston";
-import { RequestOptions, RESTDataSource } from "apollo-datasource-rest";
+import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 
 import { IQDBParams, SauceNAOParams } from "../schemas/saucefinder";
 
@@ -96,11 +96,10 @@ export class IQDBAPI extends RESTDataSource {
         }
     }
 
-    willSendRequest(request: RequestOptions) {
-        request.headers.set(
-            "User-Agent",
-            `ihaAPI/${packageJson["version"]} (https://github.com/ihateani-me/ihaapi-ts)`
-        );
+    override willSendRequest(path: string, request: AugmentedRequest) {
+        request.headers[
+            "User-Agent"
+        ] = `ihaAPI/${packageJson["version"]} (https://github.com/ihateani-me/ihaapi-ts)`;
     }
 
     async getSauce(url_input: string, settings: IQDBParams) {

@@ -5,7 +5,7 @@ import { logger as MainLogger } from "../utils/logger";
 import { fallbackNaN, is_none, Nulled } from "../utils/swissknife";
 
 export class RedisDB {
-    client: Redis.Redis;
+    client: Redis;
     usable: boolean;
     host: string;
     port: number;

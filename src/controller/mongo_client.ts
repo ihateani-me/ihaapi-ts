@@ -5,6 +5,7 @@ import { logger as MainLogger } from "../utils/logger";
 import { capitalizeIt, is_none } from "../utils/swissknife";
 
 import config from "../config";
+import { MongoClientOptions } from "mongodb";
 const server_url = config["mongodb"]["uri"];
 
 export class MongoConnection {
@@ -17,7 +18,13 @@ export class MongoConnection {
     dbtype: string;
 
     constructor(database_name: string, auto_connect = true) {
-        this.client = new MongoClient(server_url, { useUnifiedTopology: true });
+        const mongoConf: MongoClientOptions = {
+            authSource: "admin",
+        };
+        if (config.mongodb.replica_set) {
+            mongoConf.replicaSet = config.mongodb.replica_set;
+        }
+        this.client = new MongoClient(server_url, mongoConf);
         this.is_connected = false;
         this.db_name = database_name;
         this.dbtype = "???";
@@ -37,7 +44,7 @@ export class MongoConnection {
                 this.is_connected = true;
                 this.logger.info(`connected to ${this.db_name}.`);
                 const admindb = this.db.admin();
-                admindb.serverInfo((err, info) => {
+                admindb.serverInfo().then((info) => {
                     this.version = info.version;
                     const modules = info.modules;
                     if (modules.length > 0) {

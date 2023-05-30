@@ -124,3 +124,4 @@ src/graphql/resolvers/private
 src/views/private
 
 tools/uploader.js
+_sample/*

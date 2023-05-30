@@ -1,10 +1,8 @@
 import _ from "lodash";
-import "apollo-cache-control";
-import moment from "moment-timezone";
-import { ApolloError, IResolvers } from "apollo-server-express";
+import { IExecutableSchemaDefinition } from "@graphql-tools/schema";
+import { GraphQLError } from "graphql";
 
 import {
-    DateTimeScalar,
     nhImage,
     nhInfoParams,
     nhInfoResult,
@@ -26,6 +24,8 @@ import {
     nhSearchDoujinScrapper,
 } from "../../utils/nh";
 import { fallbackNaN, getValueFromKey, is_none } from "../../utils/swissknife";
+import { GQLContext } from "../types";
+import { DateTime } from "luxon";
 
 function maybeStr(input: any): string {
     if (typeof input === "number") {
@@ -126,31 +126,36 @@ async function reparseInformationData(result: nhInfoData): Promise<nhInfoResult>
         });
     }
     mapped_data["url"] = result["url"];
-    const published_time = moment.tz(result["posted_time"] * 1000, "UTC");
-    mapped_data["publishedAt"] = published_time.format();
+    const unixTime = DateTime.fromMillis(result.posted_time * 1000, { zone: "UTC" });
+    mapped_data["publishedAt"] = unixTime;
     mapped_data["favorites"] = result["favorites"];
     mapped_data["total_pages"] = result["images"].length;
     return mapped_data;
 }
 
-export const nhGQLResolvers: IResolvers = {
-    DateTime: DateTimeScalar,
+type IResolver = Required<IExecutableSchemaDefinition<GQLContext>>["resolvers"];
+
+export const nhGQLResolvers: IResolver = {
     Query: {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        info: async (_s, args: nhInfoParams, ctx, _i): Promise<nhInfoResult> => {
+        async info(_s, args: nhInfoParams, ctx, _i): Promise<nhInfoResult> {
             const [results, status_code] = await nhFetchInfo(maybeStr(args.doujin_id));
             if (status_code != 200) {
                 if (status_code == 404) {
                     ctx.res.status(404);
-                    throw new ApolloError(
-                        `Cannot find information for code ${args.doujin_id}`,
-                        "INVALID_DOUJIN_CODE"
-                    );
+                    throw new GraphQLError(`Cannot find information for code ${args.doujin_id}`, {
+                        extensions: {
+                            code: "INVALID_DOUJIN_CODE",
+                        },
+                    });
                 } else {
                     ctx.res.status(status_code);
-                    throw new ApolloError(
+                    throw new GraphQLError(
                         `Unknown error occured, got response code ${status_code} from API`,
-                        "NH_API_ERROR"
+                        {
+                            extensions: {
+                                code: "NH_API_ERROR",
+                            },
+                        }
                     );
                 }
             }
@@ -158,8 +163,7 @@ export const nhGQLResolvers: IResolvers = {
             const finalized_response = await reparseInformationData(results);
             return finalized_response;
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        search: async (_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> => {
+        async search(_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> {
             let fetch_page = getValueFromKey(args, "page", 1) as number;
             fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
             if (fetch_page < 1) {
@@ -172,12 +176,18 @@ export const nhGQLResolvers: IResolvers = {
             if (status_code != 200) {
                 if (status_code == 404) {
                     ctx.res.status(404);
-                    throw new ApolloError(`Cannot find anything with query: ${args.query}`, "NH_NO_RESULTS");
+                    throw new GraphQLError(`Cannot find anything with query: ${args.query}`, {
+                        extensions: { code: "NH_NO_RESULTS" },
+                    });
                 } else {
                     ctx.res.status(status_code);
-                    throw new ApolloError(
+                    throw new GraphQLError(
                         `Unknown error occured, got response code ${status_code} from API`,
-                        "NH_API_ERROR"
+                        {
+                            extensions: {
+                                code: "NH_API_ERROR",
+                            },
+                        }
                     );
                 }
             }
@@ -199,8 +209,7 @@ export const nhGQLResolvers: IResolvers = {
             finalized_response["results"] = reparsed_data;
             return finalized_response;
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        latest: async (_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> => {
+        async latest(_s, args: nhSearchParams, ctx, _i): Promise<nhSearchResult> {
             let fetch_page = getValueFromKey(args, "page", 1) as number;
             fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
             if (fetch_page < 1) {
@@ -210,12 +219,18 @@ export const nhGQLResolvers: IResolvers = {
             if (status_code != 200) {
                 if (status_code == 404) {
                     ctx.res.status(404);
-                    throw new ApolloError(`Cannot fetch anything latest from nhentai`, "NH_NO_RESULTS");
+                    throw new GraphQLError(`Cannot fetch anything latest from nhentai`, {
+                        extensions: { code: "NH_NO_RESULTS" },
+                    });
                 } else {
                     ctx.res.status(status_code);
-                    throw new ApolloError(
+                    throw new GraphQLError(
                         `Unknown error occured, got response code ${status_code} from API`,
-                        "NH_API_ERROR"
+                        {
+                            extensions: {
+                                code: "NH_API_ERROR",
+                            },
+                        }
                     );
                 }
             }
@@ -237,8 +252,7 @@ export const nhGQLResolvers: IResolvers = {
             finalized_response["results"] = reparsed_data;
             return finalized_response;
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        searchweb: async (_s, args: nhPageSearchParams, ctx, _i): Promise<nhPageSearchResult> => {
+        async searchweb(_s, args: nhPageSearchParams, ctx, _i): Promise<nhPageSearchResult> {
             let fetch_page = getValueFromKey(args, "page", 1) as number;
             fetch_page = fallbackNaN(parseInt, fetch_page, 1) as number;
             if (fetch_page < 1) {
@@ -252,7 +266,9 @@ export const nhGQLResolvers: IResolvers = {
             const searchResults = await nhSearchDoujinScrapper(query, fetch_page, queryMode);
             if (is_none(searchResults)) {
                 ctx.res.status(404);
-                throw new ApolloError(`Cannot find anything with query: ${args.query}`, "NH_NO_RESULTS");
+                throw new GraphQLError(`Cannot find anything with query: ${args.query}`, {
+                    extensions: { code: "NH_NO_RESULTS" },
+                });
             }
             return searchResults;
         },

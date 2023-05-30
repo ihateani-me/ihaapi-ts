@@ -109,5 +109,9 @@
     ],
     "2.5.4": [
         "Added `mentions` key to Video info in VTuber GQL API, this would allow to check if there's another VTuber mentioned in the stream/video just in case it's a collab or not, please take this with a grain of salt since it's automated."
+    ],
+    "2.6.0": [
+        "Update all dependencies to latest version if possible",
+        "Remove some dead code or bad code(?)"
     ]
 }

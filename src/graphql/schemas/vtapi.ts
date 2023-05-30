@@ -1,40 +1,8 @@
-import moment from "moment-timezone";
-import { gql } from "apollo-server-express";
-import { GraphQLScalarType, Kind } from "graphql";
+import { DateTime } from "luxon";
 
-import { is_none, Nullable } from "../../utils/swissknife";
+import { Nullable } from "../../utils/swissknife";
 
-export const DateTimeScalar = new GraphQLScalarType({
-    name: "DateTime",
-    description: "A datetime string format, using ISO 8601 format.",
-    parseValue(value) {
-        if (is_none(value)) {
-            return null;
-        }
-        return moment.tz(value, "UTC");
-    },
-    serialize(value) {
-        if (is_none(value)) {
-            return null;
-        }
-        return value.valueOf();
-    },
-    parseLiteral(value) {
-        if (value.kind === Kind.INT) {
-            return parseInt(value.value, 10);
-        } else if (value.kind === Kind.FLOAT) {
-            return parseFloat(value.value);
-        }
-        return null;
-    },
-});
-
-export const VTAPIv2 = gql`
-    """
-    A datetime string format, using ISO 8601 format.
-    """
-    scalar DateTime
-
+export const VTAPIv2 = `#graphql
     """
     The Platform the stream was running on, its self-explanatory
     """
@@ -347,7 +315,7 @@ export interface VideoTime {
     startTime?: Nullable<number>;
     endTime?: Nullable<number>;
     scheduledStartTime?: Nullable<number>;
-    publishedAt?: Nullable<string>;
+    publishedAt?: Nullable<DateTime>;
     lateBy?: Nullable<number>;
     duration?: Nullable<number>;
 }
@@ -376,7 +344,7 @@ export interface ChannelObject {
     name: string;
     en_name?: Nullable<string>;
     description?: Nullable<string>;
-    publishedAt?: Nullable<string>;
+    publishedAt?: Nullable<DateTime>;
     image: string;
     statistics?: Nullable<ChannelStatistics>;
     growth?: Nullable<ChannelGrowthObject>;

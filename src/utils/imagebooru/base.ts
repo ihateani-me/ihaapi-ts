@@ -1,5 +1,5 @@
 import _ from "lodash";
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
 import xml2js from "xml2js";
 
 import { filter_empty, is_none } from "../swissknife";
@@ -89,8 +89,10 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
         try {
             resp = await this.sesi.request<R>(mergedOptions);
         } catch (err) {
-            if (err.response) {
-                return [err.response.data, err.response.status];
+            if (err instanceof AxiosError) {
+                if (err.response) {
+                    return [err.response.data, err.response.status];
+                }
             }
             // @ts-ignore
             return [{}, 503];
@@ -239,14 +241,12 @@ class ImageBoard<TResult extends AnyDict, TMapping extends AnyDict> {
                 .then((res) => {
                     return res;
                 })
-                .catch(
-                    (err): TResult => {
-                        logger.error("Failed to parse some data, ignoring...");
-                        console.error(err);
-                        // @ts-ignore
-                        return {};
-                    }
-                )
+                .catch((err): TResult => {
+                    logger.error("Failed to parse some data, ignoring...");
+                    console.error(err);
+                    // @ts-ignore
+                    return {};
+                })
         );
 
         const finalized = await Promise.all(tasksManager);

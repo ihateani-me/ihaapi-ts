@@ -1,4 +1,4 @@
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 import qs from "qs";
 import winston from "winston";
 import axios, { AxiosInstance } from "axios";
@@ -35,7 +35,7 @@ class HowLongToBeat {
         this.logger = MainLogger.child({ cls: "HowLongToBeat" });
     }
 
-    private format_results($: cheerio.Root, results: cheerio.Cheerio): HLTBData[] {
+    private format_results($: cheerio.CheerioAPI, results: cheerio.Cheerio<any>): HLTBData[] {
         const final_data: HLTBData[] = [];
         const naming_scheme = {
             "Main Story": "main",
@@ -95,8 +95,8 @@ class HowLongToBeat {
                 hltb_res["stats"][dtb_head] = dtb_data;
             });
 
-            let $hltbs_title: cheerio.Cheerio;
-            let $hltbs_stats: cheerio.Cheerio;
+            let $hltbs_title: cheerio.Cheerio<any>;
+            let $hltbs_stats: cheerio.Cheerio<any>;
             if ($time_data.children("div").length > 0) {
                 $hltbs_title = $time_data.find(".search_list_tidbit.text_white.shadow_text");
                 $hltbs_stats = $time_data.find(".search_list_tidbit.center");
@@ -184,6 +184,10 @@ export async function hltb_search(query: string, page: number = 1): Promise<[HLT
         return [hltb_res, hltb_msg];
     } catch (error) {
         logger.error(error);
-        return [[], "Exception occured: " + error.toString()];
+        let errStr = "Unknown error occurred.";
+        if (error instanceof Error) {
+            errStr = error.toString();
+        }
+        return [[], "Exception occured: " + errStr];
     }
 }

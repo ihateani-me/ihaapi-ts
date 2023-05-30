@@ -1,124 +1,94 @@
-import _ from "lodash";
 import { FilterQuery } from "mongoose";
-import { createSchema, ExtractDoc, ExtractProps, Type, typedModel } from "ts-mongoose";
+import { getModelForClass, prop, ReturnModelType } from "@typegoose/typegoose";
 
-import {
-    FindPaginatedResult,
-    findPaginationMongoose,
-    IPaginateOptions,
-    IPaginateResults,
-    remapSchemaToDatabase,
-} from "./pagination";
-import { LiveStatus, PlatformData } from "./extras";
-import { fallbackNaN } from "../../utils/swissknife";
+import { LiveStatus, LiveStatusType, PlatformData, PlatformDataType } from "./extras";
+import paginationHelper, { IPaginateOptions } from "./pagination";
 
-const VideosSchema = createSchema({
-    id: Type.string({ required: true }),
-    schedule_id: Type.string(), // TTV Specific, used for schedule checking :)
-    room_id: Type.string(), // B2 Specific
-    title: Type.string({ required: true }),
-    status: Type.string({ required: true, enum: LiveStatus }),
-    timedata: Type.object({ required: true }).of({
-        scheduledStartTime: Type.number(),
-        startTime: Type.number(),
-        endTime: Type.number(),
-        lateTime: Type.number(),
-        duration: Type.number(),
-        publishedAt: Type.string(),
-    }),
-    viewers: Type.number(),
-    peakViewers: Type.number(),
-    averageViewers: Type.number(),
-    channel_uuid: Type.string(), // Twitch specific
-    channel_id: Type.string({ required: true }),
-    mentioned: Type.array().of({
-        // YouTube specific
-        id: Type.string({ required: true }),
-        platform: Type.string({ required: true, enum: PlatformData }),
-    }),
-    thumbnail: Type.string({ required: true }),
-    group: Type.string({ required: true }),
-    platform: Type.string({ required: true, enum: PlatformData }),
-    is_missing: Type.boolean(),
-    is_premiere: Type.boolean(),
-    is_member: Type.boolean(),
-});
+class VideoTimes {
+    @prop()
+    public scheduledStartTime?: number;
+    @prop()
+    public startTime?: number;
+    @prop()
+    public endTime?: number;
+    @prop()
+    public lateTime?: number;
+    @prop()
+    public duration?: number;
+    @prop()
+    public publishedAt?: string;
+}
 
-const ViewersDataSchema = createSchema({
-    id: Type.string({ required: true }),
-    viewersData: Type.array({ required: true }).of({
-        timestamp: Type.number({ required: true }),
-        viewers: Type.number(),
-    }),
-    group: Type.string({ required: true }),
-    platform: Type.string({ required: true, enum: PlatformData }),
-});
+class VideoCollabMentioned {
+    @prop({ required: true })
+    public id!: string;
+    @prop({ enum: PlatformData, required: true })
+    public platform!: PlatformDataType;
+}
 
-export type ViewersProps = ExtractProps<typeof ViewersDataSchema>;
-export type VideoProps = ExtractProps<typeof VideosSchema>;
+export class Video {
+    @prop({ required: true })
+    public id!: string;
+    @prop()
+    public schedule_id?: string; // TTV Specific, used for schedule checking :)
+    @prop()
+    public room_id?: string; // B2 Specific
+    @prop({ required: true })
+    public title!: string;
+    @prop({ required: true, enum: LiveStatus })
+    public status!: LiveStatusType;
+    @prop({ required: true })
+    public timedata!: VideoTimes;
+    @prop()
+    public viewers?: number;
+    @prop()
+    public peakViewers?: number;
+    @prop()
+    public averageViewers?: number;
+    @prop()
+    public channel_uuid?: string; // Twitch specific
+    @prop({ required: true })
+    public channel_id!: string;
+    @prop()
+    public mentioned?: VideoCollabMentioned[];
+    @prop({ required: true })
+    public thumbnail!: string;
+    @prop({ required: true })
+    public group!: string;
+    @prop({ required: true, enum: PlatformData })
+    public platform!: PlatformDataType;
+    @prop()
+    public is_missing?: boolean;
+    @prop()
+    public is_premiere?: boolean;
+    @prop()
+    public is_member?: boolean;
 
-export const ViewersData = typedModel("ViewersData", ViewersDataSchema);
-export const VideosData = typedModel("VideosData", VideosSchema, undefined, undefined, {
-    paginate: async function (
-        query: FilterQuery<VideoProps>,
+    public static async paginate(
+        this: ReturnModelType<typeof Video>,
+        query: FilterQuery<Video>,
         options?: IPaginateOptions
-    ): Promise<IPaginateResults<VideoProps>> {
-        const cursor = _.get(options, "cursor", undefined);
-        const limit = fallbackNaN(parseInt, _.get(options, "limit", 25), 25);
-        const projection = _.get(options, "project", undefined);
-        const sortKey = remapSchemaToDatabase(_.get(options, "sortBy", "_id"), "v", "timedata.startTime");
-        const sortMeth: any = {};
-        sortMeth[sortKey] = ["asc", "ascending"].includes(_.get(options, "sortOrder", "asc").toLowerCase())
-            ? 1
-            : -1;
-        const paginationParams: any = {
-            first: limit,
-        };
-        if (typeof cursor === "string" && cursor.length > 0) {
-            paginationParams["after"] = cursor;
-        }
-        paginationParams["sort"] = sortMeth;
-        if (typeof projection === "object" && Object.keys(projection).length > 0) {
-            paginationParams["projection"] = projection;
-        }
-        paginationParams["query"] = query;
-        const promises = [
-            {
-                // @ts-ignore
-                fn: findPaginationMongoose.bind(findPaginationMongoose, this, paginationParams),
-                name: "docs",
-            },
-            // @ts-ignore
-            { fn: this.countDocuments.bind(this, query), name: "count" },
-        ].map((req) =>
-            req
-                .fn()
-                // @ts-ignore
-                .then((res: FindPaginatedResult<ChannelsProps> | number) => {
-                    return res;
-                })
-                .catch(() => {
-                    if (req.name === "count") {
-                        return 0;
-                    }
-                    return {};
-                })
-        );
-        // @ts-ignore
-        const [docsResults, countResults]: [FindPaginatedResult<VideoProps>, number] = await Promise.all(
-            promises
-        );
-        const allDocuments = docsResults.edges.map((o) => o.node);
-        return {
-            docs: allDocuments,
-            pageInfo: {
-                totalData: countResults,
-                hasNextPage: docsResults.pageInfo.hasNextPage,
-                nextCursor: docsResults.pageInfo.endCursor,
-            },
-        };
-    },
-});
+    ) {
+        return await paginationHelper<typeof Video>(this, query, options);
+    }
+}
+class VideoViewTimestamp {
+    @prop({ required: true })
+    public timestamp!: number;
+    @prop()
+    public viewers?: number;
+}
 
-export type VideoDocs = ExtractDoc<typeof VideosSchema>;
-export type ViewersDocs = ExtractDoc<typeof ViewersDataSchema>;
+export class VideoView {
+    @prop({ required: true })
+    public id!: string;
+    @prop({ required: true })
+    public viewersData!: VideoViewTimestamp[];
+    @prop({ required: true })
+    public group!: string;
+    @prop({ required: true, enum: PlatformData })
+    public platform!: PlatformDataType;
+}
+
+export const VideoModel = getModelForClass(Video);
+export const VideoViewModel = getModelForClass(VideoView);

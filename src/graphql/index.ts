@@ -1,69 +1,127 @@
-import _ from "lodash";
-import { ApolloServerExpressConfig } from "apollo-server-express";
-import { ApolloServerPluginInlineTraceDisabled } from "apollo-server-core";
-
-import { CustomRedisCache } from "./caches/redis";
-import { ImageBooruSchemas, nHGQLSchemas, SauceAPIGQL, v2Definitions, VTAPIv2 } from "./schemas";
-import { v2Resolvers } from "./resolvers";
-import { SubscriptionResolver, v2SubscriptionSchemas } from "./subscription";
-import { IQDBAPI, SauceNAOAPI } from "./datasources";
-import { VTAPIChannels, VTAPIChannelStatsHist, VTAPIVideos } from "./datasources/vtapi";
-
-import { is_none } from "../utils/swissknife";
-import { ChannelsData, ChannelStatsHistData, VideosData } from "../controller/models";
 import { logger } from "../utils/logger";
 
-import config from "../config";
+import { Server as HTTPServer } from "http";
 
-const REDIS_PASSWORD = config["redis"]["password"];
-const REDIS_HOST = config["redis"]["host"];
-const REDIS_PORT = config["redis"]["port"];
-const cacheServers = new CustomRedisCache({
-    host: is_none(REDIS_HOST) ? "127.0.0.1" : REDIS_HOST,
-    port: isNaN(REDIS_PORT) ? 6379 : REDIS_PORT,
-    password: is_none(REDIS_PASSWORD) ? undefined : REDIS_PASSWORD,
-});
+import { WebSocketServer } from "ws";
+import { Express, json } from "express";
+import { ApolloServer, ApolloServerPlugin } from "@apollo/server";
+import { expressMiddleware } from "@apollo/server/express4";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
+import { Redis } from "ioredis";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
+import { useServer } from "graphql-ws/lib/use/ws";
+import cors from "cors";
+import Keyv from "keyv";
+import KeyvRedis from "@keyv/redis";
 
-let typeDefs = [VTAPIv2, SauceAPIGQL, nHGQLSchemas, ImageBooruSchemas, v2Definitions];
-const v2ResolversFinal = v2Resolvers;
-if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
-    logger.info("Enabling replica subscription (schemas)...");
-    typeDefs = _.concat(typeDefs, v2SubscriptionSchemas);
+import typeDefsCollects from "./schemas";
+import { v2Resolvers } from "./resolvers";
+import { GQLContext } from "./types";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { SauceRESTDataSources, VTAPIDataSources } from "./datasources";
+import { RedisDB } from "../controller";
+import { SubscriptionResolver, v2SubscriptionSchemas } from "./subscription/";
+
+export interface GQLServerStartupOptions {
+    redis: Redis;
+    httpServer: HTTPServer;
+    wsServer?: WebSocketServer;
 }
-if (Object.keys(SubscriptionResolver["Subscription"]).length > 0) {
-    logger.info("Enabling replica subscription (resolver)...");
-    _.merge(v2ResolversFinal, SubscriptionResolver);
+
+export function createGQLServer(options: GQLServerStartupOptions) {
+    const log = logger.child({ module: "GQLv2" });
+    const { httpServer, redis } = options;
+    const tempDefs = [...typeDefsCollects];
+    let finalResolvers = { ...v2Resolvers };
+    if (v2SubscriptionSchemas.length > 0) {
+        log.info("Binding GraphQL Subscription Schema");
+        tempDefs.push(...v2SubscriptionSchemas);
+        finalResolvers = { ...finalResolvers, ...SubscriptionResolver };
+    }
+    const typeDefs = tempDefs.join("\n\n");
+    const keyvRedis = new KeyvRedis(redis);
+    const keyv = new Keyv({ store: keyvRedis });
+    const cacheAdapter = new KeyvAdapter(keyv);
+
+    const schema = makeExecutableSchema({
+        typeDefs,
+        resolvers: finalResolvers,
+    });
+
+    const plugins: ApolloServerPlugin<GQLContext>[] = [
+        ApolloServerPluginDrainHttpServer({ httpServer }),
+        ApolloServerPluginInlineTraceDisabled(),
+    ];
+
+    if (options.wsServer) {
+        log.info("Binding GraphQL Subscription WS Handler");
+        const wsSrv = useServer(
+            {
+                schema,
+                onConnect: async (ctx) => {
+                    log.info(
+                        `A new websocket connection has been established: ${JSON.stringify(
+                            ctx,
+                            undefined,
+                            2
+                        )}`
+                    );
+                },
+                onDisconnect: async (ctx) => {
+                    log.info(
+                        `A websocket connection has been disconnected: ${JSON.stringify(ctx, undefined, 2)}`
+                    );
+                },
+            },
+            options.wsServer
+        );
+        plugins.push({
+            async serverWillStart() {
+                return {
+                    async drainServer() {
+                        await wsSrv.dispose();
+                    },
+                };
+            },
+        });
+    }
+
+    return new ApolloServer<GQLContext>({
+        schema,
+        introspection: true,
+        cache: cacheAdapter,
+        plugins,
+    });
+    1;
 }
 
-export const serverConfig: ApolloServerExpressConfig = {
-    typeDefs: typeDefs,
-    resolvers: v2ResolversFinal,
-    cache: cacheServers,
-    tracing: false,
-    introspection: true,
-    playground: false,
-    context: ({ req, res }) => ({
-        req,
-        res,
-        cacheServers,
-    }),
-    subscriptions: {
-        path: "/v2/graphqlws",
-        onConnect: (connParams, webSocket, context) => {
-            logger.info(`A new connection established, ${webSocket.url}`);
-        },
-        onDisconnect: (webSocket, context) => {
-            logger.info(`A connection has been severed, ${webSocket.url}`);
-        },
-    },
-    dataSources: () => ({
-        videos: new VTAPIVideos(VideosData),
-        channels: new VTAPIChannels(ChannelsData),
-        statsHist: new VTAPIChannelStatsHist(ChannelStatsHistData),
-        saucenao: new SauceNAOAPI(),
-        iqdb: new IQDBAPI(),
-    }),
-    plugins: [ApolloServerPluginInlineTraceDisabled()],
-};
+interface DataSources {
+    vtapi: VTAPIDataSources;
+    sauce: SauceRESTDataSources;
+}
 
-// export const GQLAPIv2Server = new ApolloServer();
+interface GQLBindingOptions {
+    supportReplica: boolean;
+    dataSources: DataSources;
+    redisDB: RedisDB;
+}
+
+export function bindGQLServer(app: Express, server: ApolloServer, options: GQLBindingOptions) {
+    server.startInBackgroundHandlingStartupErrorsByLoggingAndFailingAllRequests();
+    app.use(
+        "/v2/graphql",
+        cors<cors.CorsRequest>(),
+        json(),
+        expressMiddleware(server, {
+            context: async ({ req, res }) => {
+                return {
+                    req,
+                    res,
+                    redisCache: options.redisDB,
+                    dataSources: options.dataSources,
+                };
+            },
+        })
+    );
+}

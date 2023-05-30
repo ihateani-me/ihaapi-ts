@@ -1,8 +1,7 @@
 import _, { find } from "lodash";
-import "apollo-cache-control";
-import express from "express";
-import moment from "moment-timezone";
-import { ApolloError, IResolvers } from "apollo-server-express";
+import { DateTime } from "luxon";
+import { GraphQLError } from "graphql";
+import { IExecutableSchemaDefinition } from "@graphql-tools/schema";
 
 // Import models
 import {
@@ -29,8 +28,6 @@ import {
 } from "../schemas";
 import { VTAPIDataSources } from "../datasources";
 
-import { ChannelsData, ChannelsProps, VideoProps } from "../../controller/models";
-import { CustomRedisCache } from "../caches/redis";
 import { getGroup } from "../../utils/filters";
 import {
     fallbackNaN,
@@ -45,6 +42,8 @@ import { IPaginateOptions, IPaginateResults } from "../../controller/models/pagi
 import { VTuberMutation } from "../mutations";
 
 import config from "../../config";
+import { GQLContext } from "../types";
+import { Channels, ChannelsModel, RedisDB, Video } from "../../controller";
 
 const MainLogger = TopLogger.child({ cls: "GQLVTuberAPI" });
 
@@ -58,10 +57,7 @@ interface ChannelParents {
     force_single?: boolean;
 }
 
-interface VTAPIContext {
-    req: express.Request;
-    res: express.Response;
-    cacheServers: CustomRedisCache;
+interface VTAPIContext extends GQLContext {
     dataSources: VTAPIDataSources;
 }
 
@@ -72,6 +68,14 @@ interface HistoryGrowthData {
     videoCount?: number;
     followerCount?: number;
     level?: number;
+}
+
+function ApolloError(message: string, code: string): GraphQLError {
+    return new GraphQLError(message, {
+        extensions: {
+            code,
+        },
+    });
 }
 
 function fallbackGrowthMakeSure(historyData?: HistoryGrowthData): HistoryGrowthData {
@@ -142,7 +146,7 @@ function mapHistoryData(
         logger.error(`history data is less than one, returning null for ${platform} ${channelId}`);
         return null;
     }
-    const maxLookback = moment.tz("UTC").unix() - ONE_WEEK;
+    const maxLookback = DateTime.utc().toSeconds() - ONE_WEEK;
 
     const historyFiltered = historyData.filter((res) => res.timestamp >= maxLookback);
     // @ts-ignore
@@ -150,7 +154,7 @@ function mapHistoryData(
         return {
             data: platform === "youtube" ? res.subscriberCount : res.followerCount,
             time: res.timestamp,
-            sortKey: moment.unix(res.timestamp).format("MM/DD"),
+            sortKey: DateTime.fromSeconds(res.timestamp).toFormat("MM/DD"),
         };
     });
 
@@ -161,7 +165,7 @@ function mapHistoryData(
             return {
                 data: res.videoCount,
                 time: res.timestamp,
-                sortKey: moment.unix(res.timestamp).format("MM/DD"),
+                sortKey: DateTime.fromSeconds(res.timestamp).toFormat("MM/DD"),
             };
         });
     }
@@ -173,7 +177,7 @@ function mapHistoryData(
             return {
                 data: res.viewCount,
                 time: res.timestamp,
-                sortKey: moment.unix(res.timestamp).format("MM/DD"),
+                sortKey: DateTime.fromSeconds(res.timestamp).toFormat("MM/DD"),
             };
         });
     }
@@ -228,7 +232,7 @@ function mapGrowthData(
     if (_.isNull(historyData)) {
         return null;
     }
-    const currentTime = moment.tz("UTC").unix();
+    const currentTime = DateTime.utc().toSeconds();
     const oneDay = currentTime - ONE_DAY,
         oneWeek = currentTime - ONE_DAY * 7,
         twoWeeks = currentTime - ONE_DAY * 14,
@@ -421,7 +425,7 @@ class VTAPIQuery {
         return _.uniq(_.flattenDeep(allowedGroups));
     }
 
-    mapLiveResultToSchema(res: VideoProps): LiveObject {
+    mapLiveResultToSchema(res: Video): LiveObject {
         const timeObject = _.get(res, "timedata", {});
         const duration = calcDuration(
             _.get(timeObject, "duration", NaN),
@@ -436,20 +440,20 @@ class VTAPIQuery {
             timeData: {
                 scheduledStartTime: is_none(_.get(timeObject, "scheduledStartTime", null))
                     ? null
-                    : setAsNaNAsNone(_.get(timeObject, "scheduledStartTime")),
+                    : setAsNaNAsNone(_.get(timeObject, "scheduledStartTime") as unknown as Nullable<number>),
                 startTime: is_none(_.get(timeObject, "startTime", null))
                     ? null
-                    : setAsNaNAsNone(_.get(timeObject, "startTime")),
+                    : setAsNaNAsNone(_.get(timeObject, "startTime") as unknown as Nullable<number>),
                 endTime: is_none(_.get(timeObject, "endTime", null))
                     ? null
-                    : setAsNaNAsNone(_.get(timeObject, "endTime")),
+                    : setAsNaNAsNone(_.get(timeObject, "endTime") as unknown as Nullable<number>),
                 duration: setAsNaNAsNone(duration),
                 publishedAt: is_none(_.get(timeObject, "publishedAt", null))
                     ? null
                     : _.get(timeObject, "publishedAt"),
                 lateBy: is_none(_.get(timeObject, "lateTime", null))
                     ? null
-                    : setAsNaNAsNone(_.get(timeObject, "lateTime")),
+                    : setAsNaNAsNone(_.get(timeObject, "lateTime") as unknown as Nullable<number>),
             },
             channel_id: res["channel_id"],
             viewers: is_none(_.get(res, "viewers", null)) ? null : res["viewers"],
@@ -465,11 +469,15 @@ class VTAPIQuery {
         return remapped;
     }
 
-    mapChannelResultToSchema(res: ChannelsProps): ChannelObject {
+    mapChannelResultToSchema(res: Channels): ChannelObject {
         let subsCount = ["twitch", "twitcasting", "mildom", "twitter"].includes(res["platform"])
             ? res["followerCount"]
             : res["subscriberCount"];
         subsCount = is_none(subsCount) ? 0 : subsCount;
+        let pubAt = is_none(res["publishedAt"]) ? null : DateTime.fromISO(res["publishedAt"]);
+        if (!is_none(pubAt) && !pubAt.isValid) {
+            pubAt = null;
+        }
         const remapped: ChannelObject = {
             id: res["id"],
             room_id: is_none(_.get(res, "room_id", null)) ? null : res["room_id"],
@@ -477,7 +485,7 @@ class VTAPIQuery {
             name: res["name"],
             en_name: res["en_name"],
             description: res["description"],
-            publishedAt: is_none(res["publishedAt"]) ? null : res["publishedAt"],
+            publishedAt: pubAt,
             image: res["thumbnail"],
             group: res["group"],
             statistics: {
@@ -708,7 +716,7 @@ class VTAPIQuery {
     async getMentionedChannels(
         videoInfo: LiveObject,
         dataSources: VTAPIDataSources,
-        cacheServers: CustomRedisCache,
+        cacheServers: RedisDB,
         noCache?: boolean
     ) {
         const logger = this.logger.child({ fn: "getMentionedChannels" });
@@ -747,7 +755,7 @@ class VTAPIQuery {
         }
         const allMentioned = mentionedData.map((r) => r.id).sort();
         const cacheName = getCacheNameForChannels({ id: allMentioned }, "mentioned");
-        let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await cacheServers.getBetter(
+        let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await cacheServers.get(
             cacheName,
             true
         );
@@ -758,7 +766,7 @@ class VTAPIQuery {
             });
             if (!noCache && results.docs.length > 0) {
                 ttl = 1800;
-                await cacheServers.setexBetter(cacheName, ttl, results);
+                await cacheServers.setex(cacheName, ttl, results);
             }
         }
         if (results.docs.length < 1) {
@@ -985,6 +993,8 @@ function getCacheNameForChannels(
 // Initialize query class
 export const VTQuery = new VTAPIQuery();
 
+type IResolvers = Required<IExecutableSchemaDefinition<GQLContext>>["resolvers"];
+
 // Create main resolvers
 export const VTAPIv2Resolvers: IResolvers = {
     Query: {
@@ -1000,7 +1010,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const cache_name = getCacheNameForLive(args, "live");
             // @ts-ignore
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1014,7 +1024,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 20, results);
+                    await ctx.redisCache.setex(cache_name, 20, results);
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
@@ -1056,7 +1066,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const cache_name = getCacheNameForLive(args, "upcoming");
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1070,7 +1080,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 20s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 20, results);
+                    await ctx.redisCache.setex(cache_name, 20, results);
                     ctx.res.set("Cache-Control", "private, max-age=20");
                 }
             }
@@ -1109,7 +1119,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const cache_name = getCacheNameForLive(args, "past");
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1123,7 +1133,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 300, results);
+                    await ctx.redisCache.setex(cache_name, 300, results);
                     ctx.res.set("Cache-Control", "private, max-age=300");
                 }
             }
@@ -1162,7 +1172,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const cache_name = getCacheNameForLive(args, "video");
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<LiveObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1180,7 +1190,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    await ctx.redisCache.setex(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
@@ -1228,7 +1238,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             }
             const cache_name = getCacheNameForChannels(args, "channel");
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1246,10 +1256,10 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 1800s...`);
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    await ctx.redisCache.setex(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 } else if (resetCache && results.docs.length) {
-                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    await ctx.redisCache.setex(cache_name, 1800, results);
                     ctx.res.set("Cache-Control", "private, max-age=1800");
                 }
             }
@@ -1283,7 +1293,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             logger.info("Checking for cache...");
             const cache_name = "vtapi-groups-data";
             // eslint-disable-next-line prefer-const
-            let [results, ttl]: [string[], number] = await ctx.cacheServers.getBetter(cache_name, true);
+            let [results, ttl]: [string[], number] = await ctx.redisCache.get(cache_name, true);
             if (!is_none(results)) {
                 logger.info(`Cache hit! --> ${cache_name}`);
                 ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
@@ -1293,7 +1303,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 logger.info(`Saving cache with name ${cache_name}, TTL 300s...`);
                 if (results.length > 0) {
                     // dont cache for reason.
-                    await ctx.cacheServers.setexBetter(cache_name, 300, results);
+                    await ctx.redisCache.setex(cache_name, 300, results);
                     ctx.res.set("Cache-Control", "private, max-age=300");
                 }
             }
@@ -1316,7 +1326,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             const cache_name = getCacheNameForChannels({}, "growth", parent);
-            let [results, ttl]: [Nullable<ChannelGrowthObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [Nullable<ChannelGrowthObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1336,7 +1346,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                     _.get(results, "viewsGrowth", null) !== null
                 ) {
                     if (!no_cache) {
-                        await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+                        await ctx.redisCache.setex(cache_name, ttl, results);
                     }
                 }
                 if (no_cache) {
@@ -1364,7 +1374,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             const cache_name = getCacheNameForChannels({}, "growth", parent);
-            let [results, ttl]: [Nullable<ChannelsStatsHistory>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [Nullable<ChannelsStatsHistory>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1387,7 +1397,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                     _.get(results, "viewsGrowth", null) !== null
                 ) {
                     if (!no_cache) {
-                        await ctx.cacheServers.setexBetter(cache_name, ttl, results);
+                        await ctx.redisCache.setex(cache_name, ttl, results);
                     }
                 }
                 if (no_cache) {
@@ -1418,7 +1428,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             // @ts-ignore
             const cache_name = getCacheNameForChannels({}, "singlech", parent);
-            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.cacheServers.getBetter(
+            let [results, ttl]: [IPaginateResults<ChannelObject>, number] = await ctx.redisCache.get(
                 cache_name,
                 true
             );
@@ -1434,7 +1444,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                 if (!no_cache && results.docs.length > 0) {
                     // dont cache for reason.
                     ttl = 1800;
-                    await ctx.cacheServers.setexBetter(cache_name, 1800, results);
+                    await ctx.redisCache.setex(cache_name, 1800, results);
                 }
             }
             if (results.docs.length < 1) {
@@ -1456,7 +1466,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const fetchedChannels = await VTQuery.getMentionedChannels(
                 parent,
                 ctx.dataSources,
-                ctx.cacheServers,
+                ctx.redisCache,
                 no_cache
             );
             return fetchedChannels;
@@ -1472,7 +1482,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const mut = VTuberMutation[platform as keyof typeof VTuberMutation];
             if (is_none(mut)) {
                 ctx.res.status(400);
-                throw new ApolloError(
+                throw ApolloError(
                     `Unknown platform key provided, ${platform} is not available.`,
                     "VT_UNKNOWN_PLATFORM"
                 );
@@ -1481,14 +1491,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let authHeader = header.authorization;
             if (typeof authHeader !== "string") {
                 ctx.res.status(401);
-                throw new ApolloError(
+                throw ApolloError(
                     "You need to provide an Authorization header to authenticate!",
                     "AUTH_MISSING"
                 );
             }
             if (!authHeader.startsWith("password ")) {
                 ctx.res.status(400);
-                throw new ApolloError(
+                throw ApolloError(
                     "Authorization header need to start with `password `",
                     "AUTH_MISCONFIGURED"
                 );
@@ -1496,7 +1506,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             authHeader = authHeader.slice(9);
             if (authHeader !== config.secure_password) {
                 ctx.res.status(403);
-                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+                throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
             const [is_success, message] = await mut(id, group, name);
             if (!is_success) {
@@ -1510,7 +1520,7 @@ export const VTAPIv2Resolvers: IResolvers = {
                     errType = "VT_ALREADY_EXIST";
                 }
                 ctx.res.status(errCode);
-                throw new ApolloError(message as string, errType);
+                throw ApolloError(message as string, errType);
             }
             const no_cache = map_bool(getValueFromKey(ctx.req.query, "nocache", "0"));
             const cache_name = getCacheNameForChannels({}, "singlech", {
@@ -1532,7 +1542,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             let ttl = 0;
             if (!no_cache && queried.docs.length > 0) {
                 ttl = 1800;
-                await ctx.cacheServers.setexBetter(cache_name, ttl, queried);
+                await ctx.redisCache.setex(cache_name, ttl, queried);
             }
             ctx.res.set("Cache-Control", `private, max-age=${ttl}`);
             return queried.docs[0];
@@ -1546,14 +1556,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let authHeader = header.authorization;
             if (typeof authHeader !== "string") {
                 ctx.res.status(401);
-                throw new ApolloError(
+                throw ApolloError(
                     "You need to provide an Authorization header to authenticate!",
                     "AUTH_MISSING"
                 );
             }
             if (!authHeader.startsWith("password ")) {
                 ctx.res.status(400);
-                throw new ApolloError(
+                throw ApolloError(
                     "Authorization header need to start with `password `",
                     "AUTH_MISCONFIGURED"
                 );
@@ -1561,13 +1571,13 @@ export const VTAPIv2Resolvers: IResolvers = {
             authHeader = authHeader.slice(9);
             if (authHeader !== config.secure_password) {
                 ctx.res.status(403);
-                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+                throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
             const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
@@ -1575,7 +1585,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const theOneAndOnly = find(realData, (o) => o.id === id);
             if (is_none(theOneAndOnly)) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
@@ -1584,7 +1594,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             let shouldThrowError = false;
 
             try {
-                const removedData = await ChannelsData.deleteOne({
+                const removedData = await ChannelsModel.deleteOne({
                     id: { $eq: id },
                     platform: { $eq: platform },
                 });
@@ -1600,11 +1610,11 @@ export const VTAPIv2Resolvers: IResolvers = {
                 }
             } catch (e) {
                 ctx.res.status(500);
-                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+                throw ApolloError("Failed to contact database, please try again later", "DB_ERROR");
             }
 
             if (shouldThrowError) {
-                throw new ApolloError(
+                throw ApolloError(
                     "Failed to remove the mentioned VTuber, please try again later",
                     "REMOVAL_FAILURE"
                 );
@@ -1625,14 +1635,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let authHeader = header.authorization;
             if (typeof authHeader !== "string") {
                 ctx.res.status(401);
-                throw new ApolloError(
+                throw ApolloError(
                     "You need to provide an Authorization header to authenticate!",
                     "AUTH_MISSING"
                 );
             }
             if (!authHeader.startsWith("password ")) {
                 ctx.res.status(400);
-                throw new ApolloError(
+                throw ApolloError(
                     "Authorization header need to start with `password `",
                     "AUTH_MISCONFIGURED"
                 );
@@ -1640,14 +1650,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             authHeader = authHeader.slice(9);
             if (authHeader !== config.secure_password) {
                 ctx.res.status(403);
-                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+                throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
 
             const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
@@ -1655,7 +1665,7 @@ export const VTAPIv2Resolvers: IResolvers = {
             const theOneAndOnly = find(realData, (o) => o.id === id);
             if (is_none(theOneAndOnly)) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
@@ -1666,14 +1676,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let shouldThrowError = false;
 
             try {
-                const changedData = await ChannelsData.updateOne(
+                const changedData = await ChannelsModel.updateOne(
                     {
                         id: { $eq: id },
                         platform: { $eq: platform },
                     },
                     { $set: { is_retired: is_retired } }
                 );
-                if (changedData.ok === 1) {
+                if (changedData.acknowledged) {
                     theOneAndOnly["is_retired"] = is_retired;
                     return VTQuery.mapChannelResultToSchema(theOneAndOnly);
                 } else {
@@ -1683,11 +1693,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             } catch (e) {
                 console.error(e);
                 ctx.res.status(500);
-                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+                throw ApolloError("Failed to contact database, please try again later", "DB_ERROR");
             }
 
             if (shouldThrowError) {
-                throw new ApolloError(
+                throw ApolloError(
                     "Failed to update the mentioned VTuber, please try again later",
                     "UPDATE_FAILURE"
                 );
@@ -1703,14 +1713,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let authHeader = header.authorization;
             if (typeof authHeader !== "string") {
                 ctx.res.status(401);
-                throw new ApolloError(
+                throw ApolloError(
                     "You need to provide an Authorization header to authenticate!",
                     "AUTH_MISSING"
                 );
             }
             if (!authHeader.startsWith("password ")) {
                 ctx.res.status(400);
-                throw new ApolloError(
+                throw ApolloError(
                     "Authorization header need to start with `password `",
                     "AUTH_MISCONFIGURED"
                 );
@@ -1718,22 +1728,22 @@ export const VTAPIv2Resolvers: IResolvers = {
             authHeader = authHeader.slice(9);
             if (authHeader !== config.secure_password) {
                 ctx.res.status(403);
-                throw new ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
+                throw ApolloError("Wrong password provided, please check again", "AUTH_FAILED");
             }
 
             const findVTuber = await ctx.dataSources.channels.getChannels([platform], { channel_ids: [id] });
             const realData = findVTuber.docs;
             if (realData.length < 1) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
             }
-            const theOneAndOnly = find(realData, (o) => o.id === id) as Nullable<ChannelsProps>;
+            const theOneAndOnly = find(realData, (o) => o.id === id) as Nullable<Channels>;
             if (is_none(theOneAndOnly)) {
                 ctx.res.status(404);
-                throw new ApolloError(
+                throw ApolloError(
                     "Can't find the mentioned VTuber, please make sure you enter the correct platform and id",
                     "NOT_FOUND"
                 );
@@ -1747,14 +1757,14 @@ export const VTAPIv2Resolvers: IResolvers = {
             let shouldThrowError = false;
 
             try {
-                const changedData = await ChannelsData.updateOne(
+                const changedData = await ChannelsModel.updateOne(
                     {
                         id: { $eq: id },
                         platform: { $eq: platform },
                     },
                     { $set: { note: theRealNote as string | undefined } }
                 );
-                if (changedData.ok === 1) {
+                if (changedData.acknowledged) {
                     theOneAndOnly["note"] = theRealNote as string | undefined;
                     return VTQuery.mapChannelResultToSchema(theOneAndOnly);
                 } else {
@@ -1764,11 +1774,11 @@ export const VTAPIv2Resolvers: IResolvers = {
             } catch (e) {
                 console.error(e);
                 ctx.res.status(500);
-                throw new ApolloError("Failed to contact database, please try again later", "DB_ERROR");
+                throw ApolloError("Failed to contact database, please try again later", "DB_ERROR");
             }
 
             if (shouldThrowError) {
-                throw new ApolloError(
+                throw ApolloError(
                     "Failed to update the mentioned VTuber, please try again later",
                     "UPDATE_FAILURE"
                 );

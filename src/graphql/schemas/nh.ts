@@ -1,6 +1,6 @@
-import { gql } from "apollo-server-express";
+import { DateTime } from "luxon";
 
-export const nHGQLSchemas = gql`
+export const nHGQLSchemas = `#graphql
     """
     The doujin title data
     """
@@ -168,7 +168,7 @@ export interface nhInfoResult {
     tags: nhTags;
     images: nhImage[];
     url: string;
-    publishedAt: string;
+    publishedAt: DateTime;
     favorites?: number;
     total_pages: number;
 }

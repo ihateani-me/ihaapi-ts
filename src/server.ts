@@ -3,24 +3,21 @@ import * as cons from "consolidate";
 import express from "express";
 import express_compression from "compression";
 import express_cors from "cors";
-import moment from "moment-timezone";
 import mongoose from "mongoose";
 import path from "path";
-import { ApolloServer } from "apollo-server-express";
 import { altairExpress } from "altair-express-middleware";
 import { readFileSync } from "fs";
-// import { collectDefaultMetrics, register } from "prom-client";
-import { createPrometheusExporterPlugin } from "@bmatei/apollo-prometheus-exporter";
 
 import * as Logger from "./utils/logger";
 import * as Routes from "./routes";
-import { serverConfig } from "./graphql";
 
-import htmlMinifier from "./utils/minifier";
 import { capitalizeIt, is_none } from "./utils/swissknife";
 
 import config from "./config";
 import packageJson from "../package.json";
+import { DateTime } from "luxon";
+import { MongoClientOptions } from "mongodb";
+import { createGQLServer } from "./graphql";
 
 const logger = Logger.logger;
 
@@ -38,12 +35,10 @@ let MONGO_VERSIONING = {
 };
 
 logger.info("Connecting to database...");
-const mongooseConfig: mongoose.ConnectOptions = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false,
-};
 let replicaEnabled = false;
+const mongooseConfig: MongoClientOptions = {
+    authSource: "admin",
+};
 if (!is_none(config.mongodb.replica_set) && config.mongodb.replica_set.length > 0) {
     mongooseConfig["replicaSet"] = config.mongodb.replica_set;
     replicaEnabled = true;
@@ -53,7 +48,7 @@ mongoose.connect(`${mongouri}/${config.mongodb.dbname}`, mongooseConfig);
 mongoose.connection.on("open", () => {
     logger.info("Connected to VTubers Database!");
     const admin = mongoose.connection.db.admin();
-    admin.serverInfo((_e, info) => {
+    admin.serverInfo().then((info) => {
         MONGO_VERSIONING["version"] = info.version;
         const modules = info.modules;
         if (modules.length > 0) {
@@ -66,10 +61,6 @@ mongoose.connection.on("open", () => {
 });
 
 const app = express();
-const prometheusExporterPlugin = createPrometheusExporterPlugin({ app });
-
-serverConfig.plugins?.push(prometheusExporterPlugin);
-const GQLAPIv2Server = new ApolloServer(serverConfig);
 
 // Opt-out of FLoC thing, even though I don't use ads
 app.use((_q, res, next) => {
@@ -77,18 +68,6 @@ app.use((_q, res, next) => {
     next();
 });
 
-app.use(
-    htmlMinifier({
-        override: true,
-        htmlMinifier: {
-            removeComments: false,
-            removeAttributeQuotes: false,
-            minifyJS: true,
-            minifyCSS: true,
-            minifyURLs: true,
-        },
-    })
-);
 app.use(express_cors());
 
 app.use("/robots.txt", (_q, res) => {
@@ -108,8 +87,8 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
 app.get("/", (_, res) => {
-    const current_jst = moment().tz("Asia/Tokyo");
-    const current_jst_fmt = current_jst.format("ddd MMM DD YYYY HH:mm:ss JST");
+    const current_jst = DateTime.utc().setZone("Asia/Tokyo");
+    const current_jst_fmt = current_jst.toFormat("ddd MMM DD YYYY HH:mm:ss JST");
     let express_js_version = "Unknown";
     try {
         express_js_version = packageJson["dependencies"]["express"]
@@ -262,7 +241,4 @@ app.use(
     })
 );
 
-// @ts-ignore
-GQLAPIv2Server.applyMiddleware({ app, path: "/v2/graphql" });
-
-export { app, replicaEnabled, GQLAPIv2Server };
+export { app, replicaEnabled };

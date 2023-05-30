@@ -1,4 +1,4 @@
-import moment from "moment-timezone";
+import { DateTime } from "luxon";
 import getMimeType from "mime-type-check";
 import cheerio from "cheerio";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
@@ -211,7 +211,7 @@ async function nhParseJson(
     parsed_data["images_size"] = size_list;
 
     parsed_data["url"] = `https://nhentai.net/g/${res_data["id"]}`;
-    const current_time = moment.utc().unix();
+    const current_time = DateTime.utc().toSeconds();
     parsed_data["posted_time"] = getValueFromKey(res_data, "upload_date", current_time);
     parsed_data["favorites"] = getValueFromKey(res_data, "num_favorites", 0);
     parsed_data["total_pages"] = getValueFromKey(res_data, "num_pages", img_list.length);
