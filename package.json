@@ -95,7 +95,7 @@
   },
   "dependencies": {
     "@apollo/datasource-rest": "6.0.0",
-    "@apollo/server": "4.7.1",
+    "@apollo/server": "4.9.3",
     "@apollo/utils.keyvadapter": "3.0.0",
     "@graphql-tools/schema": "10.0.0",
     "@keyv/redis": "2.5.8",
