@@ -124,7 +124,7 @@
     "lodash": "4.17.21",
     "luxon": "3.3.0",
     "mime-type-check": "2.0.0",
-    "mongodb": "5.5.0",
+    "mongodb": "5.8.0",
     "mongoose": "7.2.1",
     "prom-client": "14.2.0",
     "qs": "6.11.2",
